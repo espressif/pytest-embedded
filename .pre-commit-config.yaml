@@ -1,0 +1,29 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: &whitespace_excludes |
+          (?x)^(
+            .+\.(md|rst|map|bin)|
+            .+test.*\/.*expected.*|
+          )$
+      - id: end-of-file-fixer
+        exclude: *whitespace_excludes
+      - id: mixed-line-ending
+        args: ['-f=lf']
+      - id: double-quote-string-fixer
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.4
+    hooks:
+      - id: flake8
+  - repo: https://github.com/myint/unify
+    rev: v0.5
+    hooks:
+      - id: unify
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.7.0
+    hooks:
+      - id: isort
