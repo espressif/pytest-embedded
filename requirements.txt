@@ -1,1 +1,2 @@
-esptool>=3.0
+git+git://github.com/espressif/esptool@master#egg=esptool
+pytest>=3.5.0

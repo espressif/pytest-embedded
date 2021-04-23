@@ -1,33 +1,23 @@
 import pytest_idf.plugin  # noqa
 
 
-def test_fixtures(testdir):
+def test_printf_a(testdir, test_root):
     testdir.makepyfile("""
-        def test_foo(target, port):
-            assert target == ['esp32']
-            assert port == '/dev/ttyUSB0'
+        def test_printf(capsys, dut):
+            assert dut.printf() == 1
     """)
 
-    result = testdir.runpytest(
-        '--target', 'esp32',
-        '--port', '/dev/ttyUSB0',
-        '-v',
-    )
-
-    result.stdout.fnmatch_lines([
-        '*::test_foo PASSED*',
-    ])
+    result = testdir.runpytest('--printf', 'a')
 
     assert result.ret == 0
 
 
-def test_help_message(testdir):
-    result = testdir.runpytest(
-        '--help',
-    )
+def test_printf_b(testdir, test_root):
+    testdir.makepyfile("""
+        def test_printf(capsys, dut):
+            assert dut.printf() == 2
+    """)
 
-    result.stdout.fnmatch_lines([
-        'idf:',
-        '*--target=TARGET*',
-        '*--port=PORT*',
-    ])
+    result = testdir.runpytest('--printf', 'b')
+
+    assert result.ret == 0

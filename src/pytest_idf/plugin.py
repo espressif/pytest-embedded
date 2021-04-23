@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
-import os
+import importlib
 
 import pytest
 
 
 def pytest_addoption(parser):
     group = parser.getgroup('idf')
-    group.addoption('--target',
-                    nargs='+',
-                    default=['esp32'],
-                    help='Run all tests with different targets')
-    group.addoption(
-        '--port',
-        default=os.environ.get('ESPPORT', None),
-        help='Serial port',
-    )
-    group.addoption(
-        '--baud',
-        default=os.environ.get('ESPBAUD', 460800),
-        help='Baud rate',
-    )
+    group.addoption('--printf',
+                    default='a')
+
+
+KNOWN_KEYWORDS = ['printf']
 
 
 @pytest.fixture
-def target(request):
-    return request.config.option.target
+def import_dict(request):
+    res = {}
+    for keyword in KNOWN_KEYWORDS:
+        res[keyword] = request.config.getoption(keyword)
+    return res
 
 
 @pytest.fixture
-def port(request):
-    return request.config.option.port
+def dut(import_dict):
+    for subpackage, module in import_dict.items():
+        globals()[subpackage] = getattr(importlib.import_module(f'pytest_idf.{subpackage}.{module}'),
+                                        subpackage)  # noqa
+
+    class DUT:
+        def printf(self, *args, **kwargs):
+            return globals()['printf'](*args, **kwargs)  # noqa
+
+    return DUT()
