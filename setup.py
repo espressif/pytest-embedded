@@ -21,7 +21,7 @@ LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
     'pytest>=3.5.0',
-    'esptool @ git+https://github.com/espressif/esptool@master',
+    'esptool>=3.0',
 ]
 
 setup(
@@ -55,6 +55,8 @@ setup(
     entry_points={
         'pytest11': [
             'pytest_idf = pytest_idf.plugin',
+            'pytest_idf_flash_serial = pytest_idf_flash_serial.plugin',
+            'pytest_idf_flash_jtag = pytest_idf_flash_jtag.plugin',
         ],
     },
 )
