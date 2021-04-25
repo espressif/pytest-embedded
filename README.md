@@ -1,3 +1,3 @@
-# pytest-idf
+# pytest-embedded
 
-ESP-IDF pytest plugin
+ESP pytest embedded plugin

@@ -13,7 +13,7 @@ def read(fname):
 VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-idf-flash-jtag'
+NAME = 'pytest-embedded-flash-jtag'
 SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
@@ -23,7 +23,7 @@ REQUIRES = [
 ]
 ENTRY_POINTS = {
     'pytest11': [
-        'pytest_idf_flash_jtag = pytest_idf_flash_jtag.plugin',
+        'pytest_embedded_flash_jtag = pytest_embedded_flash_jtag.plugin',
     ],
 }
 

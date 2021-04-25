@@ -9,8 +9,8 @@ def test_flash(testdir):
     """)
 
     result = testdir.runpytest(
-        '-p', 'pytest_idf_base',
-        '-p', 'pytest_idf_flash_jtag',
-        '-p', 'pytest_idf_flash_serial',
+        '-p', 'pytest_embedded',
+        '-p', 'pytest_embedded_flash_jtag',
+        '-p', 'pytest_embedded_flash_serial',
     )
     assert result.ret == 0

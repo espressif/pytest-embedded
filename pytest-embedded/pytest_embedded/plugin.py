@@ -2,7 +2,7 @@ import pytest
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup('idf')
+    group = parser.getgroup('app')
     group.addoption('--app-path')
     group.addoption('--target')
 

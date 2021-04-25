@@ -22,7 +22,7 @@ REQUIRES = [
 ]
 ENTRY_POINTS = {
     'pytest11': [
-        'pytest_idf_base = pytest_idf_base.plugin',
+        'pytest_embedded = pytest_embedded.plugin',
     ],
 }
 
