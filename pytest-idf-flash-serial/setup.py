@@ -1,7 +1,5 @@
 import codecs
 import os
-from glob import glob
-from os.path import basename, splitext
 
 import setuptools
 from setuptools import setup
@@ -15,14 +13,19 @@ def read(fname):
 VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-idf'
+NAME = 'pytest-idf-flash-serial'
 SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
     'pytest>=3.5.0',
-    'esptool>=3.0',
+    # 'pytest-idf-base'
 ]
+ENTRY_POINTS = {
+    'pytest11': [
+        'pytest_idf_flash_serial = pytest_idf_flash_serial.plugin',
+    ],
+}
 
 setup(
     name=NAME,
@@ -33,9 +36,7 @@ setup(
     url=URL,
     description=SHORT_DESCRIPTION,
     long_description=read('README.md'),
-    packages=setuptools.find_packages('src'),
-    package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    packages=setuptools.find_packages(exclude='tests'),
     python_requires='>=3.6',
     install_requires=REQUIRES,
     classifiers=[
@@ -52,11 +53,5 @@ setup(
         'Operating System :: OS Independent',
         'License :: OSI Approved :: Apache Software License',
     ],
-    entry_points={
-        'pytest11': [
-            'pytest_idf = pytest_idf.plugin',
-            'pytest_idf_flash_serial = pytest_idf_flash_serial.plugin',
-            'pytest_idf_flash_jtag = pytest_idf_flash_jtag.plugin',
-        ],
-    },
+    entry_points=ENTRY_POINTS,
 )
