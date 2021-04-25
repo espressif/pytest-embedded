@@ -1,0 +1,59 @@
+stages:
+  - check
+  - build
+  - deploy
+
+image: python:3.6-buster
+default:
+  tags:
+    - build
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/
+
+pre-commit:
+  stage: check
+  script:
+    - pip install pre-commit
+    - pre-commit run -a
+
+pytest:
+  stage: check
+  script:
+    - bash foreach.sh install
+    - pytest
+
+build-dist:
+  stage: build
+  artifacts:
+    paths:
+      - "*/dist/*"
+  script:
+    - pip install -U pip
+    - pip install wheel
+    - bash ./foreach.sh build
+
+publish:
+  stage: deploy
+  needs:
+    - build-dist
+  only:
+    - tags
+  variables:
+    REPO_URL: ${GITLAB_HTTPS_SERVER}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
+  script:
+    - pip install -U pip
+    - pip install twine
+    - bash ./foreach.sh publish

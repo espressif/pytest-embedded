@@ -19,7 +19,7 @@ LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
     'pytest>=3.5.0',
-    # 'pytest-idf-base'
+    # 'pytest-embedded',
 ]
 ENTRY_POINTS = {
     'pytest11': [
