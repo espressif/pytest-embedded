@@ -4,31 +4,39 @@ ESP pytest embedded plugin
 
 ## Fixtures
 
+- test_file_name (the test script file name)
+- test_case_name (the test function name)
 - app
 - dut
-- context managers
-  - junit report writer
-- module name
-- test case name
 
-All fixtures are with function scope by default, but we could provide different fixtures for different scope in order
-to load binary to device only once for multiple test cases or other time-saving use cases.
+All fixtures are with function scope by default, but we could provide different fixtures for different scope in order to
+load binary to device only once for multiple test cases or other time-saving use cases.
 
 For example:
+
 - `dut` fixtures could be module scope if we put all the same test cases which need the same app into one test file
-- `junit report writer` fixtures could be session scope to put all test cases into a single junit file
+
+## Functionalities Provided by Pytest
+
+- Live Logging (https://docs.pytest.org/en/stable/logging.html#live-logs)
+- JUnit Report (https://docs.pytest.org/en/stable/usage.html#creating-junitxml-format-files)
+- Test Case
+  Filter (https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name)
 
 ## Base Functionalities
 
-- [ ] log utils
-  - [ ] normal log utils to console/file
-  - [ ] log performance
-  - [ ] log binary size/heap size
+- [ ] log metrics
+  - [ ] performance
+  - [ ] binary size/heap size
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
-- [ ] expect str/regex from stdout/stderr
+- [ ] interact with the app via serial (`pexpect`, `pyserial`)
+  - [ ] use `pyserial` to create a serial file descriptor
+  - [ ] pre-process (decode/annotate/encode) and redefine the file descriptor (optional, provided by plugins,
+    project-specific)
+  - [ ] use `pexpect` expect str/regex from the file descriptor
+  - [ ] use `pyserial` to send signal
 - [ ] junit support
-  - [ ] record test case into junit 
-  - [ ] parse stdout to junit
+  - [ ] parse serial stdout to junit
 
 ## Plugin Features
 
@@ -40,18 +48,16 @@ For example:
 - [ ] load binary to device
   - [ ] jtag
   - [ ] serial
-- [ ] run cmd on target
-  - [ ] jtag
-  - [ ] serial
-- [ ] get stdout/stderr from target
-  - [ ] jtag
-  - [ ] serial
-- [ ] send signal to port
 - [ ] debugging
   - [ ] jtag
   - [ ] openocd related (`py_debug_backend`, `telnetlib`)
   - [ ] gdb related (`py_debug_backend`, `pygdbmi`)
   - [ ] custom process context manager (`pexpect`)
+- [ ] CI related (project-specific)
+  - [ ] setting up rules parsing `module_name` to get app_path, config, target for CI
+  - [ ] rename test case name, (for example we're using `<target>.<config>.<test_function_name>` in idf)
+  - [ ] CI Env File Parsing (yaml file example: https://gitlab.espressif.cn:6688/qa/ci-test-runner-configs/-/blob/master
+    , project-specific)
 
 ## Other Protocal Related Features
 
