@@ -1,10 +1,30 @@
-def test_help(testdir):
-    testdir.monkeypatch.setenv('PYTEST_DISABLE_PLUGIN_AUTOLOAD', '1')
+PLUGINS = [
+    '-p', 'pytest_embedded',
+]
 
+
+def test_help(testdir):
     result = testdir.runpytest(
-        '-p', 'pytest_embedded',
+        *PLUGINS,
         '--help'
     )
+
     result.stdout.fnmatch_lines([
         'app:',
     ])
+
+
+def test_fixtures(testdir):
+    testdir.makepyfile("""
+        def test_fixtures_test_file_name(test_file_name):
+            assert test_file_name == 'test_fixtures'
+
+        def test_fixtures_test_case_name(test_case_name):
+            assert test_case_name == 'test_fixtures_test_case_name'
+    """)
+
+    result = testdir.runpytest(
+        *PLUGINS
+    )
+
+    result.assert_outcomes(passed=2)

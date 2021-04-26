@@ -1,6 +1,4 @@
 def test_flash(testdir):
-    testdir.monkeypatch.setenv('PYTEST_DISABLE_PLUGIN_AUTOLOAD', '1')
-
     testdir.makepyfile("""
         def test_printf(capsys, dut):
             dut.flash()

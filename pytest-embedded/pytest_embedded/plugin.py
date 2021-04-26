@@ -11,6 +11,16 @@ class DUT:
     pass
 
 
+@pytest.fixture
+def test_file_name(request):
+    return request.module.__name__
+
+
+@pytest.fixture
+def test_case_name(request):
+    return request.node.originalname
+
+
 @pytest.fixture()
 def dut():
     return DUT()
