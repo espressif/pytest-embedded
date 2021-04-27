@@ -77,20 +77,3 @@ venv/
 
 # IDE
 .idea/
-
-# IDF build binaries under test_apps folder
-tests/test_apps/*/build/*
-!tests/test_apps/*/build/bootloader
-!tests/test_apps/*/build/partition_table
-
-tests/test_apps/*/build/*/*
-!tests/test_apps/*/build/*.bin
-!tests/test_apps/*/build/*.elf
-!tests/test_apps/*/build/*.map
-!tests/test_apps/*/build/flasher_args.json
-
-tests/test_apps/*/build/bootloader/*
-!tests/test_apps/*/build/bootloader/bootloader.bin
-
-tests/test_apps/*/build/partition_table/*
-!tests/test_apps/*/build/partition_table/*.bin
