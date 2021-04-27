@@ -23,6 +23,8 @@ class App:
         self.flash_files, self.flash_settings = self.parse_flash_args()
         self.partition_table = self.parse_partition_table()  # type: Dict[str, Any]
 
+        self.target = self.get_target_from_sdkconfig()
+
     def get_binary_path(self) -> str:
         path = os.path.join(self.app_path, 'build')
 
@@ -137,3 +139,6 @@ class App:
                     'flags': _flags
                 }
         return partition_table
+
+    def get_target_from_sdkconfig(self):
+        return self.sdkconfig.get('CONFIG_IDF_TARGET', 'esp32')

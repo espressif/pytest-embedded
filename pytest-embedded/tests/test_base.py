@@ -30,6 +30,7 @@ def test_fixtures(testdir):
             assert len(app.flash_files) == 3
             assert type(app.partition_table) == dict
             assert type(app.sdkconfig) == dict
+            assert app.target == 'esp32c3'
     """)
     testdir.chdir()
     result = testdir.runpytest(
