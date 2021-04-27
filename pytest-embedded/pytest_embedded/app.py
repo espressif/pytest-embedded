@@ -28,7 +28,7 @@ class App:
 
         if path and os.path.exists(path):
             return os.path.realpath(path)
-        raise FileNotFoundError(f'Binary path "{path}" not found')
+        raise FileNotFoundError(f'Binary path "{path}" not found')  # TODO: maybe loose a bit?
 
     def get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
@@ -58,7 +58,7 @@ class App:
             for line in fr:
                 configs = line.split('=')
                 if len(configs) == 2:
-                    res[configs[0]] = configs[1].rstrip()
+                    res[configs[0]] = configs[1].rstrip().strip('"')
         return res
 
     def get_flash_args_file(self) -> Optional[str]:
@@ -104,7 +104,7 @@ class App:
                 if isinstance(raw_error, bytes):
                     raw_error = raw_error.decode()
                 if 'Traceback' in raw_error:
-                    # Some exception occured. It is possible that we've tried the wrong binary file.
+                    # Some exception occurred. It is possible that we've tried the wrong binary file.
                     errors.append((file, raw_error))
                     continue
                 if isinstance(raw_data, bytes):
@@ -136,5 +136,4 @@ class App:
                     'size': _size,
                     'flags': _flags
                 }
-
         return partition_table
