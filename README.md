@@ -29,12 +29,8 @@ For example:
   - [ ] performance
   - [ ] binary size/heap size
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
-- [ ] interact with the app via serial (`pexpect`, `pyserial`)
-  - [ ] use `pyserial` to create a serial file descriptor
-  - [ ] pre-process (decode/annotate/encode) and redefine the file descriptor (optional, provided by plugins,
-    project-specific)
+- [ ] expect multi/single str/regex from the file descriptor
   - [ ] use `pexpect` expect str/regex from the file descriptor
-  - [ ] use `pyserial` to send signal
 - [ ] junit support
   - [ ] parse serial stdout to junit
 
@@ -48,6 +44,11 @@ For example:
 - [ ] load binary to device
   - [ ] jtag
   - [ ] serial
+- [ ] redirect the output to custom file descriptor
+  - [ ] pre-process (decode/annotate/encode) and redefine the file descriptor (optional, provided by plugins,
+    project-specific)
+  - [ ] serial
+  - [ ] jtag
 - [ ] debugging
   - [ ] jtag
   - [ ] openocd related (`py_debug_backend`, `telnetlib`)
