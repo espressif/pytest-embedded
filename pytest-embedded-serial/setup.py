@@ -18,8 +18,8 @@ SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
-    'pytest>=3.5.0',
     # 'pytest-embedded',
+    'pyserial>=3.0',
 ]
 ENTRY_POINTS = {
     'pytest11': [

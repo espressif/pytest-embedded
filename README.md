@@ -69,6 +69,11 @@ For example:
 - [ ] modbus
 - [ ] mqtt
 
+## How to run tests locally?
+
+- `bash foreach.sh install`
+- `pytest --log-cli-level=INFO`
+
 ## Limitation
 
 In case we use dynamic-linking-like plugin load method, you need to set `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` to

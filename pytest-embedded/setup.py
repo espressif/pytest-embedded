@@ -13,12 +13,13 @@ def read(fname):
 VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-idf-base'
+NAME = 'pytest-embedded'
 SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
-    'pytest>=3.5.0',
+    'pytest>=6.2.0',
+    'pexpect>=4.4'
 ]
 ENTRY_POINTS = {
     'pytest11': [

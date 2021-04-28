@@ -7,16 +7,21 @@ PLUGINS = [
 ]
 
 
-def test_flash(testdir):
+def test_pexpect(testdir):
     testdir.makepyfile("""
-        def test_flash_serial(capsys, dut):
-            dut.flash()
-            stdout, _ = capsys.readouterr()
-            assert stdout.strip() == 'Flashed by serial'
+        import pexpect
+        import pytest
+
+        def test_flash_serial(dut):
+            dut.expect('Hello world!')
+            dut.expect('Restarting')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
     """)
 
     result = testdir.runpytest(
         *PLUGINS,
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
     )
-    assert result.ret == 0
+
+    result.assert_outcomes(passed=1)

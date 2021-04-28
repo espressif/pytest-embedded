@@ -11,6 +11,9 @@ def pytest_addoption(parser):
     group.addoption('--app-path',
                     default=os.getcwd(),
                     help='App path')
+    group.addoption('--port',
+                    default='/dev/ttyUSB1',
+                    help='serial port')
     group.addoption('--part-tool',
                     help='Partition tool path, used for parsing partition table')
 
@@ -32,5 +35,9 @@ def app(request):
 
 
 @pytest.fixture
-def dut(app):
-    return DUT(app=app)
+def dut(app, request):
+    dut = DUT(app=app, port=request.config.getoption('port'))
+    try:
+        yield dut
+    finally:
+        dut.close()

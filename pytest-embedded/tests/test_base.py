@@ -18,8 +18,6 @@ def test_help(testdir):
 
 def test_fixtures(testdir):
     testdir.makepyfile("""
-        import logging
-
         def test_fixtures_test_file_name(test_file_name):
             assert test_file_name == 'test_fixtures'
 
