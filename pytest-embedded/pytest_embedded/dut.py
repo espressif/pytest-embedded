@@ -1,7 +1,7 @@
+import io
 import logging
 import multiprocessing
-import tempfile
-from typing import IO, Optional
+from typing import Optional
 
 import pexpect
 from pytest_embedded.app import App
@@ -17,29 +17,28 @@ def bytes_to_str(byte_str: bytes) -> str:
 class DUT:
     def __init__(self, app: Optional[App] = None, port: Optional[str] = None) -> None:
         self.app = app
-        self.target = app.target if app else None
         self.port = port
 
         # used for do expect str/regex from
-        self.pexpect_proc = pexpect.spawn(['cat'])
+        self.pexpect_proc = pexpect.spawn(['cat'], maxread=1000000)
 
-        # forward_io_proc would get output from ``raw_output_io``, do some pre-process jobs and then forward the
+        # forward_io_proc would get output from ``open_port_session``, do some pre-process jobs and then forward the
         # pre-processed output to the ``pexpect_proc``
-        self.raw_output_io = self.get_raw_output_io()
+        self.raw_output_session = self.open_port_session()
         self.forward_io_proc = self.get_forward_io_process()
         self.forward_io_proc.start()
 
     def close(self):
         try:
             self.forward_io_proc.terminate()
-            self.raw_output_io.close()  # or other methods
+            self.raw_output_session.close()  # or other methods
             self.pexpect_proc.terminate(force=True)
         except Exception as e:  # noqa
             logging.error(e)
 
-    def get_raw_output_io(self) -> IO:
+    def open_port_session(self) -> io.BytesIO:
         # provide a dummy one here, should be implemented by plugins
-        return tempfile.NamedTemporaryFile()
+        return io.BytesIO()
 
     def pre_process(self, byte_str) -> str:
         if isinstance(byte_str, bytes):
@@ -53,10 +52,10 @@ class DUT:
     def forward_io(self, breaker: bytes = b'\n'):
         while True:
             line = b''
-            sess_output = self.raw_output_io.read()  # a single char
+            sess_output = self.raw_output_session.read()  # a single char
             while sess_output and sess_output != breaker:
                 line += sess_output
-                sess_output = self.raw_output_io.read()
+                sess_output = self.raw_output_session.read()
             line += sess_output
             line = self.pre_process(line)
             self.pexpect_proc.write(line)

@@ -2,6 +2,7 @@
 
 Flash by serial
 
-## Injected Methods
+## Injected Functionalities
 
-- `flash`
+- let the app be auto-flashed while getting fixture `dut`
+- redirect serial output to the pexpect session

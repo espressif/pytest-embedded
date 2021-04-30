@@ -29,8 +29,8 @@ For example:
   - [ ] performance
   - [ ] binary size/heap size
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
-- [ ] expect multi/single str/regex from the file descriptor
-  - [ ] use `pexpect` expect str/regex from the file descriptor
+- [x] expect multi/single str/regex from the file descriptor
+  - [x] use `pexpect` expect str/regex from the file descriptor
 - [ ] junit support
   - [ ] parse serial stdout to junit
 
@@ -38,16 +38,16 @@ For example:
 
 - [ ] detect chip and port
   - [ ] jtag
-  - [ ] serial
+  - [x] serial
 - [ ] get binary path (project specific)
-- [ ] get partition table / sdkconfig
+- [x] get partition table / sdkconfig
 - [ ] load binary to device
   - [ ] jtag
-  - [ ] serial
+  - [x] serial
 - [ ] redirect the output to custom file descriptor
-  - [ ] pre-process (decode/annotate/encode) and redefine the file descriptor (optional, provided by plugins,
+  - [x] pre-process (decode/annotate/encode) and redefine the file descriptor (optional, provided by plugins,
     project-specific)
-  - [ ] serial
+  - [x] serial
   - [ ] jtag
 - [ ] debugging
   - [ ] jtag
@@ -69,12 +69,19 @@ For example:
 - [ ] modbus
 - [ ] mqtt
 
-## How to run tests locally?
+## How to run tests for this project?
 
 - `bash foreach.sh install`
-- `pytest --log-cli-level=INFO`
+- `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
+- `pytest`
+
+## How to write tests with these plugins?
+
+Please refer to the test examples under each plugin
 
 ## Limitation
 
 In case we use dynamic-linking-like plugin load method, you need to set `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` to
-disable the plugin autoload. If not set, the behavior could be unexpected.
+disable the plugin autoload only if you've installed multi plugins provide the same functions.
+
+If not set, the behavior could be unexpected.

@@ -22,6 +22,7 @@ def test_pexpect(testdir):
     result = testdir.runpytest(
         *PLUGINS,
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)

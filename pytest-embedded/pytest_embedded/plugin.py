@@ -12,7 +12,6 @@ def pytest_addoption(parser):
                     default=os.getcwd(),
                     help='App path')
     group.addoption('--port',
-                    default='/dev/ttyUSB1',
                     help='serial port')
     group.addoption('--part-tool',
                     help='Partition tool path, used for parsing partition table')

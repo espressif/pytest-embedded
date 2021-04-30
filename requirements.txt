@@ -1,3 +1,6 @@
 pytest>=6.2.0
-pyserial>=3.0
 pexpect>=4.4
+
+# plugin pytest-embedded-serial
+git+git://github.com/espressif/esptool@master#egg=esptool
+pyserial>=3.0

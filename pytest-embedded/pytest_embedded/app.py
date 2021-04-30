@@ -16,6 +16,9 @@ class App:
         self.app_path = os.path.realpath(app_path)
 
         self.binary_path = self.get_binary_path()
+        if not self.binary_path:
+            return
+
         self.elf_file = self.get_elf_file()
         self.parttool_path = self.get_parttool_file(parttool)
 
@@ -25,12 +28,12 @@ class App:
 
         self.target = self.get_target_from_sdkconfig()
 
-    def get_binary_path(self) -> str:
+    def get_binary_path(self) -> Optional[str]:
         path = os.path.join(self.app_path, 'build')
 
         if path and os.path.exists(path):
             return os.path.realpath(path)
-        raise FileNotFoundError(f'Binary path "{path}" not found')  # TODO: maybe loose a bit?
+        return None
 
     def get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):

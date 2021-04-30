@@ -1,8 +1,5 @@
-import os
-
 PLUGINS = [
     '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_serial',
     '-p', 'pytest_embedded_jtag',
 ]
 
@@ -17,6 +14,5 @@ def test_flash(testdir):
 
     result = testdir.runpytest(
         *PLUGINS,
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
     )
     assert result.ret == 0

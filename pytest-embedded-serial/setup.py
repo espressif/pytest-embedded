@@ -20,6 +20,7 @@ URL = 'https://espressif.com'
 REQUIRES = [
     # 'pytest-embedded',
     'pyserial>=3.0',
+    'esptool>=3.0',
 ]
 ENTRY_POINTS = {
     'pytest11': [
