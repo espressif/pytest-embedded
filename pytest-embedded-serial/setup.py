@@ -20,7 +20,8 @@ URL = 'https://espressif.com'
 REQUIRES = [
     # 'pytest-embedded',
     'pyserial>=3.0',
-    'esptool>=3.0',
+    'esptool>=3.0',  # update to master branch to support c3
+    'cryptography<3.4',  # include rust dependency in later versions, armv71 does not have built binary
 ]
 ENTRY_POINTS = {
     'pytest11': [

@@ -19,7 +19,7 @@ LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
     'pytest>=6.2.0',
-    'pexpect>=4.4'
+    'pexpect>=4.4',
 ]
 ENTRY_POINTS = {
     'pytest11': [
