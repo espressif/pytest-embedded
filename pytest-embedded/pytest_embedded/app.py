@@ -20,7 +20,7 @@ class App:
         self.parttool_path = self.get_parttool_file(parttool)
 
         self.sdkconfig = self.parse_sdkconfig()  # type: Dict[str, Any]
-        self.flash_files, self.flash_settings = self.parse_flash_args()
+        self.flash_files, self.encrypt_files, self.flash_settings = self.parse_flash_args()
         self.partition_table = self.parse_partition_table()  # type: Dict[str, Any]
 
         self.target = self.get_target_from_sdkconfig()
@@ -69,21 +69,45 @@ class App:
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str]]], Optional[Dict[str, Any]]]:
+    def is_encrypted(self, flash_args, offs, file_path):
+        for entry in flash_args.values():
+            try:
+                if (entry['offset'], entry['file']) == (offs, file_path):
+                    return entry['encrypted'] == 'true'
+            except (TypeError, KeyError):
+                continue
+
+        return None
+
+    def parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str]]],
+                                        Optional[List[Tuple[int, str]]],
+                                        Optional[Dict[str, Any]]]:
         flash_args_filepath = self.get_flash_args_file()
         if not flash_args_filepath:
-            return None, None
+            return None, None, None
 
+        default_encryption = 'CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT' in self.sdkconfig
         with open(flash_args_filepath) as fr:
             flash_args = json.load(fr)
 
-        flash_files = [(int(offs, 0), os.path.join(self.binary_path, file_path.strip()))
-                       for (offs, file_path) in flash_args['flash_files'].items() if offs != '']
-        flash_files = sorted(flash_files, key=lambda x: x[0])  # sort by offset
+        flash_files = []
+        encrypt_files = []
+        for (offs, file_path) in flash_args['flash_files'].items():
+            if not offs:
+                continue
 
+            flash_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
+            encrypted = self.is_encrypted(flash_args, offs, file_path)
+
+            if (encrypted is None and default_encryption) or encrypted:
+                encrypt_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
+
+        flash_files = sorted(flash_files)
+        encrypt_files = sorted(encrypt_files)
         flash_settings = flash_args['flash_settings']
-        flash_settings['encrypt'] = 'CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT' in self.sdkconfig
-        return flash_files, flash_settings
+        flash_settings['encrypt'] = (flash_files == encrypt_files)
+
+        return flash_files, encrypt_files, flash_settings
 
     def get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
         parttool_filepath = parttool or os.path.join(os.getenv('IDF_PATH', ''), 'components', 'partition_table',

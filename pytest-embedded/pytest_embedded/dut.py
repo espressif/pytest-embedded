@@ -17,6 +17,7 @@ def bytes_to_str(byte_str: bytes) -> str:
 class DUT:
     def __init__(self, app: Optional[App] = None, port: Optional[str] = None) -> None:
         self.app = app
+        self.target = app.target if app else None
         self.port = port
 
         # used for do expect str/regex from
