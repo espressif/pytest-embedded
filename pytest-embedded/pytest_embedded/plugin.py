@@ -5,7 +5,7 @@ from collections import defaultdict
 import pytest
 
 from .app import App
-from .dut import DUT
+from .dut import Dut
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def app(options):
 def dut(app, options):
     dut_options = options.get('DUT', {})
     logging.info(dut_options)
-    dut = DUT(app=app, **dut_options)
+    dut = Dut(app=app, **dut_options)
     try:
         yield dut
     finally:

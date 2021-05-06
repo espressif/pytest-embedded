@@ -2,12 +2,15 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from typing import Any, Dict, List, Optional, Tuple
 
+import esptool
 from pytest_embedded.app import App
+from pytest_embedded_serial._serial import SerialDut
 
 
-class IDFApp(App):
+class IdfApp(App):
     def __init__(self, app_path: str = os.getcwd(),
                  part_tool: Optional[str] = None, *args, **kwargs):
         super().__init__(app_path, *args, **kwargs)
@@ -157,3 +160,82 @@ class IDFApp(App):
 
     def get_target_from_sdkconfig(self):
         return self.sdkconfig.get('CONFIG_IDF_TARGET', 'esp32')
+
+
+class IdfSerialDut(SerialDut):
+    def flash(self, app: IdfApp, erase_nvs=True):
+        last_error = None
+        for baud_rate in [921600, 115200]:
+            try:
+                self.try_flash(app, erase_nvs, baud_rate)
+                break
+            except RuntimeError as e:
+                last_error = e
+        else:
+            raise last_error
+
+    @SerialDut.uses_esptool
+    def try_flash(self, stub_inst: esptool.ESPLoader, app: IdfApp, erase_nvs=True, baud_rate=115200):
+        flash_files = app.flash_files
+        encrypt_files = app.encrypt_files
+        encrypt = app.flash_settings.get('encrypt', False)
+        if encrypt:
+            flash_files = encrypt_files
+            encrypt_files = []
+        else:
+            flash_files = [entry for entry in flash_files if entry not in encrypt_files]
+
+        flash_files = [(offs, open(path, 'rb')) for (offs, path) in flash_files]
+        encrypt_files = [(offs, open(path, 'rb')) for (offs, path) in encrypt_files]
+
+        # fake flasher args object, this is a hack until
+        # esptool Python API is improved
+        class FlashArgs(object):
+            def __init__(self, attributes):
+                for key, value in attributes.items():
+                    self.__setattr__(key, value)
+
+        # write_flash expects the parameter encrypt_files to be None and not
+        # an empty list, so perform the check here
+        flash_args = FlashArgs({
+            'flash_size': app.flash_settings['flash_size'],
+            'flash_mode': app.flash_settings['flash_mode'],
+            'flash_freq': app.flash_settings['flash_freq'],
+            'addr_filename': flash_files,
+            'encrypt_files': encrypt_files or None,
+            'no_stub': False,
+            'compress': True,
+            'verify': False,
+            'encrypt': encrypt,
+            'ignore_flash_encryption_efuse_setting': False,
+            'erase_all': False,
+        })
+
+        nvs_file = None
+        if erase_nvs:
+            address = app.partition_table['nvs']['offset']
+            size = app.partition_table['nvs']['size']
+            nvs_file = tempfile.NamedTemporaryFile(delete=False)
+            nvs_file.write(b'\xff' * size)
+            if not isinstance(address, int):
+                address = int(address, 0)
+
+            if encrypt:
+                encrypt_files.append((address, open(nvs_file.name, 'rb')))
+            else:
+                flash_files.append((address, open(nvs_file.name, 'rb')))
+
+        try:
+            stub_inst.change_baud(baud_rate)
+            esptool.detect_flash_size(stub_inst, flash_args)
+            esptool.write_flash(stub_inst, flash_args)
+        except Exception:  # noqa
+            raise
+        finally:
+            if nvs_file:
+                nvs_file.close()
+                os.remove(nvs_file.name)
+            for (_, f) in flash_files:
+                f.close()
+            for (_, f) in encrypt_files:
+                f.close()

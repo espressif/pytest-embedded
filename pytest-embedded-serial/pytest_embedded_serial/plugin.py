@@ -2,7 +2,7 @@ from types import ModuleType
 
 import pytest
 
-from ._serial import SerialDUT
+from ._serial import SerialDut
 
 
 def pytest_addoption(parser):
@@ -16,6 +16,6 @@ def pytest_plugin_registered(plugin, manager):
     if not isinstance(plugin, ModuleType) or plugin.__name__ != 'pytest_embedded.plugin':
         return
 
-    plugin.KNOWN_OPTIONS['DUT'].append('port')
+    plugin.KNOWN_OPTIONS['Dut'].append('port')
 
-    setattr(plugin, 'DUT', SerialDUT)
+    setattr(plugin, 'Dut', SerialDut)

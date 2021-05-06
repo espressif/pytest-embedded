@@ -12,7 +12,7 @@ def bytes_to_str(byte_str: bytes) -> str:
     return '\n'.join([line.strip() for line in byte_str.decode('utf8', 'ignore').split('\r\n') if line.strip()])
 
 
-class DUT:
+class Dut:
     def __init__(self, app: Optional[App] = None, *args, **kwargs) -> None:
         self.app = app
 
