@@ -1,6 +1,4 @@
-import io
 import logging
-import multiprocessing
 from typing import Optional
 
 import pexpect
@@ -15,50 +13,24 @@ def bytes_to_str(byte_str: bytes) -> str:
 
 
 class DUT:
-    def __init__(self, app: Optional[App] = None, port: Optional[str] = None) -> None:
+    def __init__(self, app: Optional[App] = None, *args, **kwargs) -> None:
         self.app = app
-        self.port = port
 
         # used for do expect str/regex from
+        # Here we can use self.pexpect_proc.write to send string to stdin, cat will copy the stdin to stdout
         self.pexpect_proc = pexpect.spawn(['cat'], maxread=1000000)
 
-        # forward_io_proc would get output from ``open_port_session``, do some pre-process jobs and then forward the
-        # pre-processed output to the ``pexpect_proc``
-        self.raw_output_session = self.open_port_session()
-        self.forward_io_proc = self.get_forward_io_process()
-        self.forward_io_proc.start()
+        # collects all the threads/processes need to be closed/terminated before getting destructed
+        self._sessions_close_methods = [
+            self.pexpect_proc.terminate,
+        ]
 
     def close(self):
-        try:
-            self.forward_io_proc.terminate()
-            self.raw_output_session.close()  # or other methods
-            self.pexpect_proc.terminate(force=True)
-        except Exception as e:  # noqa
-            logging.error(e)
-
-    def open_port_session(self) -> io.BytesIO:
-        # provide a dummy one here, should be implemented by plugins
-        return io.BytesIO()
-
-    def pre_process(self, byte_str) -> str:
-        if isinstance(byte_str, bytes):
-            return byte_str.decode('ascii')
-        return byte_str
-
-    def get_forward_io_process(self) -> multiprocessing.Process:
-        proc = multiprocessing.Process(target=self.forward_io)
-        return proc
-
-    def forward_io(self, breaker: bytes = b'\n'):
-        while True:
-            line = b''
-            sess_output = self.raw_output_session.read()  # a single char
-            while sess_output and sess_output != breaker:
-                line += sess_output
-                sess_output = self.raw_output_session.read()
-            line += sess_output
-            line = self.pre_process(line)
-            self.pexpect_proc.write(line)
+        for func in self._sessions_close_methods:
+            try:
+                func()
+            except Exception as e:
+                logging.error(e)
 
     def expect(self, *args, **kwargs):
         log_level = logging.ERROR

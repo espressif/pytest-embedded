@@ -10,7 +10,6 @@ class App:
 
     def __init__(self, app_path: str = os.getcwd(), *args, **kwargs):
         self.app_path = os.path.realpath(app_path)
-
         self.binary_path = self.get_binary_path()
 
     def get_binary_path(self) -> Optional[str]:

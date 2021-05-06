@@ -1,19 +1,80 @@
 import io
+import multiprocessing
 import os
 import sys
 import tempfile
-from typing import Tuple
+from typing import Optional, Tuple
 
 import esptool as esptool
 import serial
+from pytest_embedded.app import App
+from pytest_embedded.dut import DUT
 from serial.tools.list_ports_posix import comports
+
+
+class SerialDUT(DUT):
+    DEFAULT_PORT_CONFIG = {
+        'baudrate': 115200,
+        'bytesize': serial.EIGHTBITS,
+        'parity': serial.PARITY_NONE,
+        'stopbits': serial.STOPBITS_ONE,
+        'timeout': 0.05,
+        'xonxoff': False,
+        'rtscts': False,
+    }
+
+    def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
+        super().__init__(app, *args, **kwargs)
+
+        self.target = getattr(self, 'target', 'auto')
+        self.target, self.port = detect_target_port(self.target, port)
+
+        self.port_config = self.DEFAULT_PORT_CONFIG
+
+        # forward_io_proc would get output from ``open_port_session``, do some pre-process jobs and then forward the
+        # the output to the ``pexpect_proc``, which only accept type str as input
+        self.port_session = self.open_port_session()
+        self.forward_io_proc = self.open_forward_io_process()
+        self.forward_io_proc.start()
+
+        self._sessions_close_methods.extend([
+            self.forward_io_proc.terminate,
+            self.port_session.close,
+        ])
+
+    def preprocess(self, byte_str) -> str:
+        if isinstance(byte_str, bytes):
+            return byte_str.decode('ascii')
+        return byte_str
+
+    def open_forward_io_process(self) -> multiprocessing.Process:
+        proc = multiprocessing.Process(target=self.forward_io)
+        return proc
+
+    def forward_io(self, breaker: bytes = b'\n'):
+        while True:
+            line = b''
+            sess_output = self.port_session.read()  # a single char
+            while sess_output and sess_output != breaker:
+                line += sess_output
+                sess_output = self.port_session.read()
+            line += sess_output
+            line = self.preprocess(line)
+            self.pexpect_proc.write(line)
+
+    def open_port_session(self) -> io.BytesIO:
+        serial_port = SerialPort(self.port, **self.port_config)
+        serial_port.flash(self.app)
+        serial_port.close()
+
+        return serial.serial_for_url(self.port, **self.port_config)
 
 
 class SerialPort(serial.Serial):
     def __init__(self, *args, **kwargs):
         super(SerialPort, self).__init__(*args, **kwargs)
 
-    def flash(self, app, erase_nvs=True):
+    def flash(self, app: App, erase_nvs=True):
         last_error = None
         for baud_rate in [921600, 115200]:
             try:
@@ -24,7 +85,7 @@ class SerialPort(serial.Serial):
         else:
             raise last_error
 
-    def try_flash(self, app, erase_nvs=True, baud_rate=115200):
+    def try_flash(self, app: App, erase_nvs=True, baud_rate=115200):
         rom_inst = esptool.ESPLoader.detect_chip(self)
         settings = self.get_settings()
 
@@ -97,17 +158,6 @@ class SerialPort(serial.Serial):
             for (_, f) in encrypt_files:
                 f.close()
             self.apply_settings(settings)
-
-
-DEFAULT_CONFIG = {
-    'baudrate': 115200,
-    'bytesize': serial.EIGHTBITS,
-    'parity': serial.PARITY_NONE,
-    'stopbits': serial.STOPBITS_ONE,
-    'timeout': 0.05,
-    'xonxoff': False,
-    'rtscts': False,
-}
 
 
 def _list_available_ports():
@@ -186,20 +236,3 @@ def detect_target_port(target=None, port=None) -> Tuple[str, str]:
         return _judge_by_port(port)
     else:  # pick the first available port then...
         return _judge_by_target(available_ports, 'auto')
-
-
-# overriding
-def open_port_session(self) -> io.BytesIO:
-    app = getattr(self, 'app', None)
-
-    target = getattr(self, 'target', None)
-    port = getattr(self, 'port', None)
-
-    target, port = detect_target_port(target, port)
-    config = getattr(self, 'raw_output_config', DEFAULT_CONFIG)
-    if app:
-        serial_port = SerialPort(port, **config)
-        serial_port.flash(app)
-        serial_port.close()
-
-    return serial.serial_for_url(port, **config)

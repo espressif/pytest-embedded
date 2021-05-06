@@ -2,7 +2,7 @@ from types import ModuleType
 
 import pytest
 
-from ._serial import open_port_session
+from ._serial import SerialDUT
 
 
 def pytest_addoption(parser):
@@ -18,4 +18,4 @@ def pytest_plugin_registered(plugin, manager):
 
     plugin.KNOWN_OPTIONS['DUT'].append('port')
 
-    setattr(plugin.DUT, 'open_port_session', open_port_session)
+    setattr(plugin, 'DUT', SerialDUT)
