@@ -2,8 +2,8 @@ set -eo
 
 DEFAULT_PACKAGES=" \
   pytest-embedded \
-  pytest-embedded-jtag \
   pytest-embedded-serial \
+  pytest-embedded-idf \
 "
 
 if [[ -z "$TWINE_PASSWORD" ]]; then

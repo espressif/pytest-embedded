@@ -2,13 +2,13 @@ from types import ModuleType
 
 import pytest
 
-from ._serial import open_port_session
+from ._idf import IDFApp
 
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--port',
-                    help='serial port')
+    group.addoption('--part-tool',
+                    help='Partition tool path, used for parsing partition table')
 
 
 @pytest.hookimpl
@@ -16,6 +16,6 @@ def pytest_plugin_registered(plugin, manager):
     if not isinstance(plugin, ModuleType) or plugin.__name__ != 'pytest_embedded.plugin':
         return
 
-    plugin.KNOWN_OPTIONS['DUT'].append('port')
+    plugin.KNOWN_OPTIONS['App'].append('part_tool')
 
-    setattr(plugin.DUT, 'open_port_session', open_port_session)
+    setattr(plugin, 'App', IDFApp)

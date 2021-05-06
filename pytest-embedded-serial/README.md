@@ -1,6 +1,4 @@
-# pytest-idf-flash-serial
-
-Flash by serial
+# pytest-embedded-serial
 
 ## Injected Functionalities
 

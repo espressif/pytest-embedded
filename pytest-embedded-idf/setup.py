@@ -13,17 +13,16 @@ def read(fname):
 VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-embedded-jtag'
+NAME = 'pytest-embedded-idf'
 SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
-    'pytest>=3.5.0',
     # 'pytest-embedded',
 ]
 ENTRY_POINTS = {
     'pytest11': [
-        'pytest_embedded_jtag = pytest_embedded_jtag.plugin',
+        'pytest_embedded_idf = pytest_embedded_idf.plugin',
     ],
 }
 
