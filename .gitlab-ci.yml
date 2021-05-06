@@ -39,8 +39,14 @@ pytest:
   script:
     - bash foreach.sh install
     - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
+    - pip install pytest-cov
     - export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
-    - pytest
+    - pytest -p pytest_cov . --cov pytest_embedded --cov pytest_embedded_idf --cov pytest_embedded_serial --junitxml=report.xml --cov-report=xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      cobertura: coverage.xml
 
 build-dist:
   stage: build

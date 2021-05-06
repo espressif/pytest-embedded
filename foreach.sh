@@ -23,7 +23,7 @@ action=${1:-"install"}
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
   if [ "$action" = "install" ]; then
-    pip install .
+    pip install -e .
   elif [ "$action" = "build" ]; then
     python setup.py sdist bdist_wheel
   elif [ "$action" = "publish" ]; then
