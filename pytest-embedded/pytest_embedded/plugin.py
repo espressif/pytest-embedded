@@ -50,7 +50,7 @@ def app(options):
 
 @pytest.fixture
 def dut(app, options):
-    dut_options = options.get('DUT', {})
+    dut_options = options.get('Dut', {})
     logging.info(dut_options)
     dut = Dut(app=app, **dut_options)
     try:

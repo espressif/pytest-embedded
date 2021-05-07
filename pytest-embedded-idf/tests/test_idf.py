@@ -2,7 +2,7 @@ import os
 
 PLUGINS = [
     '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_serial',
+    '-p', 'pytest_embedded_serial_esp',
     '-p', 'pytest_embedded_idf',
 ]
 

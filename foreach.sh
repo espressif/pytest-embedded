@@ -3,6 +3,7 @@ set -eo
 DEFAULT_PACKAGES=" \
   pytest-embedded \
   pytest-embedded-serial \
+  pytest-embedded-serial-esp \
   pytest-embedded-idf \
 "
 

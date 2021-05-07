@@ -40,8 +40,15 @@ pytest:
     - bash foreach.sh install
     - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
     - pip install pytest-cov
+    - pip list
     - export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
-    - pytest -p pytest_cov . --cov pytest_embedded --cov pytest_embedded_idf --cov pytest_embedded_serial --junitxml=report.xml --cov-report=xml
+    - pytest -p pytest_cov .
+      --cov pytest_embedded
+      --cov pytest_embedded_idf
+      --cov pytest_embedded_serial
+      --cov pytest_embedded_serial_esp
+      --junitxml=report.xml
+      --cov-report=xml
   artifacts:
     when: always
     reports:
