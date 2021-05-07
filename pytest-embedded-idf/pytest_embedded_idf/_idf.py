@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -11,59 +12,69 @@ from pytest_embedded_serial._serial import SerialDut
 
 
 class IdfApp(App):
-    def __init__(self, app_path: str = os.getcwd(),
-                 part_tool: Optional[str] = None, *args, **kwargs):
+    FLASH_ARGS_FILENAME = 'flasher_args.json'
+
+    def __init__(self, app_path: str = os.getcwd(), part_tool: Optional[str] = None, *args, **kwargs):
         super().__init__(app_path, *args, **kwargs)
+        self.binary_path = self._get_binary_path()
         if not self.binary_path:
             return
 
-        self.elf_file = self.get_elf_file()
-        self.parttool_path = self.get_parttool_file(part_tool)
+        self.elf_file = self._get_elf_file()
+        self.parttool_path = self._get_parttool_file(part_tool)
 
-        self.sdkconfig = self.parse_sdkconfig()  # type: Dict[str, Any]
-        self.flash_files, self.encrypt_files, self.flash_settings = self.parse_flash_args()
-        self.partition_table = self.parse_partition_table()  # type: Dict[str, Any]
+        self.sdkconfig = self._parse_sdkconfig()  # type: Dict[str, Any]
+        self.flash_files, self.encrypt_files, self.flash_settings = self._parse_flash_args()
+        self.partition_table = self._parse_partition_table()  # type: Dict[str, Any]
 
-        self.target = self.get_target_from_sdkconfig()
+        self.target = self._get_target_from_sdkconfig()
 
-    def get_elf_file(self) -> Optional[str]:
+    def _get_binary_path(self) -> Optional[str]:
+        path = os.path.join(self.app_path, 'build')
+
+        if path and os.path.exists(path):
+            return os.path.realpath(path)
+        logging.warning(f'{path} not exists')
+        return None
+
+    def _get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.elf':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def get_possible_sdkconfig_paths(self) -> List[str]:
+    def _get_possible_sdkconfig_paths(self) -> List[str]:
         return [
             os.path.join(self.binary_path, '..', 'sdkconfig'),
             os.path.join(self.binary_path, 'sdkconfig'),
         ]
 
-    def get_sdkconfig_file(self) -> Optional[str]:
-        for file in self.get_possible_sdkconfig_paths():
+    def _get_sdkconfig_file(self) -> Optional[str]:
+        for file in self._get_possible_sdkconfig_paths():
             if os.path.isfile(file):
                 return os.path.realpath(file)
         return None
 
-    def parse_sdkconfig(self) -> Optional[Dict[str, Any]]:
-        sdkconfig_filepath = self.get_sdkconfig_file()
+    def _parse_sdkconfig(self) -> Optional[Dict[str, Any]]:
+        sdkconfig_filepath = self._get_sdkconfig_file()
         if not sdkconfig_filepath:
             return None
 
         res = {}
-        with open(self.get_sdkconfig_file()) as fr:
+        with open(self._get_sdkconfig_file()) as fr:
             for line in fr:
                 configs = line.split('=')
                 if len(configs) == 2:
                     res[configs[0]] = configs[1].rstrip().strip('"')
         return res
 
-    def get_flash_args_file(self) -> Optional[str]:
+    def _get_flash_args_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
             if fn == self.FLASH_ARGS_FILENAME:
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def is_encrypted(self, flash_args, offs, file_path):
+    def _is_encrypted(self, flash_args, offs, file_path):
         for entry in flash_args.values():
             try:
                 if (entry['offset'], entry['file']) == (offs, file_path):
@@ -73,10 +84,10 @@ class IdfApp(App):
 
         return None
 
-    def parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str]]],
-                                        Optional[List[Tuple[int, str]]],
-                                        Optional[Dict[str, Any]]]:
-        flash_args_filepath = self.get_flash_args_file()
+    def _parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str]]],
+                                         Optional[List[Tuple[int, str]]],
+                                         Optional[Dict[str, Any]]]:
+        flash_args_filepath = self._get_flash_args_file()
         if not flash_args_filepath:
             return None, None, None
 
@@ -91,7 +102,7 @@ class IdfApp(App):
                 continue
 
             flash_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
-            encrypted = self.is_encrypted(flash_args, offs, file_path)
+            encrypted = self._is_encrypted(flash_args, offs, file_path)
 
             if (encrypted is None and default_encryption) or encrypted:
                 encrypt_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
@@ -103,14 +114,14 @@ class IdfApp(App):
 
         return flash_files, encrypt_files, flash_settings
 
-    def get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
+    def _get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
         parttool_filepath = parttool or os.path.join(os.getenv('IDF_PATH', ''), 'components', 'partition_table',
                                                      'gen_esp32part.py')
         if os.path.isfile(parttool_filepath):
             return os.path.realpath(parttool_filepath)
         return None
 
-    def parse_partition_table(self) -> Optional[Dict[str, Any]]:
+    def _parse_partition_table(self) -> Optional[Dict[str, Any]]:
         if not (self.parttool_path and self.flash_files):
             return None
 
@@ -158,7 +169,7 @@ class IdfApp(App):
                 }
         return partition_table
 
-    def get_target_from_sdkconfig(self):
+    def _get_target_from_sdkconfig(self):
         return self.sdkconfig.get('CONFIG_IDF_TARGET', 'esp32')
 
 
@@ -170,15 +181,15 @@ class IdfSerialDut(SerialDut):
         last_error = None
         for baud_rate in [921600, 115200]:
             try:
-                self.try_flash(erase_nvs, baud_rate)
+                self._try_flash(erase_nvs, baud_rate)
                 break
             except RuntimeError as e:
                 last_error = e
         else:
             raise last_error
 
-    @SerialDut.uses_esptool
-    def try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
+    @SerialDut._uses_esptool
+    def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp
 
         flash_files = self.app.flash_files
