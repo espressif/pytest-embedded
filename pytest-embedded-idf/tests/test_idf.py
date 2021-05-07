@@ -18,6 +18,7 @@ def test_pexpect(testdir):
         import pytest
 
         def test_idf_serial_flash(dut):
+            dut.expect('(100 %)')
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):

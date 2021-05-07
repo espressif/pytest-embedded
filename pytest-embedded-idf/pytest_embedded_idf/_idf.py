@@ -163,11 +163,14 @@ class IdfApp(App):
 
 
 class IdfSerialDut(SerialDut):
-    def flash(self, app: IdfApp, erase_nvs=True):
+    def start(self):
+        self.flash()
+
+    def flash(self, erase_nvs=True):
         last_error = None
         for baud_rate in [921600, 115200]:
             try:
-                self.try_flash(app, erase_nvs, baud_rate)
+                self.try_flash(erase_nvs, baud_rate)
                 break
             except RuntimeError as e:
                 last_error = e
@@ -175,10 +178,12 @@ class IdfSerialDut(SerialDut):
             raise last_error
 
     @SerialDut.uses_esptool
-    def try_flash(self, stub_inst: esptool.ESPLoader, app: IdfApp, erase_nvs=True, baud_rate=115200):
-        flash_files = app.flash_files
-        encrypt_files = app.encrypt_files
-        encrypt = app.flash_settings.get('encrypt', False)
+    def try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
+        self.app: IdfApp
+
+        flash_files = self.app.flash_files
+        encrypt_files = self.app.encrypt_files
+        encrypt = self.app.flash_settings.get('encrypt', False)
         if encrypt:
             flash_files = encrypt_files
             encrypt_files = []
@@ -198,9 +203,9 @@ class IdfSerialDut(SerialDut):
         # write_flash expects the parameter encrypt_files to be None and not
         # an empty list, so perform the check here
         flash_args = FlashArgs({
-            'flash_size': app.flash_settings['flash_size'],
-            'flash_mode': app.flash_settings['flash_mode'],
-            'flash_freq': app.flash_settings['flash_freq'],
+            'flash_size': self.app.flash_settings['flash_size'],
+            'flash_mode': self.app.flash_settings['flash_mode'],
+            'flash_freq': self.app.flash_settings['flash_freq'],
             'addr_filename': flash_files,
             'encrypt_files': encrypt_files or None,
             'no_stub': False,
@@ -213,8 +218,8 @@ class IdfSerialDut(SerialDut):
 
         nvs_file = None
         if erase_nvs:
-            address = app.partition_table['nvs']['offset']
-            size = app.partition_table['nvs']['size']
+            address = self.app.partition_table['nvs']['offset']
+            size = self.app.partition_table['nvs']['size']
             nvs_file = tempfile.NamedTemporaryFile(delete=False)
             nvs_file.write(b'\xff' * size)
             if not isinstance(address, int):

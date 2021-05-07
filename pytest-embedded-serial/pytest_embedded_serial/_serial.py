@@ -34,7 +34,6 @@ class SerialDut(Dut):
         # the output to the ``pexpect_proc``, which only accept type str as input
         self.port_inst = self.open_port_session()
         self.rom_inst = esptool.ESPLoader.detect_chip(self.port_inst)
-
         self.start()
 
         self.forward_io_proc = self.open_forward_io_process()
@@ -50,6 +49,10 @@ class SerialDut(Dut):
         def handler(self, *args, **kwargs):
             settings = self.port_inst.get_settings()
 
+            # esptool use print, we need to redirect that to our pexpect
+            origin_stdout = sys.stdout
+            sys.stdout = self.pexpect_proc
+
             try:
                 self.rom_inst.connect('hard_reset')
                 stub_inst = self.rom_inst.run_stub()
@@ -59,21 +62,24 @@ class SerialDut(Dut):
                 stub_inst.hard_reset()
             finally:
                 self.port_inst.apply_settings(settings)
-
+                sys.stdout = origin_stdout
             return ret
 
         return handler
 
     @uses_esptool
-    def start(self, stub_inst: esptool.ESPLoader):  # do nothing but hard reset
+    def hard_reset(self, stub_inst: esptool.ESPLoader):
         pass
+
+    def start(self):
+        self.hard_reset()
 
     def open_port_session(self) -> serial.Serial:
         return serial.serial_for_url(self.port, **self.port_config)
 
     def preprocess(self, byte_str) -> str:
         if isinstance(byte_str, bytes):
-            return byte_str.decode('ascii')
+            return byte_str.decode('utf-8', errors='ignore')
         return byte_str
 
     def open_forward_io_process(self) -> multiprocessing.Process:

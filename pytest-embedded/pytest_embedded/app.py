@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Optional
 
@@ -17,4 +18,5 @@ class App:
 
         if path and os.path.exists(path):
             return os.path.realpath(path)
+        logging.warning(f'{path} not exists')
         return None

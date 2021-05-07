@@ -9,7 +9,7 @@ def bytes_to_str(byte_str: bytes) -> str:
     if not byte_str:
         return ''
 
-    return '\n'.join([line.strip() for line in byte_str.decode('utf8', 'ignore').split('\r\n') if line.strip()])
+    return '\n'.join([line.strip() for line in byte_str.decode('utf-8', 'ignore').split('\r\n') if line.strip()])
 
 
 class Dut:
