@@ -13,17 +13,17 @@ def read(fname):
 VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-embedded-flash-serial'
+NAME = 'pytest-embedded-serial'
 SHORT_DESCRIPTION = 'ESP-IDF test plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
-    'pytest>=3.5.0',
     # 'pytest-embedded',
+    'pyserial>=3.0',
 ]
 ENTRY_POINTS = {
     'pytest11': [
-        'pytest_embedded_flash_serial = pytest_embedded_flash_serial.plugin',
+        'pytest_embedded_serial = pytest_embedded_serial.plugin',
     ],
 }
 

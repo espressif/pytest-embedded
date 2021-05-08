@@ -2,8 +2,9 @@ set -eo
 
 DEFAULT_PACKAGES=" \
   pytest-embedded \
-  pytest-embedded-flash-jtag \
-  pytest-embedded-flash-serial \
+  pytest-embedded-serial \
+  pytest-embedded-serial-esp \
+  pytest-embedded-idf \
 "
 
 if [[ -z "$TWINE_PASSWORD" ]]; then
@@ -23,7 +24,7 @@ action=${1:-"install"}
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
   if [ "$action" = "install" ]; then
-    python setup.py install
+    pip install -e .
   elif [ "$action" = "build" ]; then
     python setup.py sdist bdist_wheel
   elif [ "$action" = "publish" ]; then

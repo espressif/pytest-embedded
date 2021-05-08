@@ -23,6 +23,9 @@ cache:
   paths:
     - .cache/
 
+before_script:
+  - pip install -U pip
+
 pre-commit:
   stage: check
   script:
@@ -31,9 +34,26 @@ pre-commit:
 
 pytest:
   stage: check
+  tags:
+    - ESP32C3_IDF
   script:
     - bash foreach.sh install
-    - pytest
+    - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
+    - pip install pytest-cov
+    - pip list
+    - export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+    - pytest -p pytest_cov .
+      --cov pytest_embedded
+      --cov pytest_embedded_idf
+      --cov pytest_embedded_serial
+      --cov pytest_embedded_serial_esp
+      --junitxml=report.xml
+      --cov-report=xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      cobertura: coverage.xml
 
 build-dist:
   stage: build
@@ -41,7 +61,6 @@ build-dist:
     paths:
       - "*/dist/*"
   script:
-    - pip install -U pip
     - pip install wheel
     - bash ./foreach.sh build
 
@@ -54,6 +73,5 @@ publish:
   variables:
     REPO_URL: ${GITLAB_HTTPS_SERVER}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
   script:
-    - pip install -U pip
     - pip install twine
     - bash ./foreach.sh publish
