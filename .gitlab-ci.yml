@@ -26,6 +26,12 @@ cache:
 before_script:
   - pip install -U pip
 
+.before_script_full_deps:
+  before_script:
+    - pip install -U pip
+    - bash foreach.sh install
+    - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
+
 pre-commit:
   stage: check
   script:
@@ -33,15 +39,13 @@ pre-commit:
     - pre-commit run -a
 
 pytest:
+  extends:
+    - .before_script_full_deps
   stage: check
   tags:
     - ESP32C3_IDF
   allow_failure: true  # skip this, test locally
   script:
-    - bash foreach.sh install
-    - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
-    - pip install pytest-cov
-    - pip list
     - export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
     - pytest --junitxml=report.xml --cov-report=xml
   artifacts:
@@ -51,6 +55,8 @@ pytest:
       cobertura: coverage.xml
 
 build-docs:
+  extends:
+    - .before_script_full_deps
   stage: check
   artifacts:
     paths:
