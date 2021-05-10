@@ -1,7 +1,7 @@
 import functools
 import os
 import sys
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import esptool as esptool
 from pytest_embedded.app import App
@@ -100,7 +100,7 @@ def _rom_target_name(rom: esptool.ESPLoader) -> str:
     return rom.__class__.CHIP_NAME.lower().replace('-', '')
 
 
-def _judge_by_target(ports: list[str], target: str = 'auto') -> Tuple[str, str]:
+def _judge_by_target(ports: List[str], target: str = 'auto') -> Tuple[str, str]:
     for port in ports:
         rom_inst = None
         try:
