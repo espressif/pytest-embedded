@@ -1,33 +1,37 @@
 # pytest-embedded
 
-ESP pytest embedded plugin
-
-## Fixtures
-
-- test_file_name (the test script file name)
-- test_case_name (the test function name)
-- app
-- dut
-
-All fixtures are with function scope by default, but we could provide different fixtures for different scope in order to
-load binary to device only once for multiple test cases or other time-saving use cases.
-
-For example:
-
-- `dut` fixtures could be module scope if we put all the same test cases which need the same app into one test file
+pytest embedded plugins
 
 ## Functionalities Provided by Pytest
 
 - Live Logging (https://docs.pytest.org/en/stable/logging.html#live-logs)
+
+  ```shell
+  # For example
+  pytest --log-cli-level=INFO
+  ```
+
 - JUnit Report (https://docs.pytest.org/en/stable/usage.html#creating-junitxml-format-files)
+
+  ```shell
+  # For example
+  pytest --junitxml=report.xml
+  ```
+
 - Test Case
   Filter (https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name)
 
+  ```shell
+  # For example
+  pytest -k esp  # all test functions names include esp would be run
+  ```
+
+These configs can also be set in the `pytest.ini` file in your repo's root dir. For details, please refer to
+the [pytest documentation](https://docs.pytest.org/en/6.2.x/customize.html). For examples, you can refer to the
+pytest.ini in this repo.
+
 ## Base Functionalities
 
-- [ ] log metrics
-  - [ ] performance
-  - [ ] binary size/heap size
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
 - [x] expect multi/single str/regex from the file descriptor
   - [x] use `pexpect` expect str/regex from the file descriptor
@@ -59,8 +63,11 @@ For example:
   - [ ] rename test case name, (for example we're using `<target>.<config>.<test_function_name>` in idf)
   - [ ] CI Env File Parsing (yaml file example: https://gitlab.espressif.cn:6688/qa/ci-test-runner-configs/-/blob/master
     , project-specific)
+- [ ] log metrics (idf specific)
+  - [ ] performance
+  - [ ] binary size/heap size
 
-## Other Protocal Related Features
+## Other Protocol Related Features
 
 - [ ] http/https
   - [ ] UDP
@@ -71,17 +78,28 @@ For example:
 
 ## How to run tests for this project?
 
-- `bash foreach.sh install`
-- `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
-- `pytest`
+By default, all tests under all plugins would be run.
+
+```shell
+>>> pip install -r requirements.txt
+>>> bash foreach.sh install
+>>> export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+>>> pytest
+```
 
 ## How to write tests with these plugins?
 
 Please refer to the test examples under each plugin
 
-## Limitation
+## Limitations
+
+### Plugin Autoload
 
 In case we use dynamic-linking-like plugin load method, you need to set `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` to
-disable the plugin autoload only if you've installed multi plugins provide the same functions.
+disable the plugin autoload if you've installed multi plugins which provide the same functions/options. Otherwise, the
+behavior could be unexpected or will raise some exceptions.
 
-If not set, the behavior could be unexpected.
+### Fixtures Scope
+
+Due to the limitation of pytest fixture `request`'s scope is `function`, all the fixtures that would use cli
+arguments/options should set their scope also to `function`.

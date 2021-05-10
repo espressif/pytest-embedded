@@ -1,10 +1,12 @@
 import os
+from typing import Optional
 
 
 class App:
-    """
-    Attributes which could be assigned from Pytest cli should be class attribute
-    """
-
-    def __init__(self, app_path: str = os.getcwd(), *args, **kwargs):
+    def __init__(self, app_path: Optional[str] = None, *args, **kwargs):
+        if app_path is None:
+            app_path = os.getcwd()
         self.app_path = os.path.realpath(app_path)
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)

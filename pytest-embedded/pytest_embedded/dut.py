@@ -25,14 +25,26 @@ class Dut:
             self.pexpect_proc.terminate,
         ]
 
-    def close(self):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def close(self) -> None:
+        """
+        Call all the sessions/threads/processes terminate method defined in ``self._sessions_close_methods``
+        :return: None
+        """
         for func in self._sessions_close_methods:
             try:
                 func()
             except Exception as e:
                 logging.error(e)
 
-    def expect(self, *args, **kwargs):
+    def expect(self, *args, **kwargs) -> None:
+        """
+        Call ``expect()`` with the pexpect process, all arguments would pass to ``pexpect.expect``
+        :return: None
+        """
+
         log_level = logging.ERROR
         try:
             self.pexpect_proc.expect(*args, **kwargs)

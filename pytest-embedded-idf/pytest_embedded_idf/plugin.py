@@ -2,7 +2,7 @@ from types import ModuleType
 
 import pytest
 
-from ._idf import IdfApp, IdfSerialDut
+from .idf import IdfApp, IdfSerialDut
 
 
 def pytest_addoption(parser):
