@@ -1,6 +1,8 @@
 # pytest-embedded-serial-esp
 
-## Injected Functionalities
+pytest embedded plugin for testing espressif boards via serial ports
 
-- let the app be auto-flashed while getting fixture `dut`
-- redirect serial output to the pexpect session
+## Functionalities
+
+- Provide a target/port auto-detection method
+- Auto hard-reset before forwarding the serial port output

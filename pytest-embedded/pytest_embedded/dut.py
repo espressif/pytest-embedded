@@ -13,6 +13,13 @@ def bytes_to_str(byte_str: bytes) -> str:
 
 
 class Dut:
+    """
+    Dut base class
+
+    :ivar: pexpect_proc: :mod:`pexpect` process. would copy stdin to stdout. This could help to do
+        :func:`pexpect.expect` over multi input resources
+    """
+
     def __init__(self, app: Optional[App] = None, *args, **kwargs) -> None:
         self.app = app
 
@@ -30,8 +37,7 @@ class Dut:
 
     def close(self) -> None:
         """
-        Call all the sessions/threads/processes terminate method defined in ``self._sessions_close_methods``
-        :return: None
+        Call all the sessions/threads/processes terminate methods defined in :attr:`self._sessions_close_methods`
         """
         for func in self._sessions_close_methods:
             try:
@@ -41,8 +47,7 @@ class Dut:
 
     def expect(self, *args, **kwargs) -> None:
         """
-        Call ``expect()`` with the pexpect process, all arguments would pass to ``pexpect.expect``
-        :return: None
+        Call :func:`pexpect.expect` with the :attr:`pexpect_proc`, all arguments would pass to :func:`pexpect.expect`
         """
 
         log_level = logging.ERROR

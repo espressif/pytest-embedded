@@ -2,6 +2,19 @@
 
 pytest embedded plugins
 
+## Installation
+
+If you're installing through internal registry, please
+check https://gitlab.espressif.cn:6688/idf/pytest-embedded/-/packages and get the detailed steps from the link of each
+package.
+
+Due to the limitation of internal package registry, the dependency is not correctly handled by `pip install` but
+recorded as comments under `setup.py`. Please install the dependency packages manually.
+
+## API Reference
+
+https://idf.gitlab-pages.espressif.cn:6688/pytest-embedded/
+
 ## Functionalities Provided by Pytest
 
 - Live Logging (https://docs.pytest.org/en/stable/logging.html#live-logs)
@@ -30,7 +43,9 @@ These configs can also be set in the `pytest.ini` file in your repo's root dir. 
 the [pytest documentation](https://docs.pytest.org/en/6.2.x/customize.html). For examples, you can refer to the
 pytest.ini in this repo.
 
-## Base Functionalities
+## Feature List
+
+### Base Functionalities
 
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
 - [x] expect multi/single str/regex from the file descriptor
@@ -38,7 +53,7 @@ pytest.ini in this repo.
 - [ ] junit support
   - [ ] parse serial stdout to junit
 
-## Plugin Features
+### Plugin Features
 
 - [ ] detect chip and port
   - [ ] jtag
@@ -67,7 +82,7 @@ pytest.ini in this repo.
   - [ ] performance
   - [ ] binary size/heap size
 
-## Other Protocol Related Features
+### Other Protocol Related Features
 
 - [ ] http/https
   - [ ] UDP
@@ -76,7 +91,9 @@ pytest.ini in this repo.
 - [ ] modbus
 - [ ] mqtt
 
-## How to run tests for this project?
+## Contributing
+
+### How to run tests for this project?
 
 By default, all tests under all plugins would be run.
 
@@ -87,9 +104,11 @@ By default, all tests under all plugins would be run.
 >>> pytest
 ```
 
-## How to write tests with these plugins?
+### How to write tests with these plugins?
 
-Please refer to the test examples under each plugin
+Basically we're following
+the [official documentation](https://docs.pytest.org/en/stable/writing_plugins.html#testing-plugins). You could also
+refer to the tests under each plugin.
 
 ## Limitations
 

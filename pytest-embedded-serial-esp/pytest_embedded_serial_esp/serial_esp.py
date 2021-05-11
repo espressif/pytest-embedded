@@ -3,13 +3,20 @@ import os
 import sys
 from typing import List, Optional, Tuple
 
-import esptool as esptool
+import esptool
 from pytest_embedded.app import App
 from pytest_embedded_serial.serial_dut import SerialDut
 from serial.tools.list_ports_posix import comports
 
 
 class EspSerialDut(SerialDut):
+    """
+    Dut class for espressif serial port
+
+    :ivar: target: target chip type
+    :ivar: port: serial port string
+    """
+
     def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
         self.target = getattr(self, 'target', 'auto')
         self.target, port = detect_target_port(self.target, port)
@@ -18,6 +25,13 @@ class EspSerialDut(SerialDut):
         super().__init__(app, port, *args, **kwargs)
 
     def _uses_esptool(func):
+        """
+        Provided functionalities:
+        - run hard_reset before real function run
+        - reset the port settings after real function run
+        - call ``run_stub()`` and pass the ESPStubLoader instance
+        """
+
         @functools.wraps(func)
         def handler(self, *args, **kwargs):
             settings = self.port_inst.get_settings()
@@ -45,13 +59,24 @@ class EspSerialDut(SerialDut):
 
     @_uses_esptool
     def hard_reset(self, stub_inst: esptool.ESPLoader):
+        """
+        Hard reset via esptool
+        """
         pass
 
-    def start(self):
+    def _start(self) -> None:
         self.hard_reset()
 
 
-def detect_target_port(target=None, port=None) -> Tuple[str, str]:
+def detect_target_port(target: Optional[str] = None, port: Optional[str] = None) -> Tuple[str, str]:
+    """
+    Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of them
+    are missing.
+
+    :param target: target chip type
+    :param port: serial port
+    :return: specific chip type and port
+    """
     available_ports = _list_available_ports()
 
     if target:

@@ -2,6 +2,7 @@ import codecs
 import os
 
 import setuptools
+from pytest_embedded import __version__
 from setuptools import setup
 
 
@@ -10,11 +11,10 @@ def read(fname):
     return codecs.open(file_path, encoding='utf-8').read()
 
 
-VERSION = '0.1.0'
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
 NAME = 'pytest-embedded'
-SHORT_DESCRIPTION = 'ESP-IDF test plugin'
+SHORT_DESCRIPTION = 'pytest embedded plugin'
 LICENSE = 'Apache License 2.0'
 URL = 'https://espressif.com'
 REQUIRES = [
@@ -29,7 +29,7 @@ ENTRY_POINTS = {
 
 setup(
     name=NAME,
-    version=VERSION,
+    version=__version__,
     author=AUTHOR,
     author_email=EMAIL,
     license=LICENSE,

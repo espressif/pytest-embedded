@@ -11,4 +11,4 @@ Base plugin for all other plugins under this repo.
 
 ## Functions
 
-- 
+- `expect` (`pexpect.expect` wrapper)
