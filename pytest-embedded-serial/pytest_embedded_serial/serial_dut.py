@@ -7,6 +7,13 @@ from pytest_embedded.dut import Dut
 
 
 class SerialDut(Dut):
+    """
+    Dut class for serial ports
+
+    :ivar: port: serial port string
+    :ivar: port_inst: :class:`pyserial.Serial` instance
+    :ivar: forward_io_proc: A process which forward the serial output to :attr:`pexpect_proc` stdin
+    """
     DEFAULT_PORT_CONFIG = {
         'baudrate': 115200,
         'bytesize': serial.EIGHTBITS,
@@ -28,7 +35,7 @@ class SerialDut(Dut):
 
         self.port_config = self.DEFAULT_PORT_CONFIG
         self.port_inst = self._open_port_session()
-        self.start()
+        self._start()
 
         # forward_io_proc would get output from ``open_port_session``, do some pre-process jobs and then forward the
         # the output to the ``pexpect_proc``, which only accept type str as input
@@ -40,7 +47,7 @@ class SerialDut(Dut):
             self.port_inst.close,
         ])
 
-    def start(self):
+    def _start(self):
         pass
 
     def _open_port_session(self) -> serial.Serial:

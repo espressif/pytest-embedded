@@ -17,10 +17,9 @@ pytest\_embedded\_idf.idf module
 pytest\_embedded\_idf.plugin module
 -----------------------------------
 
-.. automodule:: pytest_embedded_idf.plugin
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Monkey patch :py:class:`pytest_embedded.app.App` with :py:class:`pytest_embedded_idf.idf.IdfApp`
+
+Monkey patch :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_idf.idf.IdfSerialDut`
 
 Module contents
 ---------------

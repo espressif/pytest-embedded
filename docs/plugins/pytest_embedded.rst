@@ -31,6 +31,7 @@ pytest\_embedded.plugin module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: pytest_addoption
 
 Module contents
 ---------------

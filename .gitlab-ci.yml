@@ -30,7 +30,7 @@ before_script:
   before_script:
     - pip install -U pip
     - bash foreach.sh install
-    - pip install "git+git://github.com/espressif/esptool@master#egg=esptool"
+    - pip install -r requirements.txt
 
 pre-commit:
   stage: check
@@ -80,7 +80,7 @@ publish-dist:
   needs:
     - build-dist
   only:
-    - tags
+    - master
   variables:
     REPO_URL: ${GITLAB_HTTPS_SERVER}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
   script:

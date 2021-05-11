@@ -7,10 +7,8 @@ Submodules
 pytest\_embedded\_serial\_esp.plugin module
 -------------------------------------------
 
-.. automodule:: pytest_embedded_serial_esp.plugin
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Monkey patch :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_serial_esp.serial_esp.EspSerialDut`
+
 
 pytest\_embedded\_serial\_esp.serial\_esp module
 ------------------------------------------------

@@ -1,6 +1,7 @@
 # pytest-embedded-serial
 
+pytest embedded plugin for testing serial ports
+
 ## Injected Functionalities
 
-- let the app be auto-flashed while getting fixture `dut`
 - redirect serial output to the pexpect session
