@@ -1,4 +1,5 @@
 import functools
+import logging
 import os
 import sys
 from typing import List, Optional, Tuple
@@ -18,8 +19,9 @@ class EspSerialDut(SerialDut):
     """
 
     def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
-        self.target = getattr(self, 'target', 'auto')
+        self.target = getattr(app, 'target', 'auto')
         self.target, port = detect_target_port(self.target, port)
+        logging.info(f'Target: {self.target}, Port: {port}')
 
         # put at last to make sure the forward_io_proc is forwarding output after the hard reset
         super().__init__(app, port, *args, **kwargs)

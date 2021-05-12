@@ -10,11 +10,11 @@ from .dut import Dut
 
 
 @pytest.fixture
-def test_file_name(request) -> str:
+def test_file_path(request) -> str:
     """
-    :return: current test script file name
+    :return: current test script file path
     """
-    return request.module.__name__
+    return request.module.__file__
 
 
 @pytest.fixture
@@ -28,7 +28,6 @@ def test_case_name(request) -> str:
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
     group.addoption('--app-path',
-                    default=os.getcwd(),
                     help='App path')
 
 
@@ -52,13 +51,16 @@ def options(request) -> Dict[str, Dict[str, Any]]:
 
 
 @pytest.fixture
-def app(options):
+def app(options, test_file_path):
     """
     Uses :attr:`options['App']` as kwargs to create :class:`App` instance.
 
     :return: :class:`App` instance
     """
     app_options = options.get('App', {})
+    if app_options['app_path'] is None:
+        logging.info(f'test_file_path: {test_file_path}')
+        app_options['app_path'] = os.path.dirname(test_file_path)
     logging.info(app_options)
     return App(**app_options)
 
