@@ -18,8 +18,8 @@ def test_help(testdir):
 
 def test_fixtures(testdir):
     testdir.makepyfile("""
-        def test_fixtures_test_file_name(test_file_name):
-            assert test_file_name == 'test_fixtures'
+        def test_fixtures_test_file_name(test_file_path):
+            assert test_file_path.endswith('test_fixtures.py')
 
         def test_fixtures_test_case_name(test_case_name):
             assert test_case_name == 'test_fixtures_test_case_name'
