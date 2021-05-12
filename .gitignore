@@ -78,3 +78,8 @@ venv/
 
 # IDE
 .idea/
+
+# idf related
+sdkconfig
+sdkconfig.old
+build/
