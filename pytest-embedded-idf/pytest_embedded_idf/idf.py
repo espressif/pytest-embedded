@@ -32,9 +32,9 @@ class IdfApp(App):
         self.elf_file = self._get_elf_file()
         self.parttool_path = self._get_parttool_file(part_tool)
 
-        self.sdkconfig = self._parse_sdkconfig()  # type: Dict[str, Any]
+        self.sdkconfig = self._parse_sdkconfig()
         self.flash_files, self.encrypt_files, self.flash_settings = self._parse_flash_args()
-        self.partition_table = self._parse_partition_table()  # type: Dict[str, Any]
+        self.partition_table = self._parse_partition_table()
 
         self.target = self._get_target_from_sdkconfig()
 
