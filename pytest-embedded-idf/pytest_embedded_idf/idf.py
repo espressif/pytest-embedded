@@ -33,7 +33,7 @@ class IdfApp(App):
         self.parttool_path = self._get_parttool_file(part_tool)
 
         self.sdkconfig = self._parse_sdkconfig()
-        self.flash_files, self.encrypt_files, self.flash_settings = self._parse_flash_args()
+        self.flash_files, self.flash_settings = self._parse_flash_args()
         self.partition_table = self._parse_partition_table()
 
         self.target = self._get_target_from_sdkconfig()
@@ -83,45 +83,39 @@ class IdfApp(App):
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def _is_encrypted(self, flash_args, offs, file_path):
+    def _is_encrypted(self, flash_args: Dict[str, Any], offset: int, file_path: str):
         for entry in flash_args.values():
             try:
-                if (entry['offset'], entry['file']) == (offs, file_path):
+                if (entry['offset'], entry['file']) == (offset, file_path):
                     return entry['encrypted'] == 'true'
             except (TypeError, KeyError):
                 continue
 
-        return None
+        return False
 
-    def _parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str]]],
-                                         Optional[List[Tuple[int, str]]],
+    def _parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str, bool]]],
                                          Optional[Dict[str, Any]]]:
+        """
+        :return: (flash_files: [(offset, file_path, encrypted), ...],
+                  flash_settings: dict[str, str])
+        """
         flash_args_filepath = self._get_flash_args_file()
         if not flash_args_filepath:
-            return None, None, None
+            return None, None
 
-        default_encryption = 'CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT' in self.sdkconfig
         with open(flash_args_filepath) as fr:
             flash_args = json.load(fr)
 
-        flash_files = []
-        encrypt_files = []
-        for (offs, file_path) in flash_args['flash_files'].items():
-            if not offs:
-                continue
+        res = []
+        for (offset, file_path) in flash_args['flash_files'].items():
+            encrypted = self._is_encrypted(flash_args, offset, file_path)
+            res.append((int(offset, 0), os.path.join(self.binary_path, file_path), encrypted))
 
-            flash_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
-            encrypted = self._is_encrypted(flash_args, offs, file_path)
-
-            if (encrypted is None and default_encryption) or encrypted:
-                encrypt_files.append((int(offs, 0), os.path.join(self.binary_path, file_path)))
-
-        flash_files = sorted(flash_files)
-        encrypt_files = sorted(encrypt_files)
+        flash_files = sorted(res)
         flash_settings = flash_args['flash_settings']
-        flash_settings['encrypt'] = (flash_files == encrypt_files)
+        flash_settings['encrypt'] = any([file[2] for file in res])
 
-        return flash_files, encrypt_files, flash_settings
+        return flash_files, flash_settings
 
     def _get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
         parttool_filepath = parttool or os.path.join(os.getenv('IDF_PATH', ''), 'components', 'partition_table',
@@ -135,7 +129,7 @@ class IdfApp(App):
             return None
 
         errors = []
-        for _, file in self.flash_files:
+        for _, file, _ in self.flash_files:
             if 'partition' in os.path.split(file)[1]:
                 partition_file = os.path.join(self.binary_path, file)
                 process = subprocess.Popen([sys.executable, self.parttool_path, partition_file],
@@ -212,17 +206,10 @@ class IdfSerialDut(EspSerialDut):
     def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp
 
-        flash_files = self.app.flash_files
-        encrypt_files = self.app.encrypt_files
-        encrypt = self.app.flash_settings.get('encrypt', False)
-        if encrypt:
-            flash_files = encrypt_files
-            encrypt_files = []
-        else:
-            flash_files = [entry for entry in flash_files if entry not in encrypt_files]
-
-        flash_files = [(offs, open(path, 'rb')) for (offs, path) in flash_files]
-        encrypt_files = [(offs, open(path, 'rb')) for (offs, path) in encrypt_files]
+        flash_files = [(offset, open(path, 'rb'))
+                       for (offset, path, encrypted) in self.app.flash_files if not encrypted]
+        encrypt_files = [(offset, open(path, 'rb'))
+                         for (offset, path, encrypted) in self.app.flash_files if encrypted]
 
         # fake flasher args object, this is a hack until
         # esptool Python API is improved
@@ -233,19 +220,17 @@ class IdfSerialDut(EspSerialDut):
 
         # write_flash expects the parameter encrypt_files to be None and not
         # an empty list, so perform the check here
-        flash_args = FlashArgs({
-            'flash_size': self.app.flash_settings['flash_size'],
-            'flash_mode': self.app.flash_settings['flash_mode'],
-            'flash_freq': self.app.flash_settings['flash_freq'],
+        default_kwargs = {
             'addr_filename': flash_files,
             'encrypt_files': encrypt_files or None,
             'no_stub': False,
             'compress': True,
             'verify': False,
-            'encrypt': encrypt,
             'ignore_flash_encryption_efuse_setting': False,
             'erase_all': False,
-        })
+        }
+        default_kwargs.update(self.app.flash_settings)
+        flash_args = FlashArgs(default_kwargs)
 
         nvs_file = None
         if erase_nvs:
@@ -256,7 +241,7 @@ class IdfSerialDut(EspSerialDut):
             if not isinstance(address, int):
                 address = int(address, 0)
 
-            if encrypt:
+            if self.app.flash_settings['encrypt']:
                 encrypt_files.append((address, open(nvs_file.name, 'rb')))
             else:
                 flash_files.append((address, open(nvs_file.name, 'rb')))
