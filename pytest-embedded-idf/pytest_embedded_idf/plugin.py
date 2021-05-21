@@ -2,7 +2,7 @@ from types import ModuleType
 
 import pytest
 
-from .idf import IdfApp, IdfSerialDut
+from .app import IdfApp
 
 
 def pytest_addoption(parser):
@@ -19,4 +19,10 @@ def pytest_plugin_registered(plugin, manager):
     plugin.KNOWN_OPTIONS['App'].append('part_tool')
 
     setattr(plugin, 'App', IdfApp)
-    setattr(plugin, 'Dut', IdfSerialDut)
+
+    try:
+        from .dut import IdfSerialDut
+    except ImportError:
+        pass
+    else:
+        setattr(plugin, 'Dut', IdfSerialDut)
