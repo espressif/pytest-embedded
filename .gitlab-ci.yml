@@ -81,6 +81,7 @@ publish-dist:
     - build-dist
   only:
     - master
+  allow_failure: true
   variables:
     REPO_URL: ${GITLAB_HTTPS_SERVER}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
   script:

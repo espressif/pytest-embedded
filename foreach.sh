@@ -5,6 +5,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-serial \
   pytest-embedded-serial-esp \
   pytest-embedded-idf \
+  pytest-embedded-qemu-idf \
 "
 
 if [[ -z "$TWINE_PASSWORD" ]]; then

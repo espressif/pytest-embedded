@@ -33,14 +33,9 @@ class EspSerialDut(SerialDut):
         - reset the port settings after real function run
         - call ``run_stub()`` and pass the ESPStubLoader instance
         """
-
         @functools.wraps(func)
         def handler(self, *args, **kwargs):
             settings = self.port_inst.get_settings()
-
-            # esptool use print, we need to redirect that to our pexpect
-            origin_stdout = sys.stdout
-            sys.stdout = self.pexpect_proc
 
             if getattr(self, 'rom_inst', None) is None:
                 self.rom_inst = esptool.ESPLoader.detect_chip(self.port_inst)
@@ -54,7 +49,6 @@ class EspSerialDut(SerialDut):
                 stub_inst.hard_reset()
             finally:
                 self.port_inst.apply_settings(settings)
-                sys.stdout = origin_stdout
             return ret
 
         return handler

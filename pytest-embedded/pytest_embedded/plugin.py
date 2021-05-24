@@ -51,7 +51,7 @@ def options(request) -> Dict[str, Dict[str, Any]]:
 
 
 @pytest.fixture
-def app(options, test_file_path):
+def app(options, test_file_path) -> App:
     """
     Uses :attr:`options['App']` as kwargs to create :class:`App` instance.
 
@@ -66,7 +66,7 @@ def app(options, test_file_path):
 
 
 @pytest.fixture
-def dut(app, options):
+def dut(app, options) -> Dut:
     """
     Uses :attr:`options['Dut']` as kwargs to create :class:`Dut` instance.
 
