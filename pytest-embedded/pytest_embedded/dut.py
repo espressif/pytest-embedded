@@ -1,4 +1,6 @@
 import logging
+import sys
+from functools import wraps
 from typing import Optional
 
 import pexpect
@@ -60,3 +62,23 @@ class Dut:
         finally:
             logging.log(log_level, f'Buffered bytes:\n'
                                    f'{bytes_to_str(self.pexpect_proc.before)}')
+
+    def redirect_stdout(func):
+        """
+        This is a decorator which will redirect the stdout to the pexpect thread. Should be the outermost decorator
+        if there are multi decorators
+        """
+
+        @wraps(func)
+        def inner(self, *args, **kwargs):
+            origin_stdout = sys.stdout
+            sys.stdout = self.pexpect_proc
+
+            try:
+                res = func(self, *args, **kwargs)
+            finally:
+                sys.stdout = origin_stdout
+
+            return res
+
+        return inner

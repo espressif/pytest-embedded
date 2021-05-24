@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import esptool
 from pytest_embedded.app import App
+from pytest_embedded.dut import Dut
 from pytest_embedded_serial_esp.serial_esp import EspSerialDut
 
 
@@ -202,6 +203,7 @@ class IdfSerialDut(EspSerialDut):
         else:
             raise last_error
 
+    @Dut.redirect_stdout
     @EspSerialDut._uses_esptool
     def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp
