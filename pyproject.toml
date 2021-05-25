@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 120
+target-version = ['py36']
+force-exclude = '/tests/'
+skip-string-normalization = 'True'
+
+[tool.pytest.ini_options]
+addopts = '-p pytest_cov --cov pytest_embedded --cov pytest_embedded_serial --cov pytest_embedded_serial_esp --cov pytest_embedded_idf --cov pytest_embedded_qemu_idf'
+norecursedirs = 'examples/*'
+
+# log related
+log_cli = 'True'
+log_cli_level = 'INFO'
+log_cli_format = '%(asctime)s %(levelname)s %(message)s'
+log_cli_date_format = '%Y-%m-%d %H:%M:%S'

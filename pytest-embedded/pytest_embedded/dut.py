@@ -60,13 +60,15 @@ class Dut:
         else:
             log_level = logging.INFO
         finally:
-            logging.log(log_level, f'Buffered bytes:\n'
-                                   f'{bytes_to_str(self.pexpect_proc.before)}')
+            logging.log(
+                log_level,
+                f'Buffered bytes:\n' f'{bytes_to_str(self.pexpect_proc.before)}',
+            )
 
     def redirect_stdout(func):
         """
         This is a decorator which will redirect the stdout to the pexpect thread. Should be the outermost decorator
-        if there are multi decorators
+        if there are multi decorators.
         """
 
         @wraps(func)

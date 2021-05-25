@@ -39,10 +39,10 @@ class IdfSerialDut(EspSerialDut):
     def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp
 
-        flash_files = [(offset, open(path, 'rb'))
-                       for (offset, path, encrypted) in self.app.flash_files if not encrypted]
-        encrypt_files = [(offset, open(path, 'rb'))
-                         for (offset, path, encrypted) in self.app.flash_files if encrypted]
+        flash_files = [
+            (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
+        ]
+        encrypt_files = [(offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if encrypted]
 
         # fake flasher args object, this is a hack until
         # esptool Python API is improved

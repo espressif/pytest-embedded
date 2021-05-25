@@ -33,6 +33,7 @@ class EspSerialDut(SerialDut):
         - reset the port settings after real function run
         - call ``run_stub()`` and pass the ESPStubLoader instance
         """
+
         @functools.wraps(func)
         def handler(self, *args, **kwargs):
             settings = self.port_inst.get_settings()
