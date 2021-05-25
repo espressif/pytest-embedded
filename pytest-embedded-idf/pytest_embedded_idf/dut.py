@@ -3,7 +3,7 @@ import tempfile
 
 import esptool
 from pytest_embedded.dut import Dut
-from pytest_embedded_serial_esp.serial_esp import EspSerialDut
+from pytest_embedded_serial_esp.dut import EspSerialDut
 
 from .app import IdfApp
 

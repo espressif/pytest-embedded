@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 import esptool
 from pytest_embedded.app import App
-from pytest_embedded_serial.serial_dut import SerialDut
+from pytest_embedded_serial.dut import SerialDut
 from serial.tools.list_ports_posix import comports
 
 

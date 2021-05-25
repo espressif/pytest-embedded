@@ -2,7 +2,7 @@ from types import ModuleType
 
 import pytest
 
-from .serial_esp import EspSerialDut
+from .dut import EspSerialDut
 
 
 def pytest_addoption(parser):
