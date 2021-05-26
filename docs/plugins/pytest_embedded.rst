@@ -24,6 +24,16 @@ pytest\_embedded.dut module
 
 .. autoclass:: pytest_embedded.dut
 
+pytest\_embedded.log module
+---------------------------
+
+.. automodule:: pytest_embedded.log
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: pytest_embedded.log
+
 pytest\_embedded.plugin module
 ------------------------------
 

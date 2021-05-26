@@ -104,7 +104,7 @@ class IdfQemuDut(Dut):
 
         self._start()
 
-    @Dut.redirect_stdout
+    @Dut.redirect_stdout('qemu')
     def _start(self):
         if not os.path.isfile(self.qemu_image_path):
             image_maker = FlashImageMaker(self.app, self.qemu_image_path)

@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 
 import esptool
 from pytest_embedded.app import App
+from pytest_embedded.dut import Dut
 from pytest_embedded_serial.dut import SerialDut
 from serial.tools.list_ports_posix import comports
 
@@ -20,7 +21,7 @@ class EspSerialDut(SerialDut):
 
     def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
         self.target = getattr(app, 'target', 'auto')
-        self.target, port = detect_target_port(self.target, port)
+        self.target, port = self.detect_target_port(port)
         logging.info(f'Target: {self.target}, Port: {port}')
 
         # put at last to make sure the forward_io_proc is forwarding output after the hard reset
@@ -64,29 +65,28 @@ class EspSerialDut(SerialDut):
     def _start(self) -> None:
         self.hard_reset()
 
+    @Dut.redirect_stdout('detecting port')
+    def detect_target_port(self, port: Optional[str] = None) -> Tuple[str, str]:
+        """
+        Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of them
+        are missing.
 
-def detect_target_port(target: Optional[str] = None, port: Optional[str] = None) -> Tuple[str, str]:
-    """
-    Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of them
-    are missing.
+        :param port: serial port
+        :return: specific chip type and port
+        """
+        available_ports = _list_available_ports()
 
-    :param target: target chip type
-    :param port: serial port
-    :return: specific chip type and port
-    """
-    available_ports = _list_available_ports()
-
-    if target:
-        if port:
-            return target, port
-        else:
-            return _judge_by_target(available_ports, target)
-    elif port:
-        if port not in available_ports:
-            raise ValueError(f'Port "{port}" unreachable')
-        return _judge_by_port(port)
-    else:  # pick the first available port then...
-        return _judge_by_target(available_ports, 'auto')
+        if self.target:
+            if port:
+                return self.target, port
+            else:
+                return _judge_by_target(available_ports, self.target)
+        elif port:
+            if port not in available_ports:
+                raise ValueError(f'Port "{port}" unreachable')
+            return _judge_by_port(port)
+        else:  # pick the first available port then...
+            return _judge_by_target(available_ports, 'auto')
 
 
 def _list_available_ports():

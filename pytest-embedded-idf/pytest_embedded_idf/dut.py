@@ -18,6 +18,7 @@ class IdfSerialDut(EspSerialDut):
     def _start(self):
         self.flash()
 
+    @Dut.redirect_stdout('flash')
     def flash(self, erase_nvs=True) -> None:
         """
         Flash the :attr:`flash_files` and :attr:`encrypt_files` of :attr:`self.app`
@@ -34,7 +35,6 @@ class IdfSerialDut(EspSerialDut):
         else:
             raise last_error
 
-    @Dut.redirect_stdout
     @EspSerialDut._uses_esptool
     def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp

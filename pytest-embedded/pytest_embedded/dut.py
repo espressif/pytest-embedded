@@ -1,10 +1,10 @@
 import logging
-import sys
 from functools import wraps
 from typing import Optional
 
 import pexpect
 from pytest_embedded.app import App
+from pytest_embedded.log import DuplicateLogStdout
 
 
 def bytes_to_str(byte_str: bytes) -> str:
@@ -20,6 +20,7 @@ class Dut:
 
     :ivar: pexpect_proc: :mod:`pexpect` process. would copy stdin to stdout. This could help to do
         :func:`pexpect.expect` over multi input resources
+    :ivar: app: :class:`pytest_embedded.app.App` or derived class instance
     """
 
     def __init__(self, app: Optional[App] = None, *args, **kwargs) -> None:
@@ -51,36 +52,33 @@ class Dut:
         """
         Call :func:`pexpect.expect` with the :attr:`pexpect_proc`, all arguments would pass to :func:`pexpect.expect`
         """
-
-        log_level = logging.ERROR
         try:
             self.pexpect_proc.expect(*args, **kwargs)
         except (pexpect.EOF, pexpect.TIMEOUT):
+            logging.error(f'Not found {args}, {kwargs}')
             raise
-        else:
-            log_level = logging.INFO
-        finally:
-            logging.log(
-                log_level,
-                f'Buffered bytes:\n' f'{bytes_to_str(self.pexpect_proc.before)}',
-            )
 
-    def redirect_stdout(func):
+    def redirect_stdout(source=None):
         """
         This is a decorator which will redirect the stdout to the pexpect thread. Should be the outermost decorator
         if there are multi decorators.
+
+        :warning: within this decorator, the ``print`` function would be redirect to the
+            :func:`pytest_embedded.log.DuplicateLogStdout.write`. All the ``args`` and ``kwargs`` passed to ``print``
+            will be ignored.
+
+        :attr: source: optional prefix of the log
         """
 
-        @wraps(func)
-        def inner(self, *args, **kwargs):
-            origin_stdout = sys.stdout
-            sys.stdout = self.pexpect_proc
+        def decorator(func):
+            @wraps(func)
+            def inner(self, *args, **kwargs):
+                pexpect_proc = getattr(self, 'pexpect_proc', None)
+                with DuplicateLogStdout(pexpect_proc, source):
+                    res = func(self, *args, **kwargs)
 
-            try:
-                res = func(self, *args, **kwargs)
-            finally:
-                sys.stdout = origin_stdout
+                return res
 
-            return res
+            return inner
 
-        return inner
+        return decorator

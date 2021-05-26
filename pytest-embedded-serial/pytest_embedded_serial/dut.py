@@ -64,6 +64,7 @@ class SerialDut(Dut):
         proc = multiprocessing.Process(target=self._forward_io)
         return proc
 
+    @Dut.redirect_stdout('serial')
     def _forward_io(self, breaker: bytes = b'\n'):
         while True:
             line = b''
@@ -73,4 +74,4 @@ class SerialDut(Dut):
                 sess_output = self.port_inst.read()
             line += sess_output
             line = self._preprocess(line)
-            self.pexpect_proc.write(line)
+            print(line)
