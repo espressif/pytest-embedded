@@ -17,6 +17,7 @@ if [[ -z "$TWINE_USERNAME" ]]; then
 fi
 
 action=${1:-"install"}
+res=0
 
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
@@ -28,10 +29,12 @@ for pkg in $DEFAULT_PACKAGES; do
   elif [ "$action" = "build" ]; then
     python setup.py sdist bdist_wheel
   elif [ "$action" = "publish" ]; then
-    python -m twine upload --repository-url $REPO_URL --verbose dist/*
+    python -m twine upload --repository-url $REPO_URL --verbose dist/* || res=1
   else
     echo "invalid argument. valid choices: install/uninstall/build/publish"
     exit 1
   fi
   popd
 done
+
+exit $res
