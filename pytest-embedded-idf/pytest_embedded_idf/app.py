@@ -18,9 +18,16 @@ class IdfApp(App):
     :ivar: encrypt_files: list of (offset, file path) of encrypted flash files
     :ivar: flash_settings: dict of flash settings
     """
+
     FLASH_ARGS_FILENAME = 'flasher_args.json'
 
-    def __init__(self, app_path: str = os.getcwd(), part_tool: Optional[str] = None, *args, **kwargs):
+    def __init__(
+        self,
+        app_path: str = os.getcwd(),
+        part_tool: Optional[str] = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(app_path, *args, **kwargs)
         self.binary_path = self._get_binary_path()
         if not self.binary_path:
@@ -90,8 +97,9 @@ class IdfApp(App):
 
         return False
 
-    def _parse_flash_args(self) -> Tuple[Optional[List[Tuple[int, str, bool]]],
-                                         Optional[Dict[str, Any]]]:
+    def _parse_flash_args(
+        self,
+    ) -> Tuple[Optional[List[Tuple[int, str, bool]]], Optional[Dict[str, Any]]]:
         """
         :return: (flash_files: [(offset, file_path, encrypted), ...],
                   flash_settings: dict[str, str])
@@ -115,8 +123,12 @@ class IdfApp(App):
         return flash_files, flash_settings
 
     def _get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
-        parttool_filepath = parttool or os.path.join(os.getenv('IDF_PATH', ''), 'components', 'partition_table',
-                                                     'gen_esp32part.py')
+        parttool_filepath = parttool or os.path.join(
+            os.getenv('IDF_PATH', ''),
+            'components',
+            'partition_table',
+            'gen_esp32part.py',
+        )
         if os.path.isfile(parttool_filepath):
             return os.path.realpath(parttool_filepath)
         return None
@@ -129,8 +141,11 @@ class IdfApp(App):
         for _, file, _ in self.flash_files:
             if 'partition' in os.path.split(file)[1]:
                 partition_file = os.path.join(self.binary_path, file)
-                process = subprocess.Popen([sys.executable, self.parttool_path, partition_file],
-                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                process = subprocess.Popen(
+                    [sys.executable, self.parttool_path, partition_file],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
                 (raw_data, raw_error) = process.communicate()
                 if isinstance(raw_error, bytes):
                     raw_error = raw_error.decode()
@@ -143,8 +158,7 @@ class IdfApp(App):
                 break
         else:
             traceback_msg = '\n'.join([f'{self.parttool_path} {p}:{os.linesep}{msg}' for p, msg in errors])
-            raise ValueError(f'No partition table found under {self.binary_path}\n'
-                             f'{traceback_msg}')
+            raise ValueError(f'No partition table found under {self.binary_path}\n' f'{traceback_msg}')
 
         partition_table = {}
         for line in raw_data.splitlines():
@@ -165,7 +179,7 @@ class IdfApp(App):
                     'subtype': _subtype,
                     'offset': _offset,
                     'size': _size,
-                    'flags': _flags
+                    'flags': _flags,
                 }
         return partition_table
 

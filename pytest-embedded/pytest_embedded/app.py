@@ -8,6 +8,7 @@ class App:
 
     :ivar: app_path: App path
     """
+
     def __init__(self, app_path: Optional[str] = None, *args, **kwargs):
         if app_path is None:
             app_path = os.getcwd()

@@ -14,6 +14,7 @@ class SerialDut(Dut):
     :ivar: port_inst: :class:`pyserial.Serial` instance
     :ivar: forward_io_proc: A process which forward the serial output to :attr:`pexpect_proc` stdin
     """
+
     DEFAULT_PORT_CONFIG = {
         'baudrate': 115200,
         'bytesize': serial.EIGHTBITS,
@@ -24,8 +25,7 @@ class SerialDut(Dut):
         'rtscts': False,
     }
 
-    def __init__(self, app: Optional[App] = None,
-                 port: Optional[str] = None, *args, **kwargs) -> None:
+    def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
         super().__init__(app, *args, **kwargs)
 
         if port is None:
@@ -42,10 +42,12 @@ class SerialDut(Dut):
         self.forward_io_proc = self._open_forward_io_process()
         self.forward_io_proc.start()
 
-        self._sessions_close_methods.extend([
-            self.forward_io_proc.terminate,
-            self.port_inst.close,
-        ])
+        self._sessions_close_methods.extend(
+            [
+                self.forward_io_proc.terminate,
+                self.port_inst.close,
+            ]
+        )
 
     def _start(self):
         pass
@@ -62,6 +64,7 @@ class SerialDut(Dut):
         proc = multiprocessing.Process(target=self._forward_io)
         return proc
 
+    @Dut.redirect_stdout('serial')
     def _forward_io(self, breaker: bytes = b'\n'):
         while True:
             line = b''
@@ -71,4 +74,4 @@ class SerialDut(Dut):
                 sess_output = self.port_inst.read()
             line += sess_output
             line = self._preprocess(line)
-            self.pexpect_proc.write(line)
+            print(line)

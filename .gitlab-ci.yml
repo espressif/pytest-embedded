@@ -63,6 +63,7 @@ build-docs:
       - docs/_build/html
   script:
     - pip install sphinx
+    - pip install sphinx-rtd-theme
     - cd docs
     - make html
 

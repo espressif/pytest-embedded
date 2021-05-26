@@ -2,13 +2,12 @@ from types import ModuleType
 
 import pytest
 
-from .serial_dut import SerialDut
+from .dut import SerialDut
 
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--port',
-                    help='serial port')
+    group.addoption('--port', help='serial port')
 
 
 @pytest.hookimpl

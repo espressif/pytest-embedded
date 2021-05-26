@@ -27,8 +27,7 @@ def test_case_name(request) -> str:
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--app-path',
-                    help='App path')
+    group.addoption('--app-path', help='App path')
 
 
 KNOWN_OPTIONS = defaultdict(list)

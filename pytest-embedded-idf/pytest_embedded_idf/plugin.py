@@ -7,8 +7,7 @@ from .app import IdfApp
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--part-tool',
-                    help='Partition tool path, used for parsing partition table')
+    group.addoption('--part-tool', help='Partition tool path, used for parsing partition table')
 
 
 @pytest.hookimpl

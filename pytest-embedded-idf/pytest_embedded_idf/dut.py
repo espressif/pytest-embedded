@@ -3,7 +3,7 @@ import tempfile
 
 import esptool
 from pytest_embedded.dut import Dut
-from pytest_embedded_serial_esp.serial_esp import EspSerialDut
+from pytest_embedded_serial_esp.dut import EspSerialDut
 
 from .app import IdfApp
 
@@ -18,6 +18,7 @@ class IdfSerialDut(EspSerialDut):
     def _start(self):
         self.flash()
 
+    @Dut.redirect_stdout('flash')
     def flash(self, erase_nvs=True) -> None:
         """
         Flash the :attr:`flash_files` and :attr:`encrypt_files` of :attr:`self.app`
@@ -34,15 +35,14 @@ class IdfSerialDut(EspSerialDut):
         else:
             raise last_error
 
-    @Dut.redirect_stdout
     @EspSerialDut._uses_esptool
     def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
         self.app: IdfApp
 
-        flash_files = [(offset, open(path, 'rb'))
-                       for (offset, path, encrypted) in self.app.flash_files if not encrypted]
-        encrypt_files = [(offset, open(path, 'rb'))
-                         for (offset, path, encrypted) in self.app.flash_files if encrypted]
+        flash_files = [
+            (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
+        ]
+        encrypt_files = [(offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if encrypted]
 
         # fake flasher args object, this is a hack until
         # esptool Python API is improved
