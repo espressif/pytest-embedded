@@ -7,20 +7,13 @@ from pytest_embedded.app import App
 from pytest_embedded.log import DuplicateLogStdout
 
 
-def bytes_to_str(byte_str: bytes) -> str:
-    if not byte_str:
-        return ''
-
-    return '\n'.join([line.strip() for line in byte_str.decode('utf-8', 'ignore').split('\r\n') if line.strip()])
-
-
 class Dut:
     """
     Dut base class
 
-    :ivar: pexpect_proc: :mod:`pexpect` process. would copy stdin to stdout. This could help to do
-        :func:`pexpect.expect` over multi input resources
     :ivar: app: :class:`pytest_embedded.app.App` or derived class instance
+    :ivar: pexpect_proc: :mod:`pexpect` process. would copy stdin to stdout. This could help to gather multi inputs
+        and do :func:`pexpect.expect` over them.
     """
 
     def __init__(self, app: Optional[App] = None, *args, **kwargs) -> None:
@@ -63,11 +56,14 @@ class Dut:
         This is a decorator which will redirect the stdout to the pexpect thread. Should be the outermost decorator
         if there are multi decorators.
 
+        :note: This is used within python modules. for test scripts, use fixture
+            :func:`pytest_embedded.plugin.redirect` would be more handy.
+
         :warning: within this decorator, the ``print`` function would be redirect to the
             :func:`pytest_embedded.log.DuplicateLogStdout.write`. All the ``args`` and ``kwargs`` passed to ``print``
-            will be ignored.
+            could be not working as expected.
 
-        :attr: source: optional prefix of the log
+        :param: source: optional prefix of the log
         """
 
         def decorator(func):

@@ -50,7 +50,7 @@ pytest.ini in this repo.
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
 - [x] expect multi/single str/regex from the file descriptor
   - [x] use `pexpect` expect str/regex from the file descriptor
-- [ ] send output to file descriptor
+- [x] send output to file descriptor
 - [ ] junit support
   - [ ] parse serial stdout to junit
 

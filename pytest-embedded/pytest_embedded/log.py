@@ -11,19 +11,20 @@ class DuplicateLogStdout(TextIOWrapper):
     use pytest logging functionality to log to cli or file by setting ``log_cli`` related attributes or ``log_file``
     related attributes. These attributes could be set at the same time.
 
-    :ivar: pexpect_proc: dut pexpect process
-    :ivar: source: stdout source, would be a prefix to log, like [source] log content
+    :param: pexpect_proc: dut pexpect process
+    :param: source: stdout source, would be a prefix to log, like ``[SOURCE] this line is a log``
     """
 
     def __init__(self, pexpect_proc: Optional[BytesIO] = None, source: Optional[str] = None):  # noqa
         self.pexpect_proc = pexpect_proc
         self.source = source
 
-        self.stdout = sys.stdout
-        sys.stdout = self
+        self.stdout = None
 
     def __enter__(self):
-        pass
+        if self.stdout is None:
+            self.stdout = sys.stdout
+            sys.stdout = self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

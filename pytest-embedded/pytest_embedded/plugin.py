@@ -7,6 +7,7 @@ import pytest
 
 from .app import App
 from .dut import Dut
+from .log import DuplicateLogStdout
 
 
 @pytest.fixture
@@ -37,7 +38,7 @@ KNOWN_OPTIONS['App'].append('app_path')
 @pytest.fixture
 def options(request) -> Dict[str, Dict[str, Any]]:
     """
-    :return: all the k-v pairs from :attr:`KNOWN_OPTIONS`.
+    :return: dict which contains all the k-v pairs from :attr:`KNOWN_OPTIONS`
     """
     res = {}
     options = request.config.option.__dict__
@@ -52,9 +53,9 @@ def options(request) -> Dict[str, Dict[str, Any]]:
 @pytest.fixture
 def app(options, test_file_path) -> App:
     """
-    Uses :attr:`options['App']` as kwargs to create :class:`App` instance.
+    Uses :attr:`options['App']` as kwargs to create instance.
 
-    :return: :class:`App` instance
+    :return: :class:`pytest_embedded.app.App` or derived class instance
     """
     app_options = options.get('App', {})
     if app_options['app_path'] is None:
@@ -67,9 +68,9 @@ def app(options, test_file_path) -> App:
 @pytest.fixture
 def dut(app, options) -> Dut:
     """
-    Uses :attr:`options['Dut']` as kwargs to create :class:`Dut` instance.
+    Uses :attr:`options['Dut']` as kwargs to create instance.
 
-    :return: :class:`Dut` instance
+    :return: :class:`pytest_embedded.dut.Dut` or derived class instance
     """
     dut_options = options.get('Dut', {})
     logging.info(dut_options)
@@ -78,3 +79,14 @@ def dut(app, options) -> Dut:
         yield dut
     finally:
         dut.close()
+
+
+@pytest.fixture
+def redirect(dut) -> DuplicateLogStdout:
+    """
+    Provided a context manager that could help log all the ``sys.stdout`` with pytest logging feature and redirect
+    ``sys.stdout`` to :attr:`dut.pexpect_proc`.
+
+    :return: :class:`pytest_embedded.log.DuplicateLogStdout` instance
+    """
+    return DuplicateLogStdout(dut.pexpect_proc)
