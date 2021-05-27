@@ -50,6 +50,7 @@ pytest.ini in this repo.
 - [ ] timeout context manager (for some third-party lib doesn't provide timeout feature)
 - [x] expect multi/single str/regex from the file descriptor
   - [x] use `pexpect` expect str/regex from the file descriptor
+- [ ] send output to file descriptor
 - [ ] junit support
   - [ ] parse serial stdout to junit
 
@@ -68,6 +69,12 @@ pytest.ini in this repo.
     project-specific)
   - [x] serial
   - [ ] jtag
+- [ ] QEMU fixture
+  - specify command line arguments used to launch QEMU
+  - optional: fixture prepares flash image before running QEMU
+  - pytest-embedded-serial DUT connects to the TCP port created by QEMU (`socket://localhost:3333`)
+  - the fixture has some methods to control QEMU by sending commands to its monitor port.
+  - if debugging is implemented (see below), GDB fixture connects to the remote port opened by QEMU (localhost:1234)
 - [ ] debugging
   - [ ] jtag
   - [ ] openocd related (`py_debug_backend`, `telnetlib`)
@@ -84,10 +91,10 @@ pytest.ini in this repo.
 
 ### Other Protocol Related Features
 
-- [ ] http/https
-  - [ ] UDP
-  - [ ] TCP
-  - [ ] TLS/SSL
+- [x] http/https server (https://pypi.org/project/pytest-httpserver/)
+- [ ] UDP
+- [ ] TCP
+- [ ] TLS/SSL
 - [ ] modbus
 - [ ] mqtt
 
