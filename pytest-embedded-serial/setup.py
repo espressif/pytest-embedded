@@ -15,10 +15,10 @@ AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
 NAME = 'pytest-embedded-serial'
 SHORT_DESCRIPTION = 'pytest embedded plugin for testing serial ports'
-LICENSE = 'Apache License 2.0'
+LICENSE = 'MIT'
 URL = 'https://espressif.com'
 REQUIRES = [
-    # 'pytest-embedded',
+    'pytest-embedded',
     'pyserial>=3.0',
 ]
 ENTRY_POINTS = {
@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
         'Operating System :: OS Independent',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: MIT License',
     ],
     entry_points=ENTRY_POINTS,
 )

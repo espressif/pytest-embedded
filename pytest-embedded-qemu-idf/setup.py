@@ -15,10 +15,10 @@ AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
 NAME = 'pytest-embedded-qemu-idf'
 SHORT_DESCRIPTION = 'pytest embedded plugin for esp-idf project by qemu, not target chip'
-LICENSE = 'Apache License 2.0'
+LICENSE = 'MIT'
 URL = 'https://espressif.com'
 REQUIRES = [
-    # 'pytest-embedded-idf',
+    'pytest-embedded-idf',
 ]
 ENTRY_POINTS = {
     'pytest11': [
@@ -50,7 +50,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
         'Operating System :: OS Independent',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: MIT License',
     ],
     entry_points=ENTRY_POINTS,
 )

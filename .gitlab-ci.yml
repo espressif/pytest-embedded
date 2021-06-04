@@ -62,9 +62,8 @@ build-docs:
     paths:
       - docs/_build/html
   script:
-    - pip install sphinx
-    - pip install sphinx-rtd-theme
     - cd docs
+    - pip install -r requirements.txt
     - make html
 
 build-dist:

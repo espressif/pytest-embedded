@@ -5,7 +5,7 @@ pexpect>=4.4
 pyserial>=3.0
 
 # plugin pytest-embedded-serial-esp
-git+git://github.com/espressif/esptool@master#egg=esptool
+esptool>=3.1
 
 # testing
 pytest-cov

@@ -15,11 +15,12 @@ AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
 NAME = 'pytest-embedded-idf'
 SHORT_DESCRIPTION = 'pytest embedded plugin for esp-idf project'
-LICENSE = 'Apache License 2.0'
+LICENSE = 'MIT'
 URL = 'https://espressif.com'
-REQUIRES = [
-    # 'pytest-embedded-serial-esp',
-]
+REQUIRES = []
+EXTRAS_REQUIRE = {
+    'serial': 'pytest-embedded-serial-esp',
+}
 ENTRY_POINTS = {
     'pytest11': [
         'pytest_embedded_idf = pytest_embedded_idf.plugin',
@@ -38,6 +39,7 @@ setup(
     packages=setuptools.find_packages(exclude='tests'),
     python_requires='>=3.6',
     install_requires=REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
     classifiers=[
         'Framework :: Pytest',
         'Intended Audience :: Developers',
@@ -50,7 +52,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
         'Operating System :: OS Independent',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: MIT License',
     ],
     entry_points=ENTRY_POINTS,
 )
