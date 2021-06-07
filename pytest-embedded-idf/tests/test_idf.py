@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 PLUGINS = [
     '-p', 'pytest_embedded',
     '-p', 'pytest_embedded_serial_esp',
@@ -11,7 +13,12 @@ PLUGINS_WITHOUT_SERIAL = [
     '-p', 'pytest_embedded_idf',
 ]
 
+serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', False) is False,
+                                            reason='after connected to espressif boards, '
+                                                   'use "DONT_SKIP_SERIAL_TESTS" to run this tests')
 
+
+@serial_device_required
 def test_pexpect(testdir):
     testdir.makepyfile("""
         import pexpect
@@ -36,8 +43,8 @@ def test_pexpect(testdir):
 
 def test_idf_app(testdir):
     testdir.makepyfile("""
-        def test_idf_app(dut):
-            assert len(dut.app.flash_files) == 3
+        def test_idf_app(app):
+            assert len(app.flash_files) == 3
     """)
 
     result = testdir.runpytest(
