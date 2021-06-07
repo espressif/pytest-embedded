@@ -4,16 +4,11 @@ pytest embedded plugins
 
 ## Installation
 
-If you're installing through internal registry, please
-check https://gitlab.espressif.cn:6688/idf/pytest-embedded/-/packages and get the detailed steps from the link of each
-package.
-
-Due to the limitation of internal package registry, the dependency is not correctly handled by `pip install` but
-recorded as comments under `setup.py`. Please install the dependency packages manually.
+TO BE PUBLISHED ON PYPI
 
 ## API Reference
 
-https://idf.gitlab-pages.espressif.cn:6688/pytest-embedded/
+TO BE PUBLISHED ON READTHEDOCS
 
 ## Functionalities Provided by Pytest
 
@@ -83,8 +78,7 @@ pytest.ini in this repo.
 - [ ] CI related (project-specific)
   - [ ] setting up rules parsing `module_name` to get app_path, config, target for CI
   - [ ] rename test case name, (for example we're using `<target>.<config>.<test_function_name>` in idf)
-  - [ ] CI Env File Parsing (yaml file example: https://gitlab.espressif.cn:6688/qa/ci-test-runner-configs/-/blob/master
-    , project-specific)
+  - [ ] CI Env File Parsing (project-specific)
 - [ ] log metrics (idf specific)
   - [ ] performance
   - [ ] binary size/heap size
@@ -108,6 +102,8 @@ By default, all tests under all plugins would be run.
 >>> pip install -r requirements.txt
 >>> bash foreach.sh install
 >>> export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+>>> # export DONT_SKIP_SERIAL_TESTS=1 (when you connected to an espressif board)
+>>> # export DONT_SKIP_SERIAL_TESTS=1 (when qemu-system-xtensa is ready)
 >>> pytest
 ```
 

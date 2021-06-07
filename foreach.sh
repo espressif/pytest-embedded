@@ -8,14 +8,6 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-qemu-idf \
 "
 
-if [[ -z "$TWINE_PASSWORD" ]]; then
-  export TWINE_PASSWORD="$CI_JOB_TOKEN"
-fi
-
-if [[ -z "$TWINE_USERNAME" ]]; then
-  export TWINE_USERNAME=gitlab-ci-token
-fi
-
 action=${1:-"install"}
 res=0
 
@@ -29,7 +21,7 @@ for pkg in $DEFAULT_PACKAGES; do
   elif [ "$action" = "build" ]; then
     python setup.py sdist bdist_wheel
   elif [ "$action" = "publish" ]; then
-    python -m twine upload --repository-url $REPO_URL --verbose dist/* || res=1
+    python -m twine upload --verbose dist/* || res=1
   else
     echo "invalid argument. valid choices: install/uninstall/build/publish"
     exit 1
