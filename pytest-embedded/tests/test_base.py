@@ -34,7 +34,7 @@ def test_fixtures(testdir):
             assert dut.app.app_path.endswith('hello_world')
 
         def test_fixture_redirect(dut, redirect):
-            with redirect:
+            with redirect('prefix'):
                 print('been redirected')
             dut.expect('been redirected')
 

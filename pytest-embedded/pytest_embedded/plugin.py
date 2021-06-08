@@ -89,4 +89,8 @@ def redirect(dut) -> DuplicateLogStdout:
 
     :return: :class:`pytest_embedded.log.DuplicateLogStdout` instance
     """
-    return DuplicateLogStdout(dut.pexpect_proc)
+
+    def _inner(source=None):
+        return DuplicateLogStdout(dut.pexpect_proc, source=source)
+
+    return _inner
