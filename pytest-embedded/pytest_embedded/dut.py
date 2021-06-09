@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Optional
+from typing import Callable, Optional
 
 import pexpect
 from pytest_embedded.app import App
@@ -51,7 +51,7 @@ class Dut:
             logging.error(f'Not found {args}, {kwargs}')
             raise
 
-    def redirect_stdout(source=None):
+    def redirect_stdout(source: Optional[str] = None) -> Callable[[Callable[..., None]], Callable[..., None]]:
         """
         This is a decorator which will redirect the stdout to the pexpect thread. Should be the outermost decorator
         if there are multi decorators.
