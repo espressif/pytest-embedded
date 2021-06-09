@@ -4,6 +4,7 @@ from typing import Optional
 import serial
 from pytest_embedded.app import App
 from pytest_embedded.dut import Dut
+from pytest_embedded.log import to_str
 
 
 class SerialDut(Dut):
@@ -55,11 +56,6 @@ class SerialDut(Dut):
     def _open_port_session(self) -> serial.Serial:
         return serial.serial_for_url(self.port, **self.port_config)
 
-    def _preprocess(self, byte_str) -> str:
-        if isinstance(byte_str, bytes):
-            return byte_str.decode('utf-8', errors='ignore')
-        return byte_str
-
     def _open_forward_io_process(self) -> multiprocessing.Process:
         proc = multiprocessing.Process(target=self._forward_io)
         return proc
@@ -73,5 +69,5 @@ class SerialDut(Dut):
                 line += sess_output
                 sess_output = self.port_inst.read()
             line += sess_output
-            line = self._preprocess(line)
+            line = to_str(line)
             print(line)

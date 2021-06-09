@@ -1,9 +1,8 @@
 import os
-import subprocess
-import sys
 from typing import Optional
 
 from pytest_embedded.dut import Dut
+from pytest_embedded.log import live_print_call
 from pytest_embedded_idf.app import IdfApp
 
 
@@ -34,34 +33,26 @@ class FlashImageMaker:
                 self._write_bin(file_path, seek=offset)
 
     def _write_empty_bin(self, count: int, bs: int = 1024, seek: int = 0):
-        subprocess.run(
-            f'dd if=/dev/zero bs={bs} count={count} seek={seek} of={self.output_filepath}',
+        live_print_call(
+            f'dd if=/dev/zero bs={bs} count={count} seek={seek} of={self.qemu_image_path}',
             shell=True,
-            stdout=sys.stdout,
-            stderr=sys.stdout,
         )
 
     def _write_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        subprocess.run(
-            f'dd if={binary_filepath} bs={bs} seek={seek} of={self.output_filepath} conv=notrunc',
+        live_print_call(
+            f'dd if={binary_filepath} bs={bs} seek={seek} of={self.qemu_image_path} conv=notrunc',
             shell=True,
-            stdout=sys.stdout,
-            stderr=sys.stdout,
         )
 
     def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        subprocess.run(
+        live_print_call(
             f'dd if=/dev/zero bs=1 count=32 of=key.bin',
             shell=True,
-            stdout=sys.stdout,
-            stderr=sys.stdout,
         )  # generate a fake key bin
-        subprocess.run(
+        live_print_call(
             f'espsecure.py encrypt_flash_data --keyfile key.bin --output decrypted.bin --address {seek} '
             f'{binary_filepath}',
             shell=True,
-            stdout=sys.stdout,
-            stderr=sys.stdout,
         )
         self._write_bin('decrypted.bin', bs=bs, seek=seek)
 
@@ -109,9 +100,7 @@ class IdfQemuDut(Dut):
         if not os.path.isfile(self.qemu_image_path):
             image_maker = FlashImageMaker(self.app, self.qemu_image_path)
             image_maker.make_bin()
-        subprocess.Popen(
+        live_print_call(
             f'{self.QEMU_PROG} {self.qemu_cli_args} {self.qemu_image_args}',
             shell=True,
-            stdout=sys.stdout,
-            stderr=sys.stdout,
         )

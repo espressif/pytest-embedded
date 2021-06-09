@@ -1,7 +1,8 @@
 import logging
+import subprocess
 import sys
 from io import BytesIO, TextIOWrapper
-from typing import Optional
+from typing import Optional, Union
 
 
 class DuplicateLogStdout(TextIOWrapper):
@@ -63,3 +64,31 @@ class DuplicateLogStdout(TextIOWrapper):
 
     def isatty(self) -> bool:
         return True
+
+
+def to_str(byte_str: Union[bytes, str]) -> str:
+    """
+    :param byte_str: bytes or str
+    :return: use utf8 to decode the input if it's ``bytes``, otherwise return the input directly
+    """
+    if isinstance(byte_str, bytes):
+        return byte_str.decode('utf-8', errors='ignore')
+    return byte_str
+
+
+def live_print_call(*args, **kwargs):
+    """
+    live print the :func:`subprocess.call` process. Use this function when redirecting ``sys.stdout`` to enable
+    live-logging and logging to file simultaneously.
+
+    :note: This function behaves the same as :func:`subprocess.call`, it would block your current process.
+    """
+    default_kwargs = {
+        'stdout': subprocess.PIPE,
+        'stderr': subprocess.STDOUT,
+    }
+    default_kwargs.update(kwargs)
+
+    process = subprocess.Popen(*args, **default_kwargs)
+    for line in process.stdout:
+        print(to_str(line))
