@@ -22,7 +22,9 @@ NAME = 'pytest-embedded-idf'
 SHORT_DESCRIPTION = 'pytest embedded plugin for esp-idf project'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
-REQUIRES = []
+REQUIRES = [
+    'pytest-embedded',
+]
 EXTRAS_REQUIRE = {
     'serial': 'pytest-embedded-serial-esp',
 }
