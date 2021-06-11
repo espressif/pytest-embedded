@@ -1,8 +1,8 @@
 import codecs
 import os
+import re
 
 import setuptools
-from pytest_embedded_serial_esp import __version__
 from setuptools import setup
 
 
@@ -11,12 +11,17 @@ def read(fname):
     return codecs.open(file_path, encoding='utf-8').read()
 
 
+def get_version():
+    regex = re.compile(r'^version = "([0-9.]+)"$', re.MULTILINE)
+    return regex.findall(read('../pyproject.toml'))[0]
+
+
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
 NAME = 'pytest-embedded-serial-esp'
 SHORT_DESCRIPTION = 'pytest embedded plugin for testing espressif boards via serial ports'
 LICENSE = 'MIT'
-URL = 'https://espressif.com'
+URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
 REQUIRES = [
     'pytest-embedded-serial',
     'esptool>=3.1',
@@ -29,7 +34,7 @@ ENTRY_POINTS = {
 
 setup(
     name=NAME,
-    version=__version__,
+    version=get_version(),
     author=AUTHOR,
     author_email=EMAIL,
     license=LICENSE,

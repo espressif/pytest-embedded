@@ -32,3 +32,7 @@ jobs:
         with:
           name: test log
           path: test.log
+      - name: Build all packages
+        run: |
+          pip install wheel
+          bash foreach.sh build
