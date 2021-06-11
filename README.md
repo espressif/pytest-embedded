@@ -4,11 +4,11 @@ pytest embedded plugins
 
 ## Installation
 
-TO BE PUBLISHED ON PYPI
+All packages are published to pypi. Please install them with `pip`.
 
 ## API Reference
 
-TO BE PUBLISHED ON READTHEDOCS
+[![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest)
 
 ## Functionalities Provided by Pytest
 
