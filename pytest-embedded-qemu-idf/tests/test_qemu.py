@@ -28,10 +28,9 @@ def test_pexpect_by_qemu(testdir):
 
     result = testdir.runpytest(
         *PLUGINS,
-        # the current app is using esp32c3, which is not supported on qemu yet. Please specify to a esp32 one instead.
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
+        '--app-path', os.path.join('/home/fuhanxi/esp/esp-idf/examples/get-started/hello_world'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
-        '--qemu-prog', 'qemu-system-xtensa'
+        '--qemu-image-path', os.path.join(testdir.tmpdir, 'flash_image.bin')
     )
 
     result.assert_outcomes(passed=1)

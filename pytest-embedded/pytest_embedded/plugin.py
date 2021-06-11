@@ -1,7 +1,7 @@
 import logging
 import os
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 import pytest
 
@@ -82,7 +82,7 @@ def dut(app, options) -> Dut:
 
 
 @pytest.fixture
-def redirect(dut) -> DuplicateLogStdout:
+def redirect(dut) -> Callable[..., DuplicateLogStdout]:
     """
     Provided a context manager that could help log all the ``sys.stdout`` with pytest logging feature and redirect
     ``sys.stdout`` to :attr:`dut.pexpect_proc`.
