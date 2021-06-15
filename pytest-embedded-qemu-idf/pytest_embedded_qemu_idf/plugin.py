@@ -9,7 +9,7 @@ from .qemu import IdfQemu
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--qemu-image-path', help='QEMU image path, REQUIRED')
+    group.addoption('--qemu-image-path', help='QEMU image path. (Default: "<current folder>/flash_image.bin')
     group.addoption(
         '--qemu-prog-path',
         help='QEMU program path. (Default: "qemu-system-xtensa")',
@@ -73,6 +73,5 @@ def pytest_plugin_registered(plugin, manager):
             'qemu_cli_args',
             'qemu_extra_args',
             'qemu_log_path',
-            'qemu_skip_autorun',
         ]
     )

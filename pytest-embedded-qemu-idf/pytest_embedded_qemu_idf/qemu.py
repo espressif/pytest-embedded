@@ -72,29 +72,31 @@ class IdfQemu:
 
     QEMU_PROG_PATH = 'qemu-system-xtensa'
     QEMU_DEFAULT_ARGS = '-nographic -no-reboot -machine esp32'
-    QEMU_SKIP_RUN_BOOT_ARGS = '-global driver=esp32.gpio,property=strap_mode,value=0x0f'
+
+    QEMU_STRAP_MODE_FMT = '-global driver=esp32.gpio,property=strap_mode,value={}'
+    QEMU_SERIAL_TCP_FMT = '-serial tcp::{},server,nowait'
 
     def __init__(
         self,
         app: IdfApp,
-        qemu_image_path: str,
+        qemu_image_path: Optional[str] = None,
         qemu_prog_path: Optional[str] = None,
         qemu_cli_args: Optional[str] = None,
         qemu_extra_args: Optional[str] = None,
         qemu_log_path: Optional[str] = None,
-        qemu_skip_autorun: bool = False,
     ):
-        if not qemu_image_path:
-            raise ValueError('Required: qemu_image_path')
-
         self.app = app
-        self.image_path = qemu_image_path
+        if getattr(self.app, 'target', None) != 'esp32':
+            raise ValueError('For now on QEMU we only support ESP32')
+
+        self.image_path = qemu_image_path or 'flash_image.bin'
 
         qemu_prog_path = qemu_prog_path or self.QEMU_PROG_PATH
         qemu_cli_args = qemu_cli_args or self.QEMU_DEFAULT_ARGS
 
+        qemu_extra_args = qemu_extra_args.replace('"', '') if qemu_extra_args else qemu_extra_args
         qemu_extra_args = [qemu_extra_args] if qemu_extra_args else []
-        qemu_extra_args.append(f'-drive file={qemu_image_path},if=mtd,format=raw')
+        qemu_extra_args.append(f'-drive file={self.image_path},if=mtd,format=raw')
 
         # we use log file to record serial output
         self.log_file = qemu_log_path or os.path.join(
@@ -102,9 +104,6 @@ class IdfQemu:
         )
         os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
         qemu_extra_args.append(f'-serial file:{self.log_file}')
-
-        if qemu_skip_autorun:
-            qemu_extra_args.append(self.QEMU_SKIP_RUN_BOOT_ARGS)
 
         self.qemu_inst = None
         self.cmd = f'{qemu_prog_path} {qemu_cli_args} {" ".join(qemu_extra_args)}'
@@ -133,6 +132,9 @@ class IdfQemu:
         """
         Start the QEMU process
         """
+        if not os.path.exists(self.image_path):
+            raise ValueError(f'QEMU image path not exists: {self.image_path}')
+
         print(f'{self.cmd}')
         self.qemu_inst = subprocess.Popen(
             self.cmd,
