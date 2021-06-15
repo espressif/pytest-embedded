@@ -2,6 +2,8 @@
 
 ## Prerequisites
 
+### Connect to the target chips
+
 ### Plugins need to be installed
 
 - pytest_embedded

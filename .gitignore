@@ -83,3 +83,6 @@ venv/
 sdkconfig
 sdkconfig.old
 build/
+
+## qemu image
+flash_image.bin
