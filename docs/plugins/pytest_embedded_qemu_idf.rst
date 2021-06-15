@@ -17,7 +17,7 @@ pytest\_embedded\_qemu\_idf.dut module
    :show-inheritance:
 
 pytest\_embedded\_qemu\_idf.qemu module
---------------------------------------
+---------------------------------------
 
 .. automodule:: pytest_embedded_qemu_idf.qemu
    :members:
