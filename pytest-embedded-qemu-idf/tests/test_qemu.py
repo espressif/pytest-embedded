@@ -28,7 +28,7 @@ def test_pexpect_by_qemu(testdir):
 
     result = testdir.runpytest(
         *PLUGINS,
-        '--app-path', os.path.join('/home/fuhanxi/esp/esp-idf/examples/get-started/hello_world'),
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
         '--qemu-image-path', os.path.join(testdir.tmpdir, 'flash_image.bin')
     )
