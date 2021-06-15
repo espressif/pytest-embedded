@@ -15,22 +15,29 @@ def pytest_addoption(parser):
         help='QEMU program path. (Default: "qemu-system-xtensa")',
     )
     group.addoption(
-        '--qemu-cli-args',
-        help='QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")',
-    )
-    group.addoption(
-        '--qemu-extra-args',
-        help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
-    )
-    group.addoption(
         '--qemu-log-path',
         help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
-    group.addoption('--qemu-skip-autorun', help='Skip autorun qemu image. (default: False)')
 
 
 @pytest.fixture
-def qemu(app, options) -> IdfQemu:
+def qemu_cli_args(request):
+    """
+    Apply parametrization to fixture :currentmodule:`qemu`
+    """
+    return {'qemu_cli_args': getattr(request, 'param', None)}
+
+
+@pytest.fixture
+def qemu_extra_args(request):
+    """qemu-image-path
+    Apply parametrization to fixture :currentmodule:`qemu`
+    """
+    return {'qemu_extra_args': getattr(request, 'param', None)}
+
+
+@pytest.fixture
+def qemu(app, options, qemu_cli_args, qemu_extra_args) -> IdfQemu:
     """
     Uses :attr:`options['Qemu']` as kwargs to create instance.
 
@@ -38,6 +45,8 @@ def qemu(app, options) -> IdfQemu:
     """
     qemu_options = options.get('Qemu', {})
     logging.info(qemu_options)
+    qemu_options.update(qemu_cli_args)
+    qemu_options.update(qemu_extra_args)
     qemu = IdfQemu(app=app, **qemu_options)
     try:
         yield qemu
@@ -70,8 +79,6 @@ def pytest_plugin_registered(plugin, manager):
         [
             'qemu_image_path',
             'qemu_prog_path',
-            'qemu_cli_args',
-            'qemu_extra_args',
             'qemu_log_path',
         ]
     )
