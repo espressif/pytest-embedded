@@ -71,3 +71,6 @@ class SerialDut(Dut):
             line += sess_output
             line = to_str(line)
             print(line)
+
+    def write(self, data: bytes) -> int:
+        return self.port_inst.write(data)
