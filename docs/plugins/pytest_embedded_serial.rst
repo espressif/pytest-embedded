@@ -22,11 +22,3 @@ pytest\_embedded\_serial.plugin module
    :exclude-members: pytest_addoption, pytest_plugin_registered
 
 Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_serial.dut.SerialDut`
-
-Module contents
----------------
-
-.. automodule:: pytest_embedded_serial
-   :members:
-   :undoc-members:
-   :show-inheritance:

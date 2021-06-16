@@ -15,9 +15,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded'))
-sys.path.insert(0, os.path.abspath('../pytest-embedded-idf'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded-serial'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded-serial-esp'))
+sys.path.insert(0, os.path.abspath('../pytest-embedded-idf'))
+sys.path.insert(0, os.path.abspath('../pytest-embedded-qemu-idf'))
 
 # -- Project information -----------------------------------------------------
 

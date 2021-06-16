@@ -3,8 +3,9 @@ from functools import wraps
 from typing import Callable, Optional
 
 import pexpect
-from pytest_embedded.app import App
-from pytest_embedded.log import DuplicateLogStdout
+
+from .app import App
+from .log import DuplicateLogStdout
 
 
 class Dut:

@@ -32,11 +32,3 @@ pytest\_embedded\_idf.plugin module
 Monkey patching :py:class:`pytest_embedded.app.App` with :py:class:`pytest_embedded_idf.app.IdfApp`
 
 Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_idf.dut.IdfSerialDut`
-
-Module contents
----------------
-
-.. automodule:: pytest_embedded_idf
-   :members:
-   :undoc-members:
-   :show-inheritance:

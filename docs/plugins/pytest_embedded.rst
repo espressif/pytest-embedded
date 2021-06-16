@@ -36,11 +36,3 @@ pytest\_embedded.plugin module
    :undoc-members:
    :show-inheritance:
    :exclude-members: pytest_addoption
-
-Module contents
----------------
-
-.. automodule:: pytest_embedded
-   :members:
-   :undoc-members:
-   :show-inheritance:

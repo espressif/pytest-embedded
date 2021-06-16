@@ -5,7 +5,8 @@ from typing import Optional
 from pytest_embedded.dut import Dut
 from pytest_embedded.log import DuplicateLogStdout, to_str
 from pytest_embedded_idf.app import IdfApp
-from pytest_embedded_qemu_idf.qemu import IdfQemu
+
+from .qemu import IdfQemu
 
 
 class IdfQemuDut(Dut):
