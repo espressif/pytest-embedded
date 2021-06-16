@@ -24,7 +24,6 @@ pytest\_embedded\_qemu\_idf.qemu module
    :undoc-members:
    :show-inheritance:
 
-
 pytest\_embedded\_qemu\_idf.plugin module
 -----------------------------------------
 
@@ -32,6 +31,7 @@ pytest\_embedded\_qemu\_idf.plugin module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: pytest_addoption, pytest_plugin_registered
 
 Module contents
 ---------------

@@ -12,8 +12,6 @@ pytest\_embedded\_idf.app module
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pytest_embedded_idf.app
-
 pytest\_embedded\_idf.dut module
 --------------------------------
 
@@ -22,14 +20,18 @@ pytest\_embedded\_idf.dut module
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pytest_embedded_idf.dut
-
 pytest\_embedded\_idf.plugin module
 -----------------------------------
 
-Monkey patch :py:class:`pytest_embedded.app.App` with :py:class:`pytest_embedded_idf.app.IdfApp`
+.. automodule:: pytest_embedded_idf.plugin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: pytest_addoption, pytest_plugin_registered
 
-Monkey patch :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_idf.dut.IdfSerialDut`
+Monkey patching :py:class:`pytest_embedded.app.App` with :py:class:`pytest_embedded_idf.app.IdfApp`
+
+Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_idf.dut.IdfSerialDut`
 
 Module contents
 ---------------

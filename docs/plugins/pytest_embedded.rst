@@ -12,8 +12,6 @@ pytest\_embedded.app module
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pytest_embedded.app
-
 pytest\_embedded.dut module
 ---------------------------
 
@@ -22,8 +20,6 @@ pytest\_embedded.dut module
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pytest_embedded.dut
-
 pytest\_embedded.log module
 ---------------------------
 
@@ -31,8 +27,6 @@ pytest\_embedded.log module
    :members:
    :undoc-members:
    :show-inheritance:
-
-.. autoclass:: pytest_embedded.log
 
 pytest\_embedded.plugin module
 ------------------------------
