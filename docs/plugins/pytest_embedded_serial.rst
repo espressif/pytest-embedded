@@ -12,12 +12,16 @@ pytest\_embedded\_serial.dut module
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pytest_embedded_serial.dut
-
 pytest\_embedded\_serial.plugin module
 --------------------------------------
 
-Monkey patch :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_serial.dut.SerialDut`
+.. automodule:: pytest_embedded_serial.plugin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: pytest_addoption, pytest_plugin_registered
+
+Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_serial.dut.SerialDut`
 
 Module contents
 ---------------

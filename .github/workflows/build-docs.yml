@@ -1,0 +1,25 @@
+name: Test Build Docs
+
+on:
+  pull_request:
+
+jobs:
+  test-build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          bash foreach.sh install
+          cd docs
+          pip install -r requirements.txt
+      - name: Test build docs
+        run: |
+          cd docs
+          make html SPHINXOPTS="-W"

@@ -30,7 +30,7 @@ def qemu_cli_args(request):
 
 @pytest.fixture
 def qemu_extra_args(request):
-    """qemu-image-path
+    """
     Apply parametrization to fixture :func:`pytest_embedded_qemu_idf.plugin.qemu`
     """
     return {'qemu_extra_args': getattr(request, 'param', None)}
