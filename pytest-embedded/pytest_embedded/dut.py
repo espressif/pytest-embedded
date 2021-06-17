@@ -42,6 +42,9 @@ class Dut:
             except Exception as e:
                 logging.error(e)
 
+    def write(self, *args, **kwargs) -> None:
+        raise NotImplementedError('Should be reimplemented by sub classes')
+
     def expect(self, *args, **kwargs) -> None:
         """
         Call :func:`pexpect.expect` with the :attr:`pexpect_proc`, all arguments would pass to :func:`pexpect.expect`

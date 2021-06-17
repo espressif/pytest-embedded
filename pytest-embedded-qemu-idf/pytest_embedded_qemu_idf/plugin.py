@@ -15,6 +15,16 @@ def pytest_addoption(parser):
         help='QEMU program path. (Default: "qemu-system-xtensa")',
     )
     group.addoption(
+        '--qemu-cli-args',
+        help='QEMU cli default arguments. Could be overridden by pytest parametrizing. '
+        '(Default: "-nographic -no-reboot -machine esp32")',
+    )
+    group.addoption(
+        '--qemu-extra-args',
+        help='QEMU cli extra arguments, will append to the argument list. '
+        'Could be overridden by pytest parametrizing. (Default: None)',
+    )
+    group.addoption(
         '--qemu-log-path',
         help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
@@ -44,9 +54,11 @@ def qemu(app, options, qemu_cli_args, qemu_extra_args) -> IdfQemu:
     :return: :class:`pytest_embedded_qemu_idf.qemu.IdfQemu` or derived class instance
     """
     qemu_options = options.get('Qemu', {})
+    if qemu_cli_args['qemu_cli_args']:
+        qemu_options.update(qemu_cli_args)
+    if qemu_extra_args['qemu_extra_args']:
+        qemu_options.update(qemu_extra_args)
     logging.info(qemu_options)
-    qemu_options.update(qemu_cli_args)
-    qemu_options.update(qemu_extra_args)
     qemu = IdfQemu(app=app, **qemu_options)
     try:
         yield qemu
@@ -79,6 +91,8 @@ def pytest_plugin_registered(plugin, manager):
         [
             'qemu_image_path',
             'qemu_prog_path',
+            'qemu_cli_args',
+            'qemu_extra_args',
             'qemu_log_path',
         ]
     )
