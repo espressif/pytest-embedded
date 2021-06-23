@@ -9,7 +9,7 @@ PLUGINS = [
 
 serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', False) is False,
                                             reason='after connected to espressif boards, '
-                                                   'use "DONT_SKIP_SERIAL_TESTS" to run this tests')
+                                                   'use "DONT_SKIP_SERIAL_TESTS" to run this test')
 
 
 @serial_device_required

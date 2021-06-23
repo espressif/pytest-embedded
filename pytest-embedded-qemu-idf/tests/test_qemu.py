@@ -10,7 +10,7 @@ PLUGINS = [
 
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
                                        reason='after compiled qemu bin for esp32 locally, '
-                                              'use "DONT_SKIP_QEMU_TESTS" to run this tests')
+                                              'use "DONT_SKIP_QEMU_TESTS" to run this test')
 
 
 @qemu_bin_required
