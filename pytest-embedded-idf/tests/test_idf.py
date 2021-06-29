@@ -34,7 +34,7 @@ def test_pexpect(testdir):
 
     result = testdir.runpytest(
         *PLUGINS,
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
@@ -45,11 +45,12 @@ def test_idf_app(testdir):
     testdir.makepyfile("""
         def test_idf_app(app):
             assert len(app.flash_files) == 3
+            assert app.target == 'esp32c3'
     """)
 
     result = testdir.runpytest(
         *PLUGINS_WITHOUT_SERIAL,
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 

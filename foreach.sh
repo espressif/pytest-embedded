@@ -6,6 +6,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-serial-esp \
   pytest-embedded-idf \
   pytest-embedded-qemu-idf \
+  pytest-embedded-jtag
 "
 
 action=${1:-"install"}
