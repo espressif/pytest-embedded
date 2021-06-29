@@ -1,3 +1,16 @@
+## v0.2.0 (2021-06-29)
+
+### Feat
+
+- **jtag**: add jtag support
+- **log**: add LivePrintPopen custom Popen class
+- **serial**: make serial port could be overridden by parameterization
+- **qemu**: `qemu_cli_args` and `qemu_extra_args` now can be set via cli and override via parameterization
+
+### Fix
+
+- **log**: use rstrip instead of strip to keep the logs' indentation
+
 ## v0.1.1 (2021-06-16)
 
 ### Feat
