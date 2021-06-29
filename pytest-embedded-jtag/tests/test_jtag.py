@@ -1,0 +1,44 @@
+import os
+
+import pytest
+
+PLUGINS = [
+    '-p', 'pytest_embedded',
+    '-p', 'pytest_embedded_serial',
+    '-p', 'pytest_embedded_idf',
+    '-p', 'pytest_embedded_jtag',
+]
+
+jtag_connection_required = pytest.mark.skipif(
+    os.getenv('DONT_SKIP_JTAG_TESTS', False) is False,
+    reason='after connected via JTAG, use "DONT_SKIP_JTAG_TESTS" to run this test')
+
+
+@jtag_connection_required
+def test_pexpect_by_jtag(testdir):
+    testdir.makepyfile(r"""
+        import os
+        import time
+
+        def test_pexpect_by_jtag(dut):
+            dut.gdb.gdb_set('mi-async', 'on')
+            dut.gdb.file_exec_and_symbols(os.path.join(dut.app.app_path, 'build', 'hello-world.elf'))
+            dut.gdb.interpreter_exec_console(f'source {os.path.join(dut.app.app_path, "gdbinit")}')
+            dut.expect('hit Temporary breakpoint')
+
+            time.sleep(5)  # wait a while for the breakpoint
+            dut.gdb.break_insert('esp_restart')
+            dut.expect('\^done,bkpt={number="3",type="breakpoint",disp="keep",enabled="y",addr="0x40081d04",func="esp_restart"')
+
+            dut.gdb.exec_continue_all()
+            dut.expect('Restarting now.')
+    """)
+
+    result = testdir.runpytest(
+        *PLUGINS,
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--port', '/dev/ttyUSB1',
+    )
+
+    result.assert_outcomes(passed=1)

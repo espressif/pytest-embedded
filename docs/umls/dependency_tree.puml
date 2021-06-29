@@ -1,0 +1,8 @@
+@startmindmap
+* pytest_embedded
+** pytest_embedded_jtag (serial dependency is optional)
+** pytest_embedded_serial
+*** pytest_embedded_serial_esp
+** pytest_embedded_idf (serial dependency is optional)
+*** pytest_embedded_qemu_idf
+@endmindmap

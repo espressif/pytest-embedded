@@ -10,7 +10,7 @@ PLUGINS = [
 
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
                                        reason='after compiled qemu bin for esp32 locally, '
-                                              'use "DONT_SKIP_QEMU_TESTS" to run this tests')
+                                              'use "DONT_SKIP_QEMU_TESTS" to run this test')
 
 
 @qemu_bin_required
@@ -28,7 +28,7 @@ def test_pexpect_by_qemu(testdir):
 
     result = testdir.runpytest(
         *PLUGINS,
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world'),
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
