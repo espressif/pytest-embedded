@@ -35,6 +35,11 @@ def openocd_cli_args(request):
 
 @pytest.fixture
 def openocd(options, openocd_cli_args) -> OpenOcd:
+    """
+    Uses :attr:`options['OpenOcd']` as kwargs to create instance.
+
+    :return: :class:`pytest_embedded_jtag.openocd.OpenOcd` or derived class instance
+    """
     openocd_options = options.get('OpenOcd', {})
     if openocd_cli_args['openocd_cli_args']:
         openocd_options.update(openocd_cli_args)
@@ -56,6 +61,11 @@ def gdb_cli_args(request):
 
 @pytest.fixture
 def gdb(options, gdb_cli_args) -> Gdb:
+    """
+    Uses :attr:`options['Gdb']` as kwargs to create instance.
+
+    :return: :class:`pytest_embedded_jtag.gdb.Gdb` or derived class instance
+    """
     gdb_options = options.get('Gdb', {})
     if gdb_cli_args['gdb_cli_args']:
         gdb_options.update(gdb_cli_args)
