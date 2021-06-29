@@ -39,9 +39,9 @@ class DuplicateLogStdout(TextIOWrapper):
         """
         if data.strip():
             if self.source:
-                log_string = f'[{self.source}] {data.strip()}'
+                log_string = '[{}] {}'.format(self.source, data.rstrip().lstrip('\n\r'))
             else:
-                log_string = data.strip()
+                log_string = data.rstrip().lstrip('\n\r')
             logging.info(log_string)
             sys.stdout = self  # logging info would modify the sys.stdout again, re assigning here
 
