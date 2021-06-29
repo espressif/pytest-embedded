@@ -67,7 +67,7 @@ class Dut:
             :func:`pytest_embedded.log.DuplicateLogStdout.write`. All the ``args`` and ``kwargs`` passed to ``print``
             could be not working as expected.
 
-        :param: source: optional prefix of the log
+        :param source: optional prefix of the log
         """
 
         def decorator(func):
