@@ -18,26 +18,25 @@ All packages are published to pypi. Please install them with `pip`.
 
 ## Contributing
 
-If you're interested in contributing to this project, please take a look at the [CONTRIBUTING.md](https://github.com/espressif/pytest-embedded/CONTRIBUTING.md)
+If you're interested in contributing to this project, please take a look at the [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Functionalities Provided by Pytest
 
-- Live Logging (https://docs.pytest.org/en/stable/logging.html#live-logs)
+- [Live Logging](https://docs.pytest.org/en/stable/logging.html#live-logs)
 
   ```shell
   # For example
   pytest --log-cli-level=INFO
   ```
 
-- JUnit Report (https://docs.pytest.org/en/stable/usage.html#creating-junitxml-format-files)
+- [JUnit Report](https://docs.pytest.org/en/stable/usage.html#creating-junitxml-format-files)
 
   ```shell
   # For example
   pytest --junitxml=report.xml
   ```
 
-- Test Case
-  Filter (https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name)
+- [Test Case Filter](https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name)
 
   ```shell
   # For example

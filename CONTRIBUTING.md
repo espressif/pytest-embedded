@@ -1,5 +1,17 @@
 # Contributing
 
+## Workflow
+
+We use [pre-commit](https://pre-commit.com) for code formatting, and some linter checks. You can install it by
+
+```shell
+$ pre-commit install
+```
+
+We use [commitizen](https://github.com/commitizen-tools/commitizen) to auto generate the [CHANGELOG.md](./CHANGELOG.md). You don't
+need to install it or know anything about it, but please follow
+the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) rule to submit your commits.
+
 ## Running Tests
 
 By default, all tests under all plugins would be run.
