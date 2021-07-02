@@ -46,23 +46,14 @@ coverage.xml
 .hypothesis/
 .pytest_cache
 report.xml
+*.log
 
 # Translations
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
-
-# Flask instance folder
-instance/
-
 # Sphinx documentation
 docs/_build/
-
-# MkDocs documentation
-/site/
 
 # PyBuilder
 target/
@@ -84,5 +75,5 @@ sdkconfig
 sdkconfig.old
 build/
 
-## qemu image
+# qemu image
 flash_image.bin
