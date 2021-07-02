@@ -87,6 +87,9 @@ def redirect(dut) -> Callable[..., DuplicateLogStdout]:
     Provided a context manager that could help log all the ``sys.stdout`` with pytest logging feature and redirect
     ``sys.stdout`` to :attr:`dut.pexpect_proc`.
 
+    >>> with redirect('prefix'):
+    >>>    print('this should be logged and sent to pexpect_proc')
+
     :return: :class:`pytest_embedded.log.DuplicateLogStdout` instance
     """
 

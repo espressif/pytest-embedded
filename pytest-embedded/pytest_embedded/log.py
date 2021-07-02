@@ -36,7 +36,7 @@ class DuplicateLogStdout(TextIOWrapper):
 
     def write(self, data) -> None:
         """
-        Write string with :func:`logging.info`, and duplicate the string to the pexpect process if it's provided
+        Write string with :func:`logging.info`, and duplicate the string to the pexpect process if it's provided.
         """
         if data.strip():
             if self.source:
@@ -51,7 +51,8 @@ class DuplicateLogStdout(TextIOWrapper):
 
     def flush(self) -> None:
         """
-        We don't need to flush anymore since the write method would directly log in both console and file (if provided)
+        We don't need to flush anymore since the write method would directly log in both console and file
+        (if provided).
         """
         pass
 
@@ -80,16 +81,17 @@ def to_str(bytes_str: Union[bytes, str]) -> str:
 def to_bytes(bytes_str: Union[bytes, str], ending: Optional[Union[bytes, str]] = None) -> bytes:
     """
     :param bytes_str: ``bytes`` or ``str``
-    :param ending: ``bytes`` or ``str``, will add to the end of the result
-    :return: utf8-encoded bytestring. A ``b'\\n'`` will be added at the end of the bytestring.
+    :param ending: ``bytes`` or ``str``, will add to the end of the result.
+        Only works when the ``bytes_str`` is ``str``
+    :return: utf8-encoded bytes
     """
     if isinstance(bytes_str, str):
         bytes_str = bytes_str.encode()
 
-    if ending:
-        if isinstance(ending, str):
-            ending = ending.encode()
-        return bytes_str + ending
+        if ending:
+            if isinstance(ending, str):
+                ending = ending.encode()
+            return bytes_str + ending
 
     return bytes_str
 
@@ -114,7 +116,7 @@ def live_print_call(*args, **kwargs):
 
 class LivePrintPopen(subprocess.Popen):
     """
-    Popen with :class:`pytest_embedded.log.DuplicateLogStdout`, could create another process to print the stdout.
+    A :class:`subprocess.Popen` wrapper. Could create another process with :meth:`create_forward_io_process`.
 
     For the default popen kwargs please refer to :attr:`POPEN_KWARGS`
     """
@@ -128,7 +130,6 @@ class LivePrintPopen(subprocess.Popen):
     }
 
     def __init__(self, cmd: Union[str, List[str]], *args, **kwargs):
-
         self._forward_io_proc = None
 
         self._sessions_close_methods = [
@@ -140,6 +141,9 @@ class LivePrintPopen(subprocess.Popen):
         super().__init__(cmd, *args, **kwargs)
 
     def terminate(self) -> None:
+        """
+        Terminate the process with SIGTERM, will also terminate the forward io process if created.
+        """
         if self._forward_io_proc:
             self._forward_io_proc.terminate()
 
@@ -147,8 +151,11 @@ class LivePrintPopen(subprocess.Popen):
 
     def send(self, s: Union[bytes, str]) -> None:
         """
-        Write the ``bytes`` or ``str`` via :func:`self.proc.stdin.write`. Will encode the string if it's a ``str``.
-        Will add a b'\\n' automatically in the end of the ``bytes``.
+        Write the ``bytes`` to :attr:`stdin` via :meth:`stdin.write`.
+
+        If the input is ``str``, will encode to ``bytes`` and add a b'\\n' automatically in the end.
+
+        if the input is ``bytes``, will pass this directly.
 
         :param s: ``bytes`` or ``str``
         """
@@ -156,7 +163,7 @@ class LivePrintPopen(subprocess.Popen):
 
     def create_forward_io_process(self, pexpect_proc: Optional[BytesIO] = None, source: Optional[str] = None) -> None:
         """
-        Create a forward_io process
+        Create a forward_io process if it not exists.
 
         :param pexpect_proc: pexpect process
         :param source: optional prefix of the log
