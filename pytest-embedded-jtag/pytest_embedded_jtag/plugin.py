@@ -78,7 +78,7 @@ def gdb(options, gdb_cli_args) -> Gdb:
 
 
 @pytest.fixture
-def dut(openocd, gdb, app, options) -> JtagDut:
+def dut(serial, openocd, gdb, app, pexpect_proc, options) -> JtagDut:
     """
     Uses :attr:`options['Dut']` as kwargs to create instance.
 
@@ -86,7 +86,7 @@ def dut(openocd, gdb, app, options) -> JtagDut:
     """
     dut_options = options.get('Dut', {})
     logging.info(dut_options)
-    dut = JtagDut(openocd=openocd, gdb=gdb, app=app, **dut_options)
+    dut = JtagDut(serial, openocd, gdb, app, pexpect_proc, **dut_options)
     try:
         yield dut
     finally:

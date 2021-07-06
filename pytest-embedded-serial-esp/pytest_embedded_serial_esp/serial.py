@@ -5,27 +5,39 @@ import sys
 from typing import List, Optional, Tuple
 
 import esptool
+import pexpect
 from pytest_embedded.app import App
-from pytest_embedded.dut import Dut
-from pytest_embedded_serial.dut import SerialDut
+from pytest_embedded.log import cls_redirect_stdout
+from pytest_embedded_serial.dut import Serial
 from serial.tools.list_ports_posix import comports
 
 
-class EspSerialDut(SerialDut):
+class EspSerial(Serial):
     """
-    Dut class for espressif serial port
+    Serial class for ports connected to espressif products
 
     :ivar: target: target chip type
     :ivar: port: serial port string
     """
 
-    def __init__(self, app: Optional[App] = None, port: Optional[str] = None, *args, **kwargs) -> None:
-        self.target = getattr(app, 'target', 'auto')
-        self.target, port = self.detect_target_port(port)
-        logging.info(f'Target: {self.target}, Port: {port}')
+    def __init__(
+        self,
+        target: Optional[App] = None,
+        port: Optional[str] = None,
+        pexpect_proc: Optional[pexpect.spawn] = None,
+        **kwargs,
+    ) -> None:
 
-        # put at last to make sure the forward_io_proc is forwarding output after the hard reset
-        super().__init__(app, port, *args, **kwargs)
+        self.pexpect_proc = pexpect_proc  # let the pexpect_proc work in `detect_target_port()` as well
+
+        target, port = self.detect_target_port(target, port)
+        logging.info(f'Target: {target}, Port: {port}')
+
+        self.target = target
+        self.rom: Optional[esptool.ESPLoader] = None
+        self.stub: Optional[esptool.ESPLoader] = None
+
+        super().__init__(port, pexpect_proc, **kwargs)
 
     def _uses_esptool(func):
         """
@@ -37,50 +49,52 @@ class EspSerialDut(SerialDut):
 
         @functools.wraps(func)
         def handler(self, *args, **kwargs):
-            settings = self.port_inst.get_settings()
+            settings = self.proc.get_settings()
 
-            if getattr(self, 'rom_inst', None) is None:
-                self.rom_inst = esptool.ESPLoader.detect_chip(self.port_inst)
+            if self.rom is None:
+                self.rom = esptool.ESPLoader.detect_chip(self.proc)
 
             try:
-                self.rom_inst.connect('hard_reset')
-                stub_inst = self.rom_inst.run_stub()
+                self.rom.connect('hard_reset')
+                self.stub = self.rom.run_stub()
 
-                ret = func(self, stub_inst, *args, **kwargs)
+                ret = func(self, *args, **kwargs)
+
                 # do hard reset after use esptool
-                stub_inst.hard_reset()
+                self.stub.hard_reset()
             finally:
-                self.port_inst.apply_settings(settings)
+                self.proc.apply_settings(settings)
             return ret
 
         return handler
 
+    def _start(self):
+        self.hard_reset()
+
     @_uses_esptool
-    def hard_reset(self, stub_inst: esptool.ESPLoader):
+    def hard_reset(self):
         """
         Hard reset via esptool
         """
         pass
 
-    def _start(self) -> None:
-        self.hard_reset()
-
-    @Dut.redirect_stdout('detecting port')
-    def detect_target_port(self, port: Optional[str] = None) -> Tuple[str, str]:
+    @cls_redirect_stdout(source='detecting port')
+    def detect_target_port(self, target: Optional[str] = None, port: Optional[str] = None) -> Tuple[str, str]:
         """
-        Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of them
-        are missing.
+        Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of
+        them are missing.
 
+        :param target: serial target chip type
         :param port: serial port
         :return: specific chip type and port
         """
         available_ports = _list_available_ports()
 
-        if self.target:
+        if target:
             if port:
-                return self.target, port
+                return target, port
             else:
-                return _judge_by_target(available_ports, self.target)
+                return _judge_by_target(available_ports, target)
         elif port:
             if port not in available_ports:
                 raise ValueError(f'Port "{port}" unreachable')

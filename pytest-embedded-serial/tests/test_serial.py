@@ -18,7 +18,7 @@ def test_serial_port(testdir):
         import serial
 
         def test_serial_port(dut):
-            assert type(dut.port_inst) == serial.Serial
+            assert type(dut.serial.proc) == serial.Serial
             dut.expect('ESP-ROM')
     """)
 

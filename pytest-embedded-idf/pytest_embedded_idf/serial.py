@@ -1,24 +1,41 @@
 import os
 import tempfile
+from typing import Optional
 
 import esptool
-from pytest_embedded.dut import Dut
-from pytest_embedded_serial_esp.dut import EspSerialDut
+import pexpect
+from pytest_embedded.log import cls_redirect_stdout
+from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
 
 
-class IdfSerialDut(EspSerialDut):
+class IdfSerial(EspSerial):
     """
-    IDF serial dut class
+    IDF serial class
 
     Auto flash the app while starting test.
     """
 
+    def __init__(
+        self,
+        app: IdfApp,
+        target: Optional[str] = None,
+        port: Optional[str] = None,
+        pexpect_proc: Optional[pexpect.spawn] = None,
+        **kwargs,
+    ) -> None:
+        self.app = app
+
+        if target and self.app.target and self.app.target != target:
+            raise ValueError(f'target not match. App target: {self.app.target}, Cmd target: {target}.')
+
+        super().__init__(target or app.target, port, pexpect_proc, **kwargs)
+
     def _start(self):
         self.flash()
 
-    @Dut.redirect_stdout('flash')
+    @cls_redirect_stdout(source='flash')
     def flash(self, erase_nvs=True) -> None:
         """
         Flash the :attr:`flash_files` and :attr:`encrypt_files` of :attr:`self.app`
@@ -35,10 +52,8 @@ class IdfSerialDut(EspSerialDut):
         else:
             raise last_error
 
-    @EspSerialDut._uses_esptool
-    def _try_flash(self, stub_inst: esptool.ESPLoader, erase_nvs=True, baud_rate=115200):
-        self.app: IdfApp
-
+    @EspSerial._uses_esptool
+    def _try_flash(self, erase_nvs=True, baud_rate=115200):
         flash_files = [
             (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
         ]
@@ -80,9 +95,9 @@ class IdfSerialDut(EspSerialDut):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            stub_inst.change_baud(baud_rate)
-            esptool.detect_flash_size(stub_inst, flash_args)
-            esptool.write_flash(stub_inst, flash_args)
+            self.stub.change_baud(baud_rate)
+            esptool.detect_flash_size(self.stub, flash_args)
+            esptool.write_flash(self.stub, flash_args)
         except Exception:  # noqa
             raise
         finally:

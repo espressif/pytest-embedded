@@ -4,10 +4,10 @@ pytest\_embedded\_serial\_esp package
 Submodules
 ----------
 
-pytest\_embedded\_serial\_esp.dut module
+pytest\_embedded\_serial\_esp.serial module
 ------------------------------------------------
 
-.. automodule:: pytest_embedded_serial_esp.dut
+.. automodule:: pytest_embedded_serial_esp.serial
    :members:
    :undoc-members:
    :show-inheritance:
@@ -21,4 +21,7 @@ pytest\_embedded\_serial\_esp.plugin module
    :show-inheritance:
    :exclude-members: pytest_addoption, pytest_plugin_registered
 
-Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_serial_esp.dut.EspSerialDut`
+Added CLI Option
+----------------
+
+- `target`: target chip type

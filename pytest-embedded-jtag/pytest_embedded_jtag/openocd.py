@@ -2,10 +2,10 @@ import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import LivePrintPopen
+from pytest_embedded.log import DuplicateStdoutPopen
 
 
-class OpenOcd(LivePrintPopen):
+class OpenOcd(DuplicateStdoutPopen):
     """
     Class to communicate to OpenOCD
     """
@@ -16,9 +16,7 @@ class OpenOcd(LivePrintPopen):
     TELNET_HOST = '127.0.0.1'
     TELNET_PORT = 4444
 
-    def __init__(
-        self, openocd_prog_path: Optional[str] = None, openocd_cli_args: Optional[str] = None, *args, **kwargs
-    ):
+    def __init__(self, openocd_prog_path: Optional[str] = None, openocd_cli_args: Optional[str] = None, **kwargs):
         openocd_prog_path = openocd_prog_path or os.getenv('OPENOCD_BIN', self.OPENOCD_PROG_PATH)
         openocd_cli_args = openocd_cli_args or self.OPENOCD_DEFAULT_ARGS
 
@@ -28,4 +26,4 @@ class OpenOcd(LivePrintPopen):
 
         cmd = f'{openocd_prog_path} {openocd_cli_args}'
         logging.info(cmd)
-        super().__init__(cmd, *args, **kwargs)
+        super().__init__(cmd, **kwargs)

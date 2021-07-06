@@ -24,11 +24,8 @@ LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
 REQUIRES = [
     'pytest-embedded',
-    'pytest-embedded-idf',
+    'pytest-embedded-serial',
 ]
-EXTRAS_REQUIRE = {
-    'serial': 'pytest-embedded-serial-esp',
-}
 ENTRY_POINTS = {
     'pytest11': [
         'pytest_embedded_jtag = pytest_embedded_jtag.plugin',
@@ -47,7 +44,6 @@ setup(
     packages=setuptools.find_packages(exclude='tests'),
     python_requires='>=3.6',
     install_requires=REQUIRES,
-    extras_require=EXTRAS_REQUIRE,
     classifiers=[
         'Framework :: Pytest',
         'Intended Audience :: Developers',

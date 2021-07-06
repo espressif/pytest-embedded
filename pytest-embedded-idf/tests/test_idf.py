@@ -25,7 +25,7 @@ def test_pexpect(testdir):
         import pytest
 
         def test_idf_serial_flash(dut):
-            dut.expect('(100 %)')
+            dut.expect('(100 %)')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
@@ -43,9 +43,15 @@ def test_pexpect(testdir):
 
 def test_idf_app(testdir):
     testdir.makepyfile("""
-        def test_idf_app(app):
+
+        def test_idf_app(app, dut):
+            import pytest
+
             assert len(app.flash_files) == 3
             assert app.target == 'esp32c3'
+
+            with pytest.raises(AttributeError):
+                assert getattr(dut, 'serial')
     """)
 
     result = testdir.runpytest(

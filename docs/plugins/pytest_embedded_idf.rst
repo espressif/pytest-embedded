@@ -12,23 +12,29 @@ pytest\_embedded\_idf.app module
    :undoc-members:
    :show-inheritance:
 
-pytest\_embedded\_idf.dut module
---------------------------------
-
-.. automodule:: pytest_embedded_idf.dut
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pytest\_embedded\_idf.plugin module
+pytest\_embedded\_idf.serial module
 -----------------------------------
 
-.. automodule:: pytest_embedded_idf.plugin
+.. automodule:: pytest_embedded_idf.serial
    :members:
    :undoc-members:
    :show-inheritance:
-   :exclude-members: pytest_addoption, pytest_plugin_registered
 
-Monkey patching :py:class:`pytest_embedded.app.App` with :py:class:`pytest_embedded_idf.app.IdfApp`
+Fixtures
+--------
 
-Monkey patching :py:class:`pytest_embedded.dut.Dut` with :py:class:`pytest_embedded_idf.dut.IdfSerialDut`
+- ``app``: :py:class:`pytest_embedded_idf.app.IdfApp` instance
+  
+   Provide more information about idf app, like partition table, sdkconfig, and flash files, etc.
+
+Fixtures when Satisfy Optional Dependency ``pytest-embedded-serial-esp``
+------------------------------------------------------------------------
+
+- ``serial``: :py:class:`pytest_embedded_idf.serial.IdfSerial` instance
+
+   Provide auto flash functionality
+
+Added CLI Options
+-----------------
+
+- `--part-tool`: Partition tool path, used for parsing partition table

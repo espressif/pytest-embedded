@@ -9,7 +9,7 @@ class App:
     :ivar: app_path: App path
     """
 
-    def __init__(self, app_path: Optional[str] = None, *args, **kwargs):
+    def __init__(self, app_path: Optional[str] = None, **kwargs):
         if app_path is None:
             app_path = os.getcwd()
         self.app_path = os.path.realpath(app_path)

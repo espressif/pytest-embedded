@@ -2,9 +2,11 @@ import telnetlib
 from time import sleep
 from typing import Optional, Union
 
-from pytest_embedded.log import to_bytes
+import pexpect
+from pytest_embedded.utils import to_bytes
 from pytest_embedded_idf.app import IdfApp
 from pytest_embedded_serial.dut import SerialDut
+from pytest_embedded_serial.serial import Serial
 
 from .gdb import Gdb
 from .openocd import OpenOcd
@@ -21,13 +23,14 @@ class JtagDut(SerialDut):
 
     def __init__(
         self,
+        serial: Serial,
         openocd: OpenOcd,
         gdb: Gdb,
         app: Optional[IdfApp] = None,
-        *args,
+        pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ) -> None:
-        super().__init__(app, *args, **kwargs)
+        super().__init__(serial, app, pexpect_proc, **kwargs)
         self.openocd = openocd
         self.gdb = gdb
 
@@ -38,7 +41,7 @@ class JtagDut(SerialDut):
         self.openocd.create_forward_io_process(self.pexpect_proc, source='openocd')
         self.gdb.create_forward_io_process(self.pexpect_proc, source='gdb')
 
-        self._sessions_close_methods.extend(
+        self.proc_close_methods.extend(
             [
                 self.openocd.terminate,
                 self.gdb.terminate,

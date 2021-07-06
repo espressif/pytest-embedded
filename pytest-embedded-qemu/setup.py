@@ -18,16 +18,19 @@ def get_version():
 
 AUTHOR = 'Fu Hanxi'
 EMAIL = 'fuhanxi@espressif.com'
-NAME = 'pytest-embedded-qemu-idf'
-SHORT_DESCRIPTION = 'pytest embedded plugin for esp-idf project by qemu, not target chip'
+NAME = 'pytest-embedded-qemu'
+SHORT_DESCRIPTION = 'pytest embedded plugin for qemu, not target chip'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
 REQUIRES = [
-    'pytest-embedded-idf',
+    'pytest-embedded',
 ]
+EXTRAS_REQUIRE = {
+    'idf': 'pytest-embedded-idf',
+}
 ENTRY_POINTS = {
     'pytest11': [
-        'pytest_embedded_qemu_idf = pytest_embedded_qemu_idf.plugin',
+        'pytest_embedded_qemu = pytest_embedded_qemu.plugin',
     ],
 }
 
@@ -43,6 +46,7 @@ setup(
     packages=setuptools.find_packages(exclude='tests'),
     python_requires='>=3.6',
     install_requires=REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
     classifiers=[
         'Framework :: Pytest',
         'Intended Audience :: Developers',
