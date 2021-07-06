@@ -1,3 +1,14 @@
+## v0.3.0 (2021-07-06)
+
+### Feat
+
+- **qemu**: rename package to `pytest-embedded-qemu`, with optional dependency `pytest-embedded-idf`
+- **jtag**: add dependency `pytest-embedded-serial`, remove optional requirements `pytest-embedded-serial-esp`
+- **idf**: rename module `dut` to `serial`, override `serial` if satisfy the optional dependency
+- **esp**: rename module `dut` to `serial`, override `serial` fixture
+- **serial**: extract serial into a standalone fixture
+- **base**: Add fixture `pexpect_proc`
+
 ## v0.2.0 (2021-06-29)
 
 ### Feat
