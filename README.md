@@ -10,7 +10,7 @@ All packages are published to pypi. Please install them with `pip`.
 [![pytest-embedded-serial](https://img.shields.io/pypi/v/pytest-embedded-serial?color=green&label=pytest-embedded-serial)](https://pypi.org/project/pytest-embedded-serial/)
 [![pytest-embedded-serial-esp](https://img.shields.io/pypi/v/pytest-embedded-serial-esp?color=green&label=pytest-embedded-serial-esp)](https://pypi.org/project/pytest-embedded-serial-esp/)
 [![pytest-embedded-idf](https://img.shields.io/pypi/v/pytest-embedded-idf?color=green&label=pytest-embedded-idf)](https://pypi.org/project/pytest-embedded-idf/)
-[![pytest-embedded-qemu-idf](https://img.shields.io/pypi/v/pytest-embedded-qemu-idf?color=green&label=pytest-embedded-qemu-idf)](https://pypi.org/project/pytest-embedded-qemu-idf/)
+[![pytest-embedded-qemu](https://img.shields.io/pypi/v/pytest-embedded-qemu?color=green&label=pytest-embedded-qemu)](https://pypi.org/project/pytest-embedded-qemu/)
 
 ## API Reference
 

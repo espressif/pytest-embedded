@@ -5,7 +5,7 @@ import pytest
 PLUGINS = [
     '-p', 'pytest_embedded',
     '-p', 'pytest_embedded_idf',
-    '-p', 'pytest_embedded_qemu_idf',
+    '-p', 'pytest_embedded_qemu',
 ]
 
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,

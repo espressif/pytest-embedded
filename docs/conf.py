@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../pytest-embedded-serial'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded-jtag'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded-serial-esp'))
 sys.path.insert(0, os.path.abspath('../pytest-embedded-idf'))
-sys.path.insert(0, os.path.abspath('../pytest-embedded-qemu-idf'))
+sys.path.insert(0, os.path.abspath('../pytest-embedded-qemu'))
 
 # -- Project information -----------------------------------------------------
 
