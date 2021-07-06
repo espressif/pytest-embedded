@@ -28,6 +28,14 @@ pytest\_embedded.log module
    :undoc-members:
    :show-inheritance:
 
+pytest\_embedded.utils module
+-----------------------------
+
+.. automodule:: pytest_embedded.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pytest\_embedded.plugin module
 ------------------------------
 
