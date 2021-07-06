@@ -1,10 +1,10 @@
 import logging
 from typing import Optional
 
-from pytest_embedded.log import LivePrintPopen
+from pytest_embedded.log import DuplicateStdoutPopen
 
 
-class Gdb(LivePrintPopen):
+class Gdb(DuplicateStdoutPopen):
     GDB_PROG_PATH = 'xtensa-esp32-elf-gdb'
     GDB_DEFAULT_ARGS = '--nx --quiet --interpreter=mi2'
 
