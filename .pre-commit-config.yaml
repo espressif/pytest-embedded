@@ -8,7 +8,7 @@ exclude: |
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.0.1
     hooks:
       - id: trailing-whitespace
         exclude: &whitespace_excludes |
@@ -21,20 +21,16 @@ repos:
       - id: mixed-line-ending
         args: [ '-f=lf' ]
       - id: double-quote-string-fixer
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+  - repo: https://github.com/ikamensh/flynt/
+    rev: '0.63'
     hooks:
-      - id: flake8
+      - id: flynt
   - repo: https://github.com/psf/black
-    rev: 21.5b1
+    rev: 21.6b0
     hooks:
       - id: black
         args: [ '--skip-string-normalization' ]
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.7.0
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.9.2
     hooks:
-      - id: isort
-  - repo: https://github.com/myint/unify
-    rev: v0.5
-    hooks:
-      - id: unify
+      - id: flake8
