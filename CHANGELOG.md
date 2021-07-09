@@ -1,3 +1,9 @@
+## v0.3.1 (2021-07-09)
+
+### Fix
+
+- **idf**: optional dependency with `pytest-embedded-serial-esp` while import
+
 ## v0.3.0 (2021-07-06)
 
 ### Feat
