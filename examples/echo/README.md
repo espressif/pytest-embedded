@@ -10,12 +10,12 @@ You could also try this example with a real serial port (`--port /dev/ttyUSB0`),
 
 ## Prerequisites
 
-### Plugins need to be installed
+1. Install following packages
+    - `pytest_embedded`
+    - `pytest_embedded_serial`
 
-- pytest_embedded
-- pytest_embedded_serial
+## Test Steps
 
-## Steps
-
-Run `pytest` to execute the test defined in [test_echo.py](test_echo.py).
-
+```shell
+$ pytest # to run all tests defined in [test_echo.py](test_echo.py).
+```
