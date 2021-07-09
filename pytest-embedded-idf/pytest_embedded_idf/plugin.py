@@ -4,10 +4,8 @@ from types import ModuleType
 
 import pytest
 from pytest_embedded.dut import Dut
-from pytest_embedded_serial.dut import SerialDut
 
 from .app import IdfApp
-from .serial import IdfSerial
 
 
 @pytest.fixture
@@ -38,6 +36,8 @@ def pytest_plugin_registered(plugin, manager):
     plugin.ENV['idf'] = True
 
     if 'esp' in plugin.ENV:
+        from pytest_embedded_serial.dut import SerialDut
+        from .serial import IdfSerial
 
         @pytest.fixture
         def serial(app, target, port, pexpect_proc, options):
