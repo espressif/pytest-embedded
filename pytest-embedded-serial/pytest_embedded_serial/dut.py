@@ -10,15 +10,17 @@ from .serial import Serial
 class SerialDut(Dut):
     """
     Dut class for serial ports
-
-    :ivar: serial: :class:`Serial` instance
-    :ivar: app: :class:`pytest_embedded.app.App` instance
-    :ivar: pexpect_proc: :class:`pexpect.spawn` instance
     """
 
     def __init__(
         self, serial: Serial = None, app: Optional[App] = None, pexpect_proc: Optional[pexpect.spawn] = None, **kwargs
     ) -> None:
+        """
+        Args:
+            serial: `Serial` instance
+            app: `App` instance
+            pexpect_proc: `PexpectProcess` instance
+        """
         super().__init__(app, pexpect_proc, **kwargs)
 
         self.serial = serial

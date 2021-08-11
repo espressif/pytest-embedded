@@ -14,11 +14,10 @@ from .openocd import OpenOcd
 
 class JtagDut(SerialDut):
     """
-    JTAG dut class
+    JTAG DUT class
 
-    :ivar: app: :class:`pytest_embedded_idf.app.IdfApp` instance
-    :ivar: openocd: :class:`pytest_embedded_jtag.openocd.OpenOcd` instance
-    :ivar: gdb: :class:`pytest_embedded_jtag.gdb.Gdb` instance
+    Attributes:
+        telnet (telnetlib.Telnet): telnet server instance
     """
 
     def __init__(
@@ -30,6 +29,14 @@ class JtagDut(SerialDut):
         pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ) -> None:
+        """
+        Args:
+            serial: `Serial` instance
+            openocd: `OpenOcd` instance
+            gdb: `Gdb` instance
+            app: `App` instance
+            pexpect_proc: `PexpectProcess` instance
+        """
         super().__init__(serial, app, pexpect_proc, **kwargs)
         self.openocd = openocd
         self.gdb = gdb
@@ -51,8 +58,9 @@ class JtagDut(SerialDut):
 
     def telnet_send(self, s: Union[bytes, str]) -> None:
         """
-        Send commands through telnet port, could also be called by :func:`self.telnet.send`
+        Send commands through telnet port, could also be called by `self.telnet.send()`
 
-        :param s: ``bytes`` or ``str``
+        Args:
+            s: `bytes` or `str`
         """
         self.telnet.write(to_bytes(s, '\n'))

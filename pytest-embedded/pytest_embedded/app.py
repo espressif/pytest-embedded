@@ -4,12 +4,14 @@ from typing import Optional
 
 class App:
     """
-    Class that collects app information
-
-    :ivar: app_path: App path
+    Built binary files base class
     """
 
     def __init__(self, app_path: Optional[str] = None, **kwargs):
+        """
+        Args:
+            app_path: App path
+        """
         if app_path is None:
             app_path = os.getcwd()
         self.app_path = os.path.realpath(app_path)

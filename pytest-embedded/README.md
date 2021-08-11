@@ -1,14 +1,15 @@
-# pytest-embedded
+## pytest-embedded
 
 Base plugin for all other plugins under this repo.
 
-## Fixtures
+### Fixtures
 
-- `test_file_path` (the test script file path)
-- `test_case_name` (the test function name)
-- `app` (instance of App class)
-- `dut` (instance of Dut class)
+- `test_file_path`: current test script file path
+- `test_case_name`: current test case function name
+- `pexpect_proc`: `PexpectProcess` instance
+- `redirect`: `DuplicateStdout` instance
+- `app`: `App` instance
+- `dut`: `Dut` instance
 
-## Functions
-
-- `expect` (`pexpect.expect` wrapper)
+### CLI Options
+- `app_path`: App path

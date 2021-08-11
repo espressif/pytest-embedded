@@ -13,7 +13,8 @@ from .log import DuplicateStdout, PexpectProcess
 @pytest.fixture
 def test_file_path(request) -> str:
     """
-    :return: current test script file path
+    Returns:
+         current test script file path
     """
     return request.module.__file__
 
@@ -21,7 +22,8 @@ def test_file_path(request) -> str:
 @pytest.fixture
 def test_case_name(request) -> str:
     """
-    :return: current test function name
+    Returns:
+        current test case function name
     """
     return request.node.originalname
 
@@ -40,7 +42,8 @@ ENV = {}  # For store env variables
 @pytest.fixture
 def options(request) -> Dict[str, Dict[str, Any]]:
     """
-    :return: dict which contains all the k-v pairs from :attr:`KNOWN_OPTIONS`
+    Returns:
+         dict which contains all the k-v pairs from `KNOWN_OPTIONS`
     """
     res = {}
     options = request.config.option.__dict__
@@ -56,9 +59,7 @@ def options(request) -> Dict[str, Dict[str, Any]]:
 @pytest.fixture
 def app(options, test_file_path) -> App:
     """
-    Uses :attr:`options['App']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded.app.App` instance
+    Uses `options['App']` as kwargs to create instance.
     """
     app_options = options.get('App', {})
     if app_options['app_path'] is None:
@@ -69,9 +70,6 @@ def app(options, test_file_path) -> App:
 
 @pytest.fixture
 def pexpect_proc() -> PexpectProcess:
-    """
-    :return: :class:`pytest_embedded.log.PexpectProcess` instance
-    """
     pexpect_proc = PexpectProcess()
     try:
         yield pexpect_proc
@@ -82,9 +80,7 @@ def pexpect_proc() -> PexpectProcess:
 @pytest.fixture
 def dut(app, pexpect_proc, options) -> Dut:
     """
-    Uses :attr:`options['Dut']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded.dut.Dut` instance
+    Uses `options['Dut']` as kwargs to create instance.
     """
     dut_options = options.get('Dut', {})
     dut = Dut(app, pexpect_proc, **dut_options)
@@ -97,13 +93,13 @@ def dut(app, pexpect_proc, options) -> Dut:
 @pytest.fixture
 def redirect(pexpect_proc) -> Callable[..., DuplicateStdout]:
     """
-    Provided a context manager that could help log all the ``sys.stdout`` with pytest logging feature and redirect
-    ``sys.stdout`` to :attr:`dut.pexpect_proc`.
+    Provided a context manager that could help log all the `sys.stdout` with pytest logging feature and redirect
+    `sys.stdout` to `dut.pexpect_proc`.
 
-    >>> with redirect('prefix'):
-    >>>    print('this should be logged and sent to pexpect_proc')
-
-    :return: :class:`pytest_embedded.log.DuplicateStdout` instance
+    ```python
+    with redirect('prefix'):
+        print('this should be logged and sent to pexpect_proc')
+    ```
     """
 
     def _inner(source=None):

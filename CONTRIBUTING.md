@@ -10,7 +10,7 @@ $ pre-commit install
 
 We use [commitizen](https://github.com/commitizen-tools/commitizen) to auto generate the [CHANGELOG.md](./CHANGELOG.md). You don't
 need to install it or know anything about it, but please follow
-the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) rule to submit your commits.
+the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) rule when writing commit messages.
 
 ## Running Tests
 
@@ -20,8 +20,9 @@ By default, all tests under all plugins would be run.
 $ pip install -r requirements.txt
 $ bash foreach.sh install
 $ export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
-$ # export DONT_SKIP_SERIAL_TESTS=1 (when you connected to an espressif board)
+$ # export DONT_SKIP_SERIAL_TESTS=1 (when you have a serial connection)
 $ # export DONT_SKIP_SERIAL_TESTS=1 (when qemu-system-xtensa is ready)
+$ # export DONT_SKIP_JTAG_TESTS=1 (when you have a jtag connection)
 $ pytest
 ```
 
@@ -33,20 +34,13 @@ refer to the tests under each plugin.
 
 ## Building Docs
 
-### Building Docs Locally
+We use `mkdocs` and `mkdocstring` with theme `mkdocs-material` to build docs.
+
+### Test Docs Locally
 
 ```shell
 $ cd docs
 $ pip install -r requirements.txt
-$ make html
-```
-
-### Adding new Plugins
-
-You could use `sphinx-apidoc` to generate the initial version of a new plugin's api reference page. (Or you could write
-it manually)
-
-```shell
-$ pip install sphinx-apidoc
-$ sphinx-apidoc -o plugins <new_package_path>
+$ mkdocs serve # For preview
+$ mkdocs build # For build
 ```

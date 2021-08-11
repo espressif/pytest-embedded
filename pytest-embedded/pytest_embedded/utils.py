@@ -4,9 +4,10 @@ from typing import Optional, Union
 
 class ProcessContainer:
     """
-    Auto call functions under :attr:`proc_close_methods` when being garbage collected or :meth:`close`
+    Auto call functions under `proc_close_methods` when being garbage collected or `close()`
 
-    :ivar: proc_close_methods: A list to collect all the methods that need to be run
+    Attributes:
+        proc_close_methods (list[callable]): A list to collect all the methods that need to be run.
     """
 
     def __init__(self, *args, **kwargs):
@@ -18,7 +19,7 @@ class ProcessContainer:
 
     def close(self) -> None:
         """
-        Call all the sessions/threads/processes terminate methods defined in :attr:`proc_close_methods`
+        Call all the sessions/threads/processes terminate methods defined in `proc_close_methods`
         """
         for func in self.proc_close_methods:
             try:
@@ -29,8 +30,13 @@ class ProcessContainer:
 
 def to_str(bytes_str: Union[bytes, str]) -> str:
     """
-    :param bytes_str: ``bytes`` or ``str``
-    :return: utf8-decoded string
+    Turn `bytes` or `str` to `str`
+
+    Args:
+        bytes_str: `bytes` or `str`
+
+    Returns:
+        utf8-decoded string
     """
     if isinstance(bytes_str, bytes):
         return bytes_str.decode('utf-8', errors='ignore')
@@ -39,10 +45,15 @@ def to_str(bytes_str: Union[bytes, str]) -> str:
 
 def to_bytes(bytes_str: Union[bytes, str], ending: Optional[Union[bytes, str]] = None) -> bytes:
     """
-    :param bytes_str: ``bytes`` or ``str``
-    :param ending: ``bytes`` or ``str``, will add to the end of the result.
-        Only works when the ``bytes_str`` is ``str``
-    :return: utf8-encoded bytes
+    Turn `bytes` or `str` to `bytes`
+
+    Args:
+        bytes_str: `bytes` or `str`
+        ending: `bytes` or `str`, will add to the end of the result.
+            Only works when the `bytes_str` is `str`
+
+    Returns:
+        utf8-encoded bytes
     """
     if isinstance(bytes_str, str):
         bytes_str = bytes_str.encode()

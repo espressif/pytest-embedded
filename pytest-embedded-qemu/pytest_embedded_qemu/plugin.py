@@ -37,13 +37,16 @@ def pytest_addoption(parser):
 
 @pytest.fixture
 def qemu_image_path(request):
+    """
+    Apply parametrization to fixture `qemu`
+    """
     return {'qemu_image_path': getattr(request, 'param', None)}
 
 
 @pytest.fixture
 def qemu_cli_args(request):
     """
-    Apply parametrization to fixture :func:`pytest_embedded_qemu_idf.plugin.qemu`
+    Apply parametrization to fixture `qemu`
     """
     return {'qemu_cli_args': getattr(request, 'param', None)}
 
@@ -51,7 +54,7 @@ def qemu_cli_args(request):
 @pytest.fixture
 def qemu_extra_args(request):
     """
-    Apply parametrization to fixture :func:`pytest_embedded_qemu_idf.plugin.qemu`
+    Apply parametrization to fixture `qemu`
     """
     return {'qemu_extra_args': getattr(request, 'param', None)}
 
@@ -80,9 +83,7 @@ def pytest_plugin_registered(plugin, manager):
         @pytest.fixture
         def app(qemu_image_path, pexpect_proc, options, test_file_path) -> QemuApp:
             """
-            Uses :attr:`options['App']` as kwargs to create instance.
-
-            :return: :class:`pytest_embedded.app.App` or derived class instance
+            Uses `options['App']` as kwargs to create instance.
             """
             app_options = options.get('App', {})
             if app_options['app_path'] is None:
@@ -106,9 +107,7 @@ def pytest_plugin_registered(plugin, manager):
     @pytest.fixture
     def qemu(app, options, qemu_image_path, qemu_cli_args, qemu_extra_args) -> Qemu:
         """
-        Uses :attr:`options['Qemu']` as kwargs to create instance.
-
-        :return: :class:`pytest_embedded_qemu_idf.qemu.IdfQemu` or derived class instance
+        Uses `options['Qemu']` as kwargs to create instance.
         """
         qemu_options = options.get('Qemu', {})
         if qemu_image_path['qemu_image_path']:
@@ -132,9 +131,7 @@ def pytest_plugin_registered(plugin, manager):
     @pytest.fixture
     def dut(qemu, app, pexpect_proc, options) -> QemuDut:
         """
-        Uses :attr:`options['Dut']` as kwargs to create instance.
-
-        :return: :class:`pytest_embedded_qemu_idf.dut.QemuDut` or derived class instance
+        Uses `options['Dut']` as kwargs to create instance.
         """
         dut_options = options.get('Dut', {})
         dut = QemuDut(qemu, app, pexpect_proc, **dut_options)

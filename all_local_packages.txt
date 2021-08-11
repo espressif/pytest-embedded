@@ -1,0 +1,6 @@
+-e ./pytest-embedded/
+-e ./pytest-embedded-serial/
+-e ./pytest-embedded-serial-esp/
+-e ./pytest-embedded-idf/
+-e ./pytest-embedded-jtag/
+-e ./pytest-embedded-qemu

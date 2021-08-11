@@ -13,8 +13,7 @@ from . import DEFAULT_IMAGE_FN
 
 class Qemu(DuplicateStdoutPopen):
     """
-    :ivar: qemu_inst: ``subprocess.Popen`` process which runs QEMU program
-    :ivar: log_file: serial log filepath
+    QEMU class
     """
 
     QEMU_PROG_PATH = 'qemu-system-xtensa'
@@ -32,6 +31,14 @@ class Qemu(DuplicateStdoutPopen):
         qemu_log_path: Optional[str] = None,
         **kwargs,
     ):
+        """
+        Args:
+            qemu_image_path: QEMU image path
+            qemu_prog_path: QEMU program path
+            qemu_cli_args: QEMU CLI arguments
+            qemu_extra_args: QEMU CLI extra arguments, will append to `qemu_cli_args`
+            qemu_log_path: QEMU log file path, would direct to `pexpect_proc` automatically
+        """
         image_path = qemu_image_path or DEFAULT_IMAGE_FN
         if not os.path.exists(image_path):
             raise ValueError(f'QEMU image path not exists: {image_path}')

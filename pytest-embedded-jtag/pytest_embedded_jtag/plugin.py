@@ -13,14 +13,14 @@ def pytest_addoption(parser):
     group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
     group.addoption(
         '--gdb-cli-args',
-        help='GDB cli default arguments. Could be overridden by pytest parametrizing. '
+        help='GDB cli arguments. Could be overridden by pytest parametrizing. '
         '(Default: "--nx --quiet --interpreter=mi2"',
     )
 
     group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd"')
     group.addoption(
         '--openocd-cli-args',
-        help='openocd cli default arguments. Could be overridden by pytest parametrizing. '
+        help='openocd cli arguments. Could be overridden by pytest parametrizing. '
         '(Default: "-f board/esp32-wrover-kit-3.3v.cfg -d2"',
     )
 
@@ -28,7 +28,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def openocd_cli_args(request):
     """
-    Apply parametrization to fixture :func:`pytest_embedded_jtag.plugin.openocd`
+    Apply parametrization to fixture `openocd`
     """
     return {'openocd_cli_args': getattr(request, 'param', None)}
 
@@ -36,9 +36,7 @@ def openocd_cli_args(request):
 @pytest.fixture
 def openocd(options, openocd_cli_args) -> OpenOcd:
     """
-    Uses :attr:`options['OpenOcd']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded_jtag.openocd.OpenOcd` or derived class instance
+    Uses `options['OpenOcd']` as kwargs to create instance.
     """
     openocd_options = options.get('OpenOcd', {})
     if openocd_cli_args['openocd_cli_args']:
@@ -54,7 +52,7 @@ def openocd(options, openocd_cli_args) -> OpenOcd:
 @pytest.fixture
 def gdb_cli_args(request):
     """
-    Apply parametrization to fixture :func:`pytest_embedded_jtag.plugin.gdb`
+    Apply parametrization to fixture `gdb`
     """
     return {'gdb_cli_args': getattr(request, 'param', None)}
 
@@ -62,9 +60,7 @@ def gdb_cli_args(request):
 @pytest.fixture
 def gdb(options, gdb_cli_args) -> Gdb:
     """
-    Uses :attr:`options['Gdb']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded_jtag.gdb.Gdb` or derived class instance
+    Uses `options['Gdb']` as kwargs to create instance.
     """
     gdb_options = options.get('Gdb', {})
     if gdb_cli_args['gdb_cli_args']:
@@ -80,9 +76,7 @@ def gdb(options, gdb_cli_args) -> Gdb:
 @pytest.fixture
 def dut(serial, openocd, gdb, app, pexpect_proc, options) -> JtagDut:
     """
-    Uses :attr:`options['Dut']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded_jtag.dut.JtagDut` or derived class instance
+    Uses `options['Dut']` as kwargs to create instance.
     """
     dut_options = options.get('Dut', {})
     logging.info(dut_options)

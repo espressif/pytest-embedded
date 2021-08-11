@@ -1,4 +1,5 @@
 from types import ModuleType
+from typing import Optional
 
 import pytest
 from pytest_embedded_serial.dut import SerialDut
@@ -7,27 +8,28 @@ from .serial import EspSerial
 
 
 @pytest.fixture
-def target(request):
+def target(request) -> dict[str, Optional[str]]:
     """
-    Apply parametrization to fixture :func:`serial`
+    Apply parametrization to fixture `serial`
     """
     return {'target': getattr(request, 'param', None)}
 
 
 @pytest.fixture
-def port(request):
+def port(request) -> dict[str, Optional[str]]:
     """
-    Apply parametrization to fixture :func:`serial`
+    Apply parametrization to fixture `serial`
     """
     return {'port': getattr(request, 'param', None)}
 
 
 @pytest.fixture
-def serial(target, port, pexpect_proc, options):
+def serial(target, port, pexpect_proc, options) -> EspSerial:
     """
-    Uses :attr:`options['Serial']` as kwargs to create instance.
+    Uses `options['Serial']` as kwargs to create instance.
 
-    :return: :class:`pytest_embedded_serial_esp.serial.Serial` instance
+    Returns:
+        `EspSerial` instance
     """
     serial_options = options.get('Serial', {})
     if target['target']:
@@ -46,9 +48,10 @@ def serial(target, port, pexpect_proc, options):
 @pytest.fixture
 def dut(serial, app, pexpect_proc, options) -> SerialDut:
     """
-    Uses :attr:`options['Dut']` as kwargs to create instance.
+    Uses `options['Dut']` as kwargs to create instance.
 
-    :return: :class:`pytest_embedded_serial.dut.SerialDut` instance
+    Returns:
+        `SerialDut` instance
     """
     dut_options = options.get('Dut', {})
     dut = SerialDut(serial, app, pexpect_proc, **dut_options)

@@ -1,8 +1,11 @@
-# pytest-embedded-serial-esp
+## pytest-embedded-serial-esp
 
 pytest embedded plugin for testing espressif boards via serial ports
 
-## Functionalities
+### Fixtures With More Functionalities
 
-- Provide a target/port auto-detection method
-- Auto hard-reset before forwarding the serial port output
+- `serial`: `EspSerial` instance, would detect and confirm target and port by `esptool` automatically.
+
+### CLI Options
+
+- `target`: target chip type (support parametrizing)
