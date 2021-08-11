@@ -35,7 +35,6 @@ def test_pexpect(testdir):
     result = testdir.runpytest(
         *PLUGINS,
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
@@ -57,7 +56,6 @@ def test_idf_app(testdir):
     result = testdir.runpytest(
         *PLUGINS_WITHOUT_SERIAL,
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)

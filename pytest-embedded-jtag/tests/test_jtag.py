@@ -37,7 +37,6 @@ def test_pexpect_by_jtag(testdir):
     result = testdir.runpytest(
         *PLUGINS,
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
         '--port', '/dev/ttyUSB1',
     )
 
