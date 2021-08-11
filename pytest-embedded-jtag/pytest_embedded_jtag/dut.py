@@ -3,8 +3,8 @@ from time import sleep
 from typing import Optional, Union
 
 import pexpect
+from pytest_embedded.app import App
 from pytest_embedded.utils import to_bytes
-from pytest_embedded_idf.app import IdfApp
 from pytest_embedded_serial.dut import SerialDut
 from pytest_embedded_serial.serial import Serial
 
@@ -26,7 +26,7 @@ class JtagDut(SerialDut):
         serial: Serial,
         openocd: OpenOcd,
         gdb: Gdb,
-        app: Optional[IdfApp] = None,
+        app: Optional[App] = None,
         pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ) -> None:

@@ -7,7 +7,8 @@ from typing import Optional
 import pexpect
 from pytest_embedded.log import DuplicateStdout, DuplicateStdoutPopen
 from pytest_embedded.utils import to_str
-from pytest_embedded_qemu import DEFAULT_IMAGE_FN
+
+from . import DEFAULT_IMAGE_FN
 
 
 class Qemu(DuplicateStdoutPopen):
