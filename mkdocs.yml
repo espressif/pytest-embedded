@@ -15,6 +15,8 @@ theme:
 markdown_extensions:
   - admonition
   - codehilite
+  - plantuml_markdown:
+      server: http://www.plantuml.com/plantuml
   - pymdownx.superfences
   - pymdownx.tabbed
   - pymdownx.snippets:

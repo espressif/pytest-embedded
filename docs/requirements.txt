@@ -2,3 +2,4 @@
 mkdocs
 mkdocstrings
 mkdocs-material
+plantuml-markdown
