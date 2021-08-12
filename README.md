@@ -1,4 +1,5 @@
-# pytest-embedded
+# pytest-embedded [![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest)
+
 
 A collection of pytest plugins for the embedded world.
 
@@ -39,6 +40,8 @@ The fixtures of different plugins could have the same names. By this method, the
     addopts = -p pytest_embedded -p pytest_embedded_serial_esp -p pytest_embedded_idf
     ```
 
+For more detailed information about the fixtures provided by each plugin, please refer to [Fixtures and CLI Options](https://docs.espressif.com/projects/pytest-embedded/en/latest/fixtures/)
+
 ### Logging
 
 Since all the output of each process would be duplicated with `logging.info()`, we recommend using pytest logging functionalities for the best user experience.
@@ -61,7 +64,3 @@ Here's a simple example of a configuration file that logs to the console and the
     log_file_format = %(asctime)s %(levelname)s %(message)s
     log_file_date_format = %Y-%m-%d %H:%M:%S
     ```
-
-## API Reference
-
-[![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest)
