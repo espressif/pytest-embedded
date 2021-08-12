@@ -1,3 +1,9 @@
+## v0.3.2 (2021-08-12)
+
+### Fix
+
+- **jtag**: do not import idf package
+
 ## v0.3.1 (2021-07-09)
 
 ### Fix
