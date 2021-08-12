@@ -10,14 +10,15 @@ from . import DEFAULT_IMAGE_FN
 
 class IdfFlashImageMaker:
     """
-    Create a single image for qemu based on the :class:`pytest_embedded_idf.app.IdfApp`'s partition
-    table and all the flash files.
-
-    :ivar: app: :class:`pytest_embedded_idf.app.IdfApp` instance
-    :ivar: image_path: output image path, would create with :meth:`make_bin` if not set.
+    Create a single image for qemu based on the `IdfApp`'s partition table and all the flash files.
     """
 
     def __init__(self, app: IdfApp, image_path: str):
+        """
+        Args:
+            app: `IdfApp` instance
+            image_path: output image path
+        """
         self.app = app
         self.image_path = image_path
 
@@ -63,6 +64,10 @@ class IdfFlashImageMaker:
 
 
 class QemuApp(IdfApp):
+    """
+    QEMU App class
+    """
+
     def __init__(
         self,
         app_path: Optional[str] = None,
@@ -71,6 +76,13 @@ class QemuApp(IdfApp):
         pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ):
+        """
+        Args:
+            app_path: App path
+            part_tool: Partition tool
+            qemu_image_path: QEMU image path, would create with `IdfFlashImageMaker.make_bin()` if not exists.
+            pexpect_proc: `PexpectProcess` instance
+        """
         self.pexpect_proc = pexpect_proc
         self.image_path = qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)
 

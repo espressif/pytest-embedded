@@ -11,10 +11,9 @@ class Serial(DuplicateStdoutMixin):
     """
     Custom serial class
 
-    :ivar: pexpect_proc: :class:`pexpect.spawn` instance
-    :ivar: port: port
-    :ivar: port_config: port configs
-    :ivar: proc: process created by :func:`serial.serial_for_url`
+    Attributes:
+        port_config (dict[str, Any]): port configs
+        proc (serial.Serial): process created by `serial.serial_for_url()`
     """
 
     DEFAULT_PORT_CONFIG = {
@@ -28,6 +27,11 @@ class Serial(DuplicateStdoutMixin):
     }
 
     def __init__(self, port: str, pexpect_proc: Optional[pexpect.spawn] = None, **kwargs):
+        """
+        Args:
+            port: port
+            pexpect_proc: `PexpectProcess` instance
+        """
         super().__init__()
 
         if port is None:

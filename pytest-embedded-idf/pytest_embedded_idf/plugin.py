@@ -11,9 +11,7 @@ from .app import IdfApp
 @pytest.fixture
 def app(options, test_file_path) -> IdfApp:
     """
-    Uses :attr:`options['App']` as kwargs to create instance.
-
-    :return: :class:`pytest_embedded_idf.app.IdfApp` instance
+    Uses `options['App']` as kwargs to create instance.
     """
     app_options = options.get('App', {})
     if app_options['app_path'] is None:
@@ -24,7 +22,11 @@ def app(options, test_file_path) -> IdfApp:
 
 def pytest_addoption(parser):
     group = parser.getgroup('embedded')
-    group.addoption('--part-tool', help='Partition tool path, used for parsing partition table')
+    group.addoption(
+        '--part-tool',
+        help='Partition tool path, used for parsing partition table. '
+        '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
+    )
 
 
 @pytest.hookimpl
@@ -59,9 +61,7 @@ def pytest_plugin_registered(plugin, manager):
         @pytest.fixture
         def dut(serial, app, pexpect_proc, options) -> SerialDut:
             """
-            Uses :attr:`options['Dut']` as kwargs to create instance.
-
-            :return: :class:`pytest_embedded.dut.Dut` or derived class instance
+            Uses `options['Dut']` as kwargs to create instance.
             """
             dut_options = options.get('Dut', {})
             dut = SerialDut(serial, app, pexpect_proc, **dut_options)
@@ -76,9 +76,7 @@ def pytest_plugin_registered(plugin, manager):
         @pytest.fixture
         def dut(app, pexpect_proc, options) -> Dut:
             """
-            Uses :attr:`options['Dut']` as kwargs to create instance.
-
-            :return: :class:`pytest_embedded.dut.Dut` or derived class instance
+            Uses `options['Dut']` as kwargs to create instance.
             """
             dut_options = options.get('Dut', {})
             dut = Dut(app, pexpect_proc, **dut_options)

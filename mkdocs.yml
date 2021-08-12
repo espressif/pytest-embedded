@@ -1,0 +1,30 @@
+site_name: pytest-embedded
+
+theme:
+  name: "material"
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - plantuml_markdown:
+      server: http://www.plantuml.com/plantuml
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.snippets:
+      check_paths: true
+
+plugins:
+  - autorefs
+  - search
+  - mkdocstrings:
+      default_handler: python
+      custom_templates: templates

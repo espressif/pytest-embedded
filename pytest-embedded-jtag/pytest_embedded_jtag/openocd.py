@@ -17,6 +17,11 @@ class OpenOcd(DuplicateStdoutPopen):
     TELNET_PORT = 4444
 
     def __init__(self, openocd_prog_path: Optional[str] = None, openocd_cli_args: Optional[str] = None, **kwargs):
+        """
+        Args:
+            openocd_prog_path: openocd program path
+            openocd_cli_args: openocd cli arguments
+        """
         openocd_prog_path = openocd_prog_path or os.getenv('OPENOCD_BIN', self.OPENOCD_PROG_PATH)
         openocd_cli_args = openocd_cli_args or self.OPENOCD_DEFAULT_ARGS
 

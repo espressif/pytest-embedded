@@ -12,7 +12,7 @@ from .app import IdfApp
 
 class IdfSerial(EspSerial):
     """
-    IDF serial class
+    IDF serial Dut class
 
     Auto flash the app while starting test.
     """
@@ -38,9 +38,10 @@ class IdfSerial(EspSerial):
     @cls_redirect_stdout(source='flash')
     def flash(self, erase_nvs=True) -> None:
         """
-        Flash the :attr:`flash_files` and :attr:`encrypt_files` of :attr:`self.app`
+        Flash the `app.flash_files` to the dut
 
-        :param erase_nvs: erase non-volatile storage blocks
+        Args:
+            erase_nvs: erase non-volatile storage blocks
         """
         last_error = None
         for baud_rate in [921600, 115200]:

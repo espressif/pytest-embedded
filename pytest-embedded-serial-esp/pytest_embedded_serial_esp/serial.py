@@ -15,9 +15,6 @@ from serial.tools.list_ports_posix import comports
 class EspSerial(Serial):
     """
     Serial class for ports connected to espressif products
-
-    :ivar: target: target chip type
-    :ivar: port: serial port string
     """
 
     def __init__(
@@ -44,7 +41,7 @@ class EspSerial(Serial):
         Provided functionalities:
         - run hard_reset before real function run
         - reset the port settings after real function run
-        - call ``run_stub()`` and pass the ESPStubLoader instance
+        - call `run_stub()` and pass the ESPStubLoader instance
         """
 
         @functools.wraps(func)
@@ -81,12 +78,15 @@ class EspSerial(Serial):
     @cls_redirect_stdout(source='detecting port')
     def detect_target_port(self, target: Optional[str] = None, port: Optional[str] = None) -> Tuple[str, str]:
         """
-        Returns the target chip type and port. Will do auto-detection if argument ``target`` or ``port`` or both of
+        Returns the target chip type and port. Will do auto-detection if argument `target` or `port` or both of
         them are missing.
 
-        :param target: serial target chip type
-        :param port: serial port
-        :return: specific chip type and port
+        Args:
+            target: serial target chip type
+            port: serial port
+
+        Returns:
+            detected chip type and port
         """
         available_ports = _list_available_ports()
 

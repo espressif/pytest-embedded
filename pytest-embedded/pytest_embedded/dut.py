@@ -4,18 +4,21 @@ from typing import Optional
 import pexpect
 
 from .app import App
+from .log import PexpectProcess
 from .utils import ProcessContainer
 
 
 class Dut(ProcessContainer):
     """
-    Device under test (Dut) base class
-
-    :ivar: app: :class:`pytest_embedded.app.App` instance
-    :ivar: pexpect_proc: :class:`pexpect.spawn` instance
+    Device under test (DUT) base class
     """
 
-    def __init__(self, app: Optional[App] = None, pexpect_proc: Optional[pexpect.spawn] = None, **kwargs) -> None:
+    def __init__(self, app: Optional[App] = None, pexpect_proc: Optional[PexpectProcess] = None, **kwargs) -> None:
+        """
+        Args:
+            app: `App` instance
+            pexpect_proc: `PexpectProcess` instance
+        """
         super().__init__()
 
         self.app = app
@@ -26,13 +29,13 @@ class Dut(ProcessContainer):
 
     def write(self, *args, **kwargs) -> None:
         """
-        Write to :attr:`pexpect_proc`. All arguments would pass to :func:`pexpect.spawn.write`
+        Write to `pexpect_proc`. All arguments would pass to `pexpect.spawn.write()`
         """
         self.pexpect_proc.write(*args, **kwargs)
 
     def expect(self, *args, **kwargs) -> None:
         """
-        Expect from :attr:`pexpect_proc`. All arguments would pass to :func:`pexpect.expect`
+        Expect from `pexpect_proc`. All arguments would pass to `pexpect.expect()`
         """
         try:
             self.pexpect_proc.expect(*args, **kwargs)
