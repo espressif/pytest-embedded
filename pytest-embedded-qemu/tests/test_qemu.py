@@ -2,12 +2,6 @@ import os
 
 import pytest
 
-PLUGINS = [
-    '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_idf',
-    '-p', 'pytest_embedded_qemu',
-]
-
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
                                        reason='after compiled qemu bin for esp32 locally, '
                                               'use "DONT_SKIP_QEMU_TESTS" to run this test')
@@ -27,7 +21,7 @@ def test_pexpect_by_qemu(testdir):
     """)
 
     result = testdir.runpytest(
-        *PLUGINS,
+        '--embedded-services', 'idf,qemu',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 

@@ -2,17 +2,6 @@ import os
 
 import pytest
 
-PLUGINS = [
-    '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_serial_esp',
-    '-p', 'pytest_embedded_idf',
-]
-
-PLUGINS_WITHOUT_SERIAL = [
-    '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_idf',
-]
-
 serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', False) is False,
                                             reason='after connected to espressif boards, '
                                                    'use "DONT_SKIP_SERIAL_TESTS" to run this test')
@@ -25,7 +14,7 @@ def test_pexpect(testdir):
         import pytest
 
         def test_idf_serial_flash(dut):
-            dut.expect('(100 %)')  # from flash
+            dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
@@ -33,7 +22,7 @@ def test_pexpect(testdir):
     """)
 
     result = testdir.runpytest(
-        *PLUGINS,
+        '--embedded-services', 'esp,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
@@ -54,7 +43,7 @@ def test_idf_app(testdir):
     """)
 
     result = testdir.runpytest(
-        *PLUGINS_WITHOUT_SERIAL,
+        '--embedded-services', 'idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
     )
 

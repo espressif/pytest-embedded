@@ -2,13 +2,6 @@ import os
 
 import pytest
 
-PLUGINS = [
-    '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_serial',
-    '-p', 'pytest_embedded_idf',
-    '-p', 'pytest_embedded_jtag',
-]
-
 jtag_connection_required = pytest.mark.skipif(
     os.getenv('DONT_SKIP_JTAG_TESTS', False) is False,
     reason='after connected via JTAG, use "DONT_SKIP_JTAG_TESTS" to run this test')
@@ -35,7 +28,7 @@ def test_pexpect_by_jtag(testdir):
     """)
 
     result = testdir.runpytest(
-        *PLUGINS,
+        '--embedded-services', 'jtag',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--port', '/dev/ttyUSB1',
     )

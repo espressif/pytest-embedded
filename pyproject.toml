@@ -5,7 +5,6 @@ force-exclude = '/tests/'
 skip-string-normalization = 'True'
 
 [tool.pytest.ini_options]
-addopts = '-p pytest_cov --cov pytest_embedded --cov pytest_embedded_serial --cov pytest_embedded_serial_esp --cov pytest_embedded_idf --cov pytest_embedded_qemu_idf'
 norecursedirs = 'examples/*'
 
 # log related

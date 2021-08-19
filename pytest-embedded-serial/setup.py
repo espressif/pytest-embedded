@@ -26,11 +26,7 @@ REQUIRES = [
     'pytest-embedded',
     'pyserial>=3.0',
 ]
-ENTRY_POINTS = {
-    'pytest11': [
-        'pytest_embedded_serial = pytest_embedded_serial.plugin',
-    ],
-}
+ENTRY_POINTS = {}
 
 setup(
     name=NAME,
