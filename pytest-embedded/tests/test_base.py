@@ -76,3 +76,43 @@ def test_fixtures(testdir):
     )
 
     result.assert_outcomes(passed=5)
+
+
+def test_multi_count_fixtures(testdir):
+    testdir.makepyfile("""
+            import pytest
+            import pexpect
+
+            def test_fixtures_test_file_name(test_file_path):
+                assert test_file_path.endswith('test_multi_count_fixtures.py')
+
+            def test_fixtures_test_case_name(test_case_name):
+                assert test_case_name == 'test_fixtures_test_case_name'
+
+            def test_fixtures_app(app):
+                assert app[0]
+                assert app[1]
+                assert app[0].app_path.endswith('hello_world_esp32')
+                assert app[1].app_path.endswith('hello_world_esp32c3')
+
+            def test_fixtures_dut(dut):
+                assert dut[0].app.app_path.endswith('hello_world_esp32')
+                assert dut[1].app.app_path.endswith('hello_world_esp32c3')
+
+            def test_fixture_redirect(dut, redirect):
+                with redirect[1]('prefix'):
+                    print('been redirected')
+                dut[1].expect('been redirected')
+
+                with pytest.raises(pexpect.TIMEOUT):
+                    dut[0].expect('not been redirected', timeout=1)
+        """)
+
+    result = testdir.runpytest(
+        '--count', 2,
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
+                      f'|'
+                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}'
+    )
+
+    result.assert_outcomes(passed=5)
