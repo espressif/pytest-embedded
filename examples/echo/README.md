@@ -17,5 +17,5 @@ You could also try this example with a real serial port (`--port /dev/ttyUSB0`),
 ## Test Steps
 
 ```shell
-$ pytest # to run all tests defined in [test_echo.py](test_echo.py).
+$ pytest
 ```

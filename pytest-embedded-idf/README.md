@@ -1,18 +1,18 @@
-## pytest-embedded-idf
+### pytest-embedded-idf
 
-pytest embedded plugin for esp-idf project
+pytest embedded service for esp-idf project
 
-### Fixtures With More Functionalities
+Extra Functionalities:
 
 === "`pytest-embedded-serial-esp` activated"
 
-    - `app`: `IdfApp` instance, would parse the built binary by idf rules and gather more information.
-    - `serial`: `IdfSerial` instance, would flash the built binary into the target board at first.
+    - `app`: parse the built binary by idf rules and gather more information.
+    - `serial`: auto flash the built binary into the target board at the beginning when running test cases.
 
 === "`pytest-embedded-serial-esp` NOT activated"
 
-    - `app`: `IdfApp` instance, would parse the built binary by idf rules and gather more information.
+    - `app`: parse the built binary by idf rules and gather more information.
 
-### CLI Options
+Used CLI Options:
 
-- `part-tool`: Partition tool path, used for parsing partition table
+- `part-tool`

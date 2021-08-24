@@ -5,12 +5,19 @@ import os
 import sys
 from collections import defaultdict, namedtuple
 from operator import itemgetter
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Generator, TYPE_CHECKING
 
 import pytest
 
-from .app import App
 from .log import DuplicateStdout, PexpectProcess
+
+if TYPE_CHECKING:
+    from .app import App
+    from .dut import Dut
+    from pytest_embedded_serial.serial import Serial
+    from pytest_embedded_jtag.gdb import Gdb
+    from pytest_embedded_jtag.openocd import OpenOcd
+    from pytest_embedded_qemu.qemu import Qemu
 
 ###########
 # helpers #
@@ -21,13 +28,30 @@ COUNT = 1
 @pytest.fixture(autouse=True)
 def count(request):
     """
-    Enable parametrization for the same cli option. Inject to global variable.
+    Enable parametrization for the same cli option. Inject to global variable `COUNT`.
     """
     global COUNT
     COUNT = _gte_one_int(getattr(request, 'param', request.config.option.count))
 
 
-def duplicate_count(func) -> Callable[..., Tuple[Optional[str]]]:
+def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Optional[str]]]]:
+    """
+    Used for parse the configuration value with the "count" amount.
+
+    Parsed by the following rules:
+    - When the return value is a string, split the string by `|`.
+    - If the configuration value item amount is different from "count" amount, raise ValueError
+    - If the configuration value only has one item, duplicate this item by the "count" amount
+    - If the configuration value item amount is the same as the "count" amount, return it directly.
+
+    Returns:
+        - if "count" amount is 1, return the configuration value.
+        - if "count" amount is greater than 1, return the tuple of parsed configuration values.
+
+    Raises:
+        ValueError: when a configuration has multi values but the amount is different from the "count" amount.
+    """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         option = func(*args, **kwargs)
@@ -44,7 +68,7 @@ def duplicate_count(func) -> Callable[..., Tuple[Optional[str]]]:
         else:  # len(res) > 1
             if len(res) != COUNT:
                 raise ValueError(
-                    'The configuration has multi values but the amount is different with the "count" ' 'amount.'
+                    'The configuration has multi values but the amount is different from the "count" amount.'
                 )
             else:
                 return tuple(res)
@@ -52,7 +76,20 @@ def duplicate_count(func) -> Callable[..., Tuple[Optional[str]]]:
     return wrapper
 
 
-def apply_count(func) -> Callable[..., Tuple[Optional[str]]]:
+def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
+    """
+    Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`
+
+    For example:
+    kwargs: {key1: (v1, v2), key2: (v1, v2)}
+
+    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+
+    Returns:
+        - if "count" amount is 1, return the return value.
+        - if "count" amount is greater than 1, return the tuple of the return values.
+    """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if COUNT == 1:
@@ -71,7 +108,21 @@ def apply_count(func) -> Callable[..., Tuple[Optional[str]]]:
     return wrapper
 
 
-def apply_count_generator(func):
+def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
+    """
+    Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
+    `terminate()` method of the return value.
+
+    For example:
+    kwargs: {key1: (v1, v2), key2: (v1, v2)}
+
+    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+
+    Returns:
+        - if "count" amount is 1, yield the return value.
+        - if "count" amount is greater than 1, yield the tuple of the return values.
+    """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         def _close_or_terminate(obj):
@@ -202,32 +253,36 @@ def pytest_addoption(parser):
         'This value should be an integer greater or equal to 1.\n'
         'Use separator "|" for all the other cli options when using different configurations for each DUT.\n'
         'For example:\n'
-        '"--embedded-services=esp,idf|esp" for one idf related app and one other type app.\n'
+        '"--embedded-services=esp,idf|esp" for one idf related app and one other type of app.\n'
         '"--app-path=test_path1|test_path2" when two DUTs are using different built binary files.\n'
+        '"--part-tool=part_tool_path|" when only the first DUT needs this option, '
+        'the second should keep as empty.\n'
+        '"--embedded-services=idf --count=2" when both of these DUTs are using the same services.\n'
         'The configuration would be duplicated when it has only one value but the "count" amount is '
-        'greater than 1. But would raise exception when the configuration has multi values but the amount '
-        'is different with the "count" amount.\n',
+        'greater than 1. It would raise an exception when the configuration has multi values but the amount '
+        'is different from the "count" amount.\n'
+        'For example:\n'
+        '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
     )
     base_group.addoption(
         '--embedded-services',
         default='',
-        help='Activate comma-separated services for different functionalities.\n'
+        help='Activate comma-separated services for different functionalities. (Default: "")\n'
         'Available services:\n'
-        '\tserial: open serial port\n'
-        '\tesp: auto-detect target/port by esptool\n'
-        '\tidf: auto-detect more app info with idf specific rules, auto flash-in\n'
-        '\tjtag: openocd and gdb\n'
-        '\tqemu: use qemu simulator\n',
+        '- serial: open serial port\n'
+        '- esp: auto-detect target/port by esptool\n'
+        '- idf: auto-detect more app info with idf specific rules, auto flash-in\n'
+        '- jtag: openocd and gdb\n'
+        '- qemu: use qemu simulator instead of the real target\n'
+        'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
 
     serial_group = parser.getgroup('embedded-serial')
-    serial_group.addoption('--port', help='serial port. Could be overridden by pytest parametrizing. (Default: "None")')
+    serial_group.addoption('--port', help='serial port. (Default: "None")')
 
     esp_group = parser.getgroup('embedded-esp')
-    esp_group.addoption(
-        '--target', help='serial target chip type. Could be overridden by pytest parametrizing. (Default: "auto")'
-    )
+    esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
 
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
@@ -240,20 +295,18 @@ def pytest_addoption(parser):
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
     jtag_group.addoption(
         '--gdb-cli-args',
-        help='GDB cli arguments. Could be overridden by pytest parametrizing. '
-        '(Default: "--nx --quiet --interpreter=mi2"',
+        help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
     )
     jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd"')
     jtag_group.addoption(
         '--openocd-cli-args',
-        help='openocd cli arguments. Could be overridden by pytest parametrizing. '
-        '(Default: f board/esp32-wrover-kit-3.3v.cfg -d2"',
+        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2"',
     )
 
     qemu_group = parser.getgroup('embedded-qemu')
     qemu_group.addoption(
         '--qemu-image-path',
-        help='QEMU image path. Could be overridden by pytest parametrizing. (Default: "<app_path>/flash_image.bin)',
+        help='QEMU image path. (Default: "<app_path>/flash_image.bin")',
     )
     qemu_group.addoption(
         '--qemu-prog-path',
@@ -261,13 +314,11 @@ def pytest_addoption(parser):
     )
     qemu_group.addoption(
         '--qemu-cli-args',
-        help='QEMU cli default arguments. Could be overridden by pytest parametrizing. '
-        '(Default: "-nographic -no-reboot -machine esp32")',
+        help='QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")',
     )
     qemu_group.addoption(
         '--qemu-extra-args',
-        help='QEMU cli extra arguments, will append to the argument list. '
-        'Could be overridden by pytest parametrizing. (Default: None)',
+        help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
     )
     qemu_group.addoption(
         '--qemu-log-path',
@@ -282,7 +333,7 @@ def pytest_addoption(parser):
 # base #
 ########
 @pytest.fixture
-@duplicate_count
+@parse_configuration
 def embedded_services(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
@@ -291,7 +342,7 @@ def embedded_services(request) -> Optional[str]:
 
 
 @pytest.fixture
-@duplicate_count
+@parse_configuration
 def app_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
@@ -303,7 +354,7 @@ def app_path(request) -> Optional[str]:
 # serial #
 ##########
 @pytest.fixture
-@duplicate_count
+@parse_configuration
 def port(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
@@ -315,7 +366,7 @@ def port(request) -> Optional[str]:
 # esp #
 #######
 @pytest.fixture
-@duplicate_count
+@parse_configuration
 def target(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
@@ -327,8 +378,11 @@ def target(request) -> Optional[str]:
 # idf #
 #######
 @pytest.fixture
-@duplicate_count
+@parse_configuration
 def part_tool(request) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
     return getattr(request, 'param', None) or request.config.option.__dict__.get('part_tool')
 
 
@@ -336,8 +390,8 @@ def part_tool(request) -> Optional[str]:
 # jtag #
 ########
 @pytest.fixture
-@duplicate_count
-def gdb_prog_path(request):
+@parse_configuration
+def gdb_prog_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -345,8 +399,8 @@ def gdb_prog_path(request):
 
 
 @pytest.fixture
-@duplicate_count
-def gdb_cli_args(request):
+@parse_configuration
+def gdb_cli_args(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -354,8 +408,8 @@ def gdb_cli_args(request):
 
 
 @pytest.fixture
-@duplicate_count
-def openocd_prog_path(request):
+@parse_configuration
+def openocd_prog_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -363,8 +417,8 @@ def openocd_prog_path(request):
 
 
 @pytest.fixture
-@duplicate_count
-def openocd_cli_args(request):
+@parse_configuration
+def openocd_cli_args(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -375,8 +429,8 @@ def openocd_cli_args(request):
 # qemu #
 ########
 @pytest.fixture
-@duplicate_count
-def qemu_image_path(request):
+@parse_configuration
+def qemu_image_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -384,8 +438,8 @@ def qemu_image_path(request):
 
 
 @pytest.fixture
-@duplicate_count
-def qemu_prog_path(request):
+@parse_configuration
+def qemu_prog_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -393,8 +447,8 @@ def qemu_prog_path(request):
 
 
 @pytest.fixture
-@duplicate_count
-def qemu_cli_args(request):
+@parse_configuration
+def qemu_cli_args(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -402,8 +456,8 @@ def qemu_cli_args(request):
 
 
 @pytest.fixture
-@duplicate_count
-def qemu_extra_args(request):
+@parse_configuration
+def qemu_extra_args(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -411,8 +465,8 @@ def qemu_extra_args(request):
 
 
 @pytest.fixture
-@duplicate_count
-def qemu_log_path(request):
+@parse_configuration
+def qemu_log_path(request) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
@@ -464,7 +518,25 @@ def _fixture_classes_and_options(
     # pre-initialized fixtures
     pexpect_proc,
 ) -> ClassCliOptions:
-    classes = {}
+    """
+    classes: the class that the fixture should instantiate
+    {
+        <fixture_name>: <class_name>,
+        ...
+    }
+
+    kwargs: the `**kwargs` dict used for initializing the class
+    {
+        <fixture_name>: {
+            <kwargs-key>: <value>,
+            ...
+        },
+        }
+    }
+        ...
+    }
+    """
+    classes = {}  # type: Dict[str, type]
     kwargs = defaultdict(dict)  # type: Dict[str, Dict[str, Any]]  # For store options for each fixtures
 
     for fixture, provide_services in FIXTURES_SERVICES.items():
@@ -602,7 +674,7 @@ def _fixture_classes_and_options(
 ####################
 @pytest.fixture
 @apply_count
-def app(_fixture_classes_and_options) -> App:
+def app(_fixture_classes_and_options) -> 'App':
     """
     A pytest fixture to gather information from the specified built binary folder
     """
@@ -613,9 +685,9 @@ def app(_fixture_classes_and_options) -> App:
 
 @pytest.fixture
 @apply_count_generator
-def serial(_fixture_classes_and_options, app):
+def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
     """
-    A serial subprocess which could read/redirect/write
+    A serial subprocess that could read/redirect/write
     """
     if 'serial' not in _fixture_classes_and_options.classes:
         return None
@@ -629,9 +701,9 @@ def serial(_fixture_classes_and_options, app):
 
 @pytest.fixture
 @apply_count_generator
-def openocd(_fixture_classes_and_options):
+def openocd(_fixture_classes_and_options) -> Optional['OpenOcd']:
     """
-    A openocd subprocess which could read/redirect/write
+    A openocd subprocess that could read/redirect/write
     """
     if 'openocd' not in _fixture_classes_and_options.classes:
         return None
@@ -643,9 +715,9 @@ def openocd(_fixture_classes_and_options):
 
 @pytest.fixture
 @apply_count_generator
-def gdb(_fixture_classes_and_options):
+def gdb(_fixture_classes_and_options) -> Optional['Gdb']:
     """
-    A gdb subprocess which could read/redirect/write
+    A gdb subprocess that could read/redirect/write
     """
     if 'gdb' not in _fixture_classes_and_options.classes:
         return None
@@ -657,9 +729,9 @@ def gdb(_fixture_classes_and_options):
 
 @pytest.fixture
 @apply_count_generator
-def qemu(_fixture_classes_and_options):
+def qemu(_fixture_classes_and_options) -> Optional['Qemu']:
     """
-    A qemu subprocess which could read/redirect/write
+    A qemu subprocess that could read/redirect/write
     """
     if 'qemu' not in _fixture_classes_and_options.classes:
         return None
@@ -671,10 +743,10 @@ def qemu(_fixture_classes_and_options):
 
 @pytest.fixture
 @apply_count_generator
-def dut(_fixture_classes_and_options, app, serial, openocd, gdb, qemu):
+def dut(_fixture_classes_and_options, app, serial, openocd, gdb, qemu) -> 'Dut':
     """
-    A device under test (DUT) object which could gather output from various sources and redirect them to the pexpect
-    process.
+    A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
+    process, and run `expect()` via its pexpect process.
     """
     cls = _fixture_classes_and_options.classes['dut']
     kwargs = _fixture_classes_and_options.kwargs['dut']

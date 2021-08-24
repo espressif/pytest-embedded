@@ -1,7 +1,6 @@
 # pytest-embedded [![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest)
 
-
-A collection of pytest plugins for the embedded world.
+A pytest plugin that has multiple services available for various functionalities. Designed for the embedded testing.
 
 ## Installation
 
@@ -19,28 +18,101 @@ All packages are published to PyPI. Please install them with `pip`.
 
 Each test case would initialize a few fixtures. The most important fixtures are:
 
-- `pexpect_proc`, a pexpect process, which could run `pexpect.expect()` for testing purpose.
+- `pexpect_proc`, a pexpect process, that could run `pexpect.expect()` for testing purpose.
 - `app`, the built binary
 - `dut`, a "Device under test" (DUT) test unit.
 
-  A DUT would contain several processes. The output of each process would be redirected to `pexpect_proc` and logged by `logging.info()`.
+    A DUT would contain several processes. The output of each process would be redirected to `pexpect_proc` and logged by `logging.info()`.
 
-The fixtures of different plugins could have the same names. By this method, the fixtures of the latter activated plugin will override the fixtures with the same names which are already activated.
+### Services
 
-!!! warning
+Activate a service would enable a set of fixtures or add some extra functionalities to a few fixtures. You can activate comma-separated services by `pytest --embedded-services`. For detailed information, please refer to the `embedded` group of the `pytest --help`.
 
-    **Limitations of the overriding technique**
+Available services:
 
-    Since the fixtures with the same names could be overridden, you need to run `export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` and activate the plugin manually with `-p [PLUGIN_NAME]` when running `pytest`. We recommend using [configuration files](https://docs.pytest.org/en/stable/customize.html#configuration) to declare the plugin activate sequence.
+- `serial`: serial port utilities.
+- `esp`: auto-detect target/port by esptool.
+- `idf`: auto-detect more app info with idf specific rules, auto-flash the binary into the target.
+- `jtag`: openocd/gdb utilities
+- `qemu`: running test cases on QEMU instead of the real target.
+
+### Multi DUTs
+
+Sometimes we need multi DUTs while testing, e.g., master-slave or mesh testing.
+
+Here are a few examples of how to enable this. For detailed information, please refer to the `embedded` group of the `pytest --help`.
+
+1. We can enable multi DUTs by specifying `--count`. In this way, all the fixtures would be a tuple with instances. Each configuration will use `|` as a separator for each instance.
 
     !!! example
 
-    ```ini
-    [pytest]
-    addopts = -p pytest_embedded -p pytest_embedded_serial_esp -p pytest_embedded_idf
-    ```
+        ```shell
+        pytest \
+        --embedded-service serial|serial \
+        --count 2 \
+        --app-path <master_bin>|<slave_bin>
+        ```
+  
+        In this example, `app` would be a tuple of 2 `App` instances, `dut` would be a tuple of 2 `Dut` Instances.
+  
+        You can test with:
+  
+        ```python
+        def test(dut):
+            master = dut[0]
+            slave = dut[1]
+  
+            master.expect('sent')
+            slave.expect('received')
+        ```
 
-For more detailed information about the fixtures provided by each plugin, please refer to [Fixtures and CLI Options](https://docs.espressif.com/projects/pytest-embedded/en/latest/fixtures/)
+3. The configuration could have only one value when this value is applying to all DUTs.
+
+    !!! example
+  
+        ```shell
+        pytest \
+        --embedded-service serial \
+        --count 2 \
+        --app-path <master_bin>|<slave_bin> \
+        ```
+  
+        `--embedded-service serial` would apply to all DUTs
+
+4. The configuration could be vacant if this value is only useful for certain DUTs.
+
+    !!! example
+  
+        ```shell
+        pytest \
+        --embedded-service qemu|serial \
+        --count 2 \
+        --app-path <master_bin>|<slave_bin> \
+        --qemu-cli-args "<args>|" \
+        --port "|<port>" \
+        ```
+  
+        `--qemu-cli-args` would apply to the first DUT and `--port` would apply to the second DUT.
+
+### Parametrizing
+
+All the CLI options support parametrizing via `indirect=True`. Parametrizing is a feature provided by `pytest`, please refer to [Parametrizing tests](https://docs.pytest.org/en/latest/example/parametrize.html) for its documentation.
+
+!!! example
+
+    ```python
+    @pytest.mark.parametrize(
+        'embedded_service,app_path',
+        [
+            ('idf', app_path_1),
+            ('idf', app_path_2),
+        ],
+        indirect=True,
+    )
+    def test_serial_tcp(dut):
+        assert dut.app.target == 'esp32'
+        dut.expect('Restart now')
+    ```
 
 ### Logging
 

@@ -1,11 +1,11 @@
-## pytest-embedded-serial-esp
+### pytest-embedded-serial-esp
 
-pytest embedded plugin for testing espressif boards via serial ports
+pytest embedded service for testing espressif boards via serial ports
 
-### Fixtures With More Functionalities
+Extra Functionalities:
 
-- `serial`: `EspSerial` instance, would detect and confirm target and port by `esptool` automatically.
+- `serial`: detect and confirm target and port by `esptool` automatically.
 
-### CLI Options
+Used CLI Options:
 
-- `target`: target chip type (support parametrizing)
+- `target`
