@@ -26,11 +26,7 @@ REQUIRES = [
     'pytest-embedded',
     'pytest-embedded-serial',
 ]
-ENTRY_POINTS = {
-    'pytest11': [
-        'pytest_embedded_jtag = pytest_embedded_jtag.plugin',
-    ],
-}
+ENTRY_POINTS = {}
 
 setup(
     name=NAME,

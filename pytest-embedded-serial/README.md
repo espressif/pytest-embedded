@@ -1,12 +1,12 @@
-## pytest-embedded-serial
+### pytest-embedded-serial
 
-pytest embedded plugin for testing serial ports
+pytest embedded service for testing via serial ports
 
-### New Fixtures and Fixtures With More Functionalities
+Extra Functionalities:
 
-- `serial`: `Serial` instance
-- `dut`: `SerialDut` instance, would redirect the `serial` output to `pexpect_proc` and duplicate it with `logging.info()`.
+- `serial`: enable the fixture
+- `dut`: redirect the `serial` output to `pexpect_proc` and duplicate it with `logging.info()`.
 
-### CLI Options
+Used CLI Options:
 
-- `port`: port (support parametrizing)
+- `port`

@@ -15,7 +15,7 @@ class PexpectProcess(pexpect.spawn):
     """
     `pexpect.spawn` instance with default cmd `cat`.
 
-    `cat` will copy the stdin to stdout, which could help to gather multiple inputs into one output, and do
+    `cat` will copy the stdin to stdout, that could help to gather multiple inputs into one output, and do
     `pexpect.expect()` from one place.
     """
 

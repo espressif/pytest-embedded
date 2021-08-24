@@ -26,11 +26,7 @@ REQUIRES = [
     'pytest-embedded-serial',
     'esptool>=3.1',
 ]
-ENTRY_POINTS = {
-    'pytest11': [
-        'pytest_embedded_serial_esp = pytest_embedded_serial_esp.plugin',
-    ],
-}
+ENTRY_POINTS = {}
 
 setup(
     name=NAME,

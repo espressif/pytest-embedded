@@ -2,12 +2,6 @@ import os
 
 import pytest
 
-PLUGINS = [
-    '-p', 'pytest_embedded',
-    '-p', 'pytest_embedded_idf',
-    '-p', 'pytest_embedded_qemu',
-]
-
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
                                        reason='after compiled qemu bin for esp32 locally, '
                                               'use "DONT_SKIP_QEMU_TESTS" to run this test')
@@ -27,8 +21,30 @@ def test_pexpect_by_qemu(testdir):
     """)
 
     result = testdir.runpytest(
-        *PLUGINS,
+        '--embedded-services', 'idf,qemu',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@qemu_bin_required
+def test_multi_count_qemu(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_pexpect_by_qemu(dut):
+            dut[0].expect('Hello world!')
+            dut[1].expect('Restarting')
+    """)
+
+    result = testdir.runpytest(
+        '--count', 2,
+        '--embedded-services', 'idf,qemu|qemu',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|',
+        '--qemu-image-path', f'|{os.path.join(testdir.tmpdir, "esp32_qemu.bin")}',
+        '--qemu-log-path', 'serial1.log|serial2.log',
     )
 
     result.assert_outcomes(passed=1)

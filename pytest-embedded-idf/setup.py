@@ -28,11 +28,7 @@ REQUIRES = [
 EXTRAS_REQUIRE = {
     'serial': 'pytest-embedded-serial-esp',
 }
-ENTRY_POINTS = {
-    'pytest11': [
-        'pytest_embedded_idf = pytest_embedded_idf.plugin',
-    ],
-}
+ENTRY_POINTS = {}
 
 setup(
     name=NAME,

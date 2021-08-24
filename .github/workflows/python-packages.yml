@@ -25,8 +25,6 @@ jobs:
           pip install -r requirements.txt
           bash foreach.sh install
       - name: Test with pytest
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
         run: |
           pytest
       - name: Upload test logs

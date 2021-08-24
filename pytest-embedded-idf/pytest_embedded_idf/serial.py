@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from typing import Optional
@@ -43,6 +44,10 @@ class IdfSerial(EspSerial):
         Args:
             erase_nvs: erase non-volatile storage blocks
         """
+        if not self.app.partition_table:
+            logging.error('Partition table not parsed. Skipping auto flash...')
+            return
+
         last_error = None
         for baud_rate in [921600, 115200]:
             try:

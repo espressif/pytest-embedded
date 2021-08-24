@@ -28,11 +28,7 @@ REQUIRES = [
 EXTRAS_REQUIRE = {
     'idf': 'pytest-embedded-idf',
 }
-ENTRY_POINTS = {
-    'pytest11': [
-        'pytest_embedded_qemu = pytest_embedded_qemu.plugin',
-    ],
-}
+ENTRY_POINTS = {}
 
 setup(
     name=NAME,
