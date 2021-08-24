@@ -54,7 +54,10 @@ class Qemu(DuplicateStdoutPopen):
         self.log_file = qemu_log_path or os.path.join(
             tempfile.tempdir, datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'), 'serial.log'
         )
-        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
+
+        parent_dir = os.path.dirname(self.log_file)
+        if parent_dir:  # in case value is a single file under the current dir
+            os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
         qemu_extra_args.append(f'-serial file:{self.log_file}')
 
         self.qemu_inst = None
