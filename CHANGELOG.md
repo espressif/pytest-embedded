@@ -1,3 +1,14 @@
+## v0.4.0 (2021-08-25)
+
+### Fix
+
+- create folder failed when specifying a file under current folder
+
+### Feat
+
+- add multi DUT support, use "count" option to duplicate fixtures
+- use "embedded-services" option to extend functionalities instead of activating plugins.
+
 ## v0.3.2 (2021-08-12)
 
 ### Fix
