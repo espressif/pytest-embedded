@@ -21,7 +21,7 @@ class ProcessContainer:
         """
         Call all the sessions/threads/processes terminate methods defined in `proc_close_methods`
         """
-        for func in self.proc_close_methods:
+        for func in getattr(self, 'proc_close_methods', []):
             try:
                 func()
             except Exception as e:

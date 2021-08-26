@@ -8,7 +8,7 @@ serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', 
 
 
 @serial_device_required
-def test_pexpect(testdir):
+def test_idf_serial_flash(testdir):
     testdir.makepyfile("""
         import pexpect
         import pytest
