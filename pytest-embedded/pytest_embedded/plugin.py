@@ -483,7 +483,7 @@ def _services(embedded_services) -> List[str]:
 
     for s in services:
         if s not in SERVICE_LIB_NAMES.keys():
-            raise ValueError('service "s" not available, please run "--help" for more information')
+            raise ValueError(f'service "{s}" not available, please run "--help" for more information')
 
         try:
             importlib.import_module(SERVICE_LIB_NAMES[s].replace('-', '_'))
