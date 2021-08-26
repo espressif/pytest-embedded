@@ -61,10 +61,14 @@ def test_fixtures(testdir):
         def test_fixtures_dut(dut):
             assert dut.app.app_path.endswith('hello_world_esp32')
 
-        def test_fixture_redirect(dut, redirect):
+        def test_fixture_redirect(pexpect_proc, dut, redirect):
             with redirect('prefix'):
-                print('been redirected')
-            dut.expect('been redirected')
+                print('redirect to pexpect_proc')
+
+            pexpect_proc.expect('redirect')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('redirect', timeout=1)
+            dut.expect('to pexpect_proc')
 
             print('not been redirected')
             with pytest.raises(pexpect.TIMEOUT):

@@ -24,6 +24,7 @@ class PexpectProcess(pexpect.spawn):
     def __init__(self, cmd: Optional[list] = None, **kwargs):
         cmd = cmd or copy.deepcopy(self.DEFAULT_CLI_ARGS)
         super().__init__(cmd, **kwargs, codec_errors='ignore')
+        self.setecho(False)
 
 
 class DuplicateStdout(TextIOWrapper):
