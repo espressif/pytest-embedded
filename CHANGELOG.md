@@ -1,3 +1,11 @@
+## v0.4.1 (2021-08-26)
+
+### Fix
+
+- run close method only when initialized correctly
+- correct the error message when service required package not installed
+- pexpect process would echo the input, set echo to off
+
 ## v0.4.0 (2021-08-25)
 
 ### Fix
