@@ -11,8 +11,3 @@ pytest_plugins = [
 def copy_fixtures(testdir):
     testdir.copy_example(os.path.join(os.path.dirname(__file__), 'tests', 'fixtures'))
     yield
-
-
-@pytest.fixture
-def test_root_dir():
-    pass
