@@ -21,8 +21,17 @@ class PexpectProcess(pexpect.spawn):
 
     DEFAULT_CLI_ARGS = ['cat']
 
-    def __init__(self, cmd: Optional[list] = None, **kwargs):
+    def __init__(self, cmd: Optional[list] = None, count: int = 1, total: int = 1, **kwargs):
         cmd = cmd or copy.deepcopy(self.DEFAULT_CLI_ARGS)
+
+        self._count = count
+        self._total = total
+
+        if self._total > 1:
+            self.source = f'dut-{self._count}'
+        else:
+            self.source = None
+
         super().__init__(cmd, **kwargs, codec_errors='ignore')
         self.setecho(False)
 
@@ -69,6 +78,8 @@ class DuplicateStdout(TextIOWrapper):
         if data.strip():
             if self.source:
                 log_string = '[{}] {}'.format(self.source, data.rstrip().lstrip('\n\r'))
+                if self.pexpect_proc.source:
+                    log_string = f'[{self.pexpect_proc.source}]' + log_string
             else:
                 log_string = data.rstrip().lstrip('\n\r')
             logging.info(log_string)

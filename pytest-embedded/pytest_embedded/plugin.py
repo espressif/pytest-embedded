@@ -148,6 +148,9 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
                 current_kwargs = {}
                 for k, v in kwargs.items():
                     current_kwargs[k] = getter(v)
+                if func.__name__ == 'pexpect_proc':
+                    current_kwargs['count'] = i
+                    current_kwargs['total'] = COUNT
                 res.append(func(*args, **current_kwargs))
             try:
                 yield res
@@ -179,11 +182,11 @@ def test_case_name(request) -> str:
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_proc() -> PexpectProcess:
+def pexpect_proc(**kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
     """
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
     """
-    return PexpectProcess()
+    return PexpectProcess(**kwargs)
 
 
 @pytest.fixture
