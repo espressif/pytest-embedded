@@ -8,6 +8,7 @@ from io import TextIOWrapper
 from typing import List, Optional, Union
 
 import pexpect
+
 from .utils import ProcessContainer, to_bytes, to_str
 
 

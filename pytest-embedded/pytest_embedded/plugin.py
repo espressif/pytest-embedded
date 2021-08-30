@@ -5,19 +5,30 @@ import os
 import sys
 from collections import defaultdict, namedtuple
 from operator import itemgetter
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Generator, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pytest
 
 from .log import DuplicateStdout, PexpectProcess
 
 if TYPE_CHECKING:
-    from .app import App
-    from .dut import Dut
-    from pytest_embedded_serial.serial import Serial
     from pytest_embedded_jtag.gdb import Gdb
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
+    from pytest_embedded_serial.serial import Serial
+
+    from .app import App
+    from .dut import Dut
 
 ###########
 # helpers #
@@ -547,7 +558,7 @@ def _fixture_classes_and_options(
             kwargs['app'] = {'app_path': app_path}
             if 'idf' in _services:
                 if 'qemu' in _services:
-                    from pytest_embedded_qemu.app import QemuApp, DEFAULT_IMAGE_FN
+                    from pytest_embedded_qemu.app import DEFAULT_IMAGE_FN, QemuApp
 
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
@@ -619,8 +630,8 @@ def _fixture_classes_and_options(
                     }
         elif fixture == 'qemu':
             if 'qemu' in _services:
-                from pytest_embedded_qemu.qemu import Qemu
                 from pytest_embedded_qemu.app import DEFAULT_IMAGE_FN
+                from pytest_embedded_qemu.qemu import Qemu
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
