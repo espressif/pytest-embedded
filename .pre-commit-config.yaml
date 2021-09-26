@@ -22,11 +22,11 @@ repos:
         args: [ '-f=lf' ]
       - id: double-quote-string-fixer
   - repo: https://github.com/ikamensh/flynt/
-    rev: '0.66'
+    rev: '0.69'
     hooks:
       - id: flynt
   - repo: https://github.com/psf/black
-    rev: 21.8b0
+    rev: 21.9b0
     hooks:
       - id: black
         args: [ '--skip-string-normalization' ]
