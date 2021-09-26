@@ -3,7 +3,6 @@
 
 exclude: |
   (?x)^(
-    examples/esp-idf/gen_esp32part.py|
     .*tests/fixtures/.+|
   )$
 
