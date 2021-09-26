@@ -9,29 +9,47 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - ESP32
+      - ESP32-S2
+      - ESP32-C3
+    env:
+      PYENV_VERSION: v2.0.7
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+        python-version:
+          - 3.6.15
+          - 3.7.12
+          - 3.8.12
+          - 3.9.7
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Cache Python  # our self-hosted runner is a rpi, github setup-python does not support this arch
+        id: cache-python
+        uses: actions/cache@v2
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+          path: ~/.pyenv
+          key: pyenv-${{ env.PYENV_VERSION }}-${{ matrix.python-version }}
+      - name: Install Python
+        if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
-          python -m pip install --upgrade pip
+          rm -rf ~/.pyenv
+          git clone https://github.com/pyenv/pyenv.git -b $PYENV_VERSION ~/.pyenv
+          export PYENV_ROOT=~/.pyenv
+          export PATH=$PYENV_ROOT/bin:$PATH
+          pyenv install ${{ matrix.python-version }}
+      - name: Install dependencies and run tests
+        run: |
+          ~/.pyenv/versions/${{matrix.python-version}}/bin/python -m venv test_venv
+          source test_venv/bin/activate
+          pip install -U pip
           pip install -r requirements.txt
           bash foreach.sh install
-      - name: Test with pytest
-        run: |
           pytest
-      - name: Upload test logs
-        uses: actions/upload-artifact@v2
-        with:
-          path: test.log
       - name: Build all packages
         run: |
+          ~/.pyenv/versions/${{matrix.python-version}}/bin/python -m venv build_venv
+          source build_venv/bin/activate
           pip install wheel
           bash foreach.sh build

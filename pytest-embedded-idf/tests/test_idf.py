@@ -1,13 +1,8 @@
 import os
 
-import pytest
-
-serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', False) is False,
-                                            reason='after connected to espressif boards, '
-                                                   'use "DONT_SKIP_SERIAL_TESTS" to run this test')
+import pytest  # noqa
 
 
-@serial_device_required
 def test_idf_serial_flash(testdir):
     testdir.makepyfile("""
         import pexpect
@@ -24,6 +19,7 @@ def test_idf_serial_flash(testdir):
     result = testdir.runpytest(
         '--embedded-services', 'esp,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
@@ -49,7 +45,6 @@ def test_idf_app(testdir):
     result.assert_outcomes(passed=1)
 
 
-@serial_device_required
 def test_multi_count_app(testdir):
     testdir.makepyfile("""
         def test_idf_app(app, dut):

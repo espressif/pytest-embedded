@@ -1,25 +1,25 @@
-import os
-
-import pytest
-
-serial_device_required = pytest.mark.skipif(os.getenv('DONT_SKIP_SERIAL_TESTS', False) is False,
-                                            reason='after connected to espressif boards, '
-                                                   'use "DONT_SKIP_SERIAL_TESTS" to run this test')
+import pytest  # noqa
 
 
-@serial_device_required
 def test_serial_port(testdir):
     testdir.makepyfile("""
-        import serial
+        import pytest
+        import subprocess
+
+        @pytest.fixture(autouse=True)
+        def open_tcp_port():
+            proc = subprocess.Popen('socat TCP4-LISTEN:9876,fork EXEC:cat', shell=True)
+            yield
+            proc.terminate()
 
         def test_serial_port(dut):
-            assert type(dut.serial.proc) == serial.Serial
-            dut.expect('ESP-ROM')
+            dut.write(b'hello world')
+            dut.expect('hello world')
     """)
 
     result = testdir.runpytest(
         '--embedded-services', 'serial',
-        '--port', '/dev/ttyUSB0',
+        '--port', 'socket://localhost:9876',
     )
 
     result.assert_outcomes(passed=1)
