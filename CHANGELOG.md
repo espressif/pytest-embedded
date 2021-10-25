@@ -1,3 +1,13 @@
+## v0.4.2 (2021-10-25)
+
+### Fix
+
+- add version limit or armv71(rpi)
+
+### Feat
+
+- add dut count at the start of each line
+
 ## v0.4.1 (2021-08-26)
 
 ### Fix
