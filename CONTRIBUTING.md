@@ -20,8 +20,7 @@ By default, all tests under all plugins would be run.
 $ pip install -r requirements.txt
 $ bash foreach.sh install
 $ export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
-$ # export DONT_SKIP_SERIAL_TESTS=1 (when you have a serial connection)
-$ # export DONT_SKIP_SERIAL_TESTS=1 (when qemu-system-xtensa is ready)
+$ # export DONT_SKIP_QEMU_TESTS=1 (when qemu-system-xtensa is ready)
 $ # export DONT_SKIP_JTAG_TESTS=1 (when you have a jtag connection)
 $ pytest
 ```
