@@ -98,6 +98,8 @@ Here are a few examples of how to enable this. For detailed information, please 
 
 All the CLI options support parametrizing via `indirect=True`. Parametrizing is a feature provided by `pytest`, please refer to [Parametrizing tests](https://docs.pytest.org/en/latest/example/parametrize.html) for its documentation.
 
+In order to support multi DUT and parametrizing, we use string to represent bool value. "y/yes/true" for `True` and "n/no/false" for `False`, case-insensitive.
+
 !!! example
 
     ```python

@@ -84,6 +84,8 @@ embedded-esp:
 embedded-idf:
   --part-tool=PART_TOOL
                         Partition tool path, used for parsing partition table. (Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"
+  --skip-autoflash=SKIP_AUTOFLASH
+                        y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)
 
 embedded-jtag:
   --gdb-prog-path=GDB_PROG_PATH
