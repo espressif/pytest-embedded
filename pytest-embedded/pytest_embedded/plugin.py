@@ -73,16 +73,16 @@ def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Option
 
         if len(res) == 1:
             if COUNT == 1:
-                return res[0]
+                return _str_bool(res[0])
             else:
-                return tuple(res * COUNT)
+                return tuple([_str_bool(res[0])] * COUNT)
         else:  # len(res) > 1
             if len(res) != COUNT:
                 raise ValueError(
                     'The configuration has multi values but the amount is different from the "count" amount.'
                 )
             else:
-                return tuple(res)
+                return tuple(_str_bool(item) for item in res)
 
     return wrapper
 
@@ -255,6 +255,18 @@ def _gte_one_int(v) -> int:
     sys.exit(1)
 
 
+def _str_bool(v) -> Optional[bool]:
+    if v is None:
+        return None
+
+    if v.lower() in ['y', 'yes', 'true']:
+        return True
+    elif v.lower() in ['n', 'no', 'false']:
+        return False
+    else:
+        return v
+
+
 def pytest_addoption(parser):
     base_group = parser.getgroup('embedded')
     base_group.addoption(
@@ -303,6 +315,10 @@ def pytest_addoption(parser):
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
+    )
+    idf_group.addoption(
+        '--skip-autoflash',
+        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -398,6 +414,15 @@ def part_tool(request) -> Optional[str]:
     Enable parametrization for the same cli option
     """
     return getattr(request, 'param', None) or request.config.option.__dict__.get('part_tool')
+
+
+@pytest.fixture
+@parse_configuration
+def skip_autoflash(request) -> Optional[bool]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.option.__dict__.get('skip_autoflash')
 
 
 ########
@@ -520,6 +545,7 @@ def _fixture_classes_and_options(
     port,
     target,
     part_tool,
+    skip_autoflash,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -596,6 +622,7 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
+                            'skip_autoflash': skip_autoflash,
                         }
                     )
                 else:

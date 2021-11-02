@@ -23,10 +23,12 @@ class IdfSerial(EspSerial):
         app: IdfApp,
         target: Optional[str] = None,
         port: Optional[str] = None,
+        skip_autoflash: bool = False,
         pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ) -> None:
         self.app = app
+        self.skip_autoflash = skip_autoflash
 
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'target not match. App target: {self.app.target}, Cmd target: {target}.')
@@ -44,6 +46,9 @@ class IdfSerial(EspSerial):
         Args:
             erase_nvs: erase non-volatile storage blocks
         """
+        if self.skip_autoflash:
+            return
+
         if not self.app.partition_table:
             logging.error('Partition table not parsed. Skipping auto flash...')
             return

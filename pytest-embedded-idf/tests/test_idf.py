@@ -27,9 +27,9 @@ def test_idf_serial_flash(testdir):
 
 def test_idf_app(testdir):
     testdir.makepyfile("""
-        def test_idf_app(app, dut):
-            import pytest
+        import pytest
 
+        def test_idf_app(app, dut):
             assert len(app.flash_files) == 3
             assert app.target == 'esp32c3'
 
@@ -47,9 +47,9 @@ def test_idf_app(testdir):
 
 def test_multi_count_app(testdir):
     testdir.makepyfile("""
-        def test_idf_app(app, dut):
-            import pytest
+        import pytest
 
+        def test_idf_app(app, dut):
             assert len(app[0].flash_files) == 3
             assert app[0].target == 'esp32'
 
@@ -67,6 +67,30 @@ def test_multi_count_app(testdir):
                       f'|'
                       f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
         '--embedded-services', 'esp,idf|idf',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_multi_count_autoflash(testdir):
+    testdir.makepyfile("""
+        import pytest
+        import pexpect
+
+        def test_idf_app(app, dut):
+            skip_dut = dut[0]
+            auto_dut = dut[1]
+            with pytest.raises(pexpect.TIMEOUT):
+                skip_dut.expect('Hash of data verified.', timeout=5)
+            auto_dut.expect('Hash of data verified.', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '--count', 2,
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--skip-autoflash', 'true|false',
+        '--embedded-services', 'esp,idf',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
