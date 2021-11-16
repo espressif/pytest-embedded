@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Match, Optional
 
 import pexpect
 
@@ -33,12 +33,15 @@ class Dut(ProcessContainer):
         """
         self.pexpect_proc.write(*args, **kwargs)
 
-    def expect(self, *args, **kwargs) -> None:
+    def expect(self, *args, **kwargs) -> Match:
         """
-        Expect from `pexpect_proc`. All arguments would pass to `pexpect.expect()`
+        Expect from `pexpect_proc`. All arguments would pass to `pexpect.expect()`. Return the current `re.Match`
+        object if matched.
         """
         try:
             self.pexpect_proc.expect(*args, **kwargs)
         except (pexpect.EOF, pexpect.TIMEOUT):
             logging.error(f'Not found {args}, {kwargs}')
             raise
+        else:
+            return self.pexpect_proc.match
