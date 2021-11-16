@@ -1,3 +1,10 @@
+## v0.4.3 (2021-11-16)
+
+### Feat
+
+- return `re.Match` if `dut.expect()` succeeded
+- **idf**: add option `--skip-autoflash`
+
 ## v0.4.2 (2021-10-25)
 
 ### Fix
