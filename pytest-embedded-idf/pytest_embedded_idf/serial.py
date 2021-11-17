@@ -39,7 +39,7 @@ class IdfSerial(EspSerial):
         self.flash()
 
     @cls_redirect_stdout(source='flash')
-    def flash(self, erase_nvs=True) -> None:
+    def flash(self, erase_nvs: bool = True) -> None:
         """
         Flash the `app.flash_files` to the dut
 
