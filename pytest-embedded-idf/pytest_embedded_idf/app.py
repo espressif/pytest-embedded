@@ -12,7 +12,13 @@ class IdfApp(App):
     """
     Idf App class
 
+    Args:
+        app_path (str): App path
+        build_dir (str): Build directory
+        part_tool (str): Partition tool path
+
     Attributes:
+        app_path (str): App path
         binary_path (str): binary file path
         elf_file (str): elf file path
         parttool_path (str): partition tool path
@@ -27,16 +33,12 @@ class IdfApp(App):
     def __init__(
         self,
         app_path: Optional[str] = None,
+        build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         **kwargs,
     ):
-        """
-        Args:
-            app_path: App path
-            part_tool: Partition tool used to generate partition table json
-        """
         super().__init__(app_path, **kwargs)
-        self.binary_path = self._get_binary_path()
+        self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:
             return
 
@@ -49,11 +51,15 @@ class IdfApp(App):
 
         self.target = self._get_target_from_sdkconfig()
 
-    def _get_binary_path(self) -> Optional[str]:
-        path = os.path.join(self.app_path, 'build')
+    def _get_binary_path(self, build_dir: str) -> Optional[str]:
+        if os.path.isdir(build_dir):
+            return build_dir
 
-        if path and os.path.exists(path):
-            return os.path.realpath(path)
+        logging.debug(f'{build_dir} not exists. treat as relative path...')
+        path = os.path.join(self.app_path, build_dir)
+        if os.path.isdir(path):
+            return path
+
         logging.warning(f'{path} not exists')
         return None
 

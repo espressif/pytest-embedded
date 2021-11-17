@@ -311,6 +311,7 @@ def pytest_addoption(parser):
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
 
     idf_group = parser.getgroup('embedded-idf')
+    idf_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
     idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
@@ -407,6 +408,15 @@ def target(request) -> Optional[str]:
 #######
 # idf #
 #######
+@pytest.fixture
+@parse_configuration
+def build_dir(request) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.option.__dict__.get('build_dir')
+
+
 @pytest.fixture
 @parse_configuration
 def part_tool(request) -> Optional[str]:
@@ -544,6 +554,7 @@ def _fixture_classes_and_options(
     app_path,
     port,
     target,
+    build_dir,
     part_tool,
     skip_autoflash,
     openocd_prog_path,
@@ -600,6 +611,7 @@ def _fixture_classes_and_options(
                     classes[fixture] = IdfApp
                     kwargs[fixture].update(
                         {
+                            'build_dir': build_dir,
                             'part_tool': part_tool,
                             'pexpect_proc': pexpect_proc,
                         }

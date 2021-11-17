@@ -49,7 +49,7 @@ def test_multi_count_app(testdir):
     testdir.makepyfile("""
         import pytest
 
-        def test_idf_app(app, dut):
+        def test_multi_count_app(app, dut):
             assert len(app[0].flash_files) == 3
             assert app[0].target == 'esp32'
 
@@ -77,7 +77,7 @@ def test_multi_count_autoflash(testdir):
         import pytest
         import pexpect
 
-        def test_idf_app(app, dut):
+        def test_multi_count_autoflash(app, dut):
             skip_dut = dut[0]
             auto_dut = dut[1]
             with pytest.raises(pexpect.TIMEOUT):
@@ -87,10 +87,39 @@ def test_multi_count_autoflash(testdir):
 
     result = testdir.runpytest(
         '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--skip-autoflash', 'true|false',
         '--embedded-services', 'esp,idf',
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_different_build_dir(testdir):
+    os.rename(os.path.join(testdir.tmpdir, 'hello_world_esp32', 'build'),
+              os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'))
+
+    testdir.makepyfile("""
+        import pytest
+
+        def test_multi_count_app(app, dut):
+            assert app.target == 'esp32'
+            assert app.binary_path.endswith('test_new_name')
+    """)
+
+    result = testdir.runpytest(
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--build-dir', 'test_new_name',
+        '--embedded-services', 'idf',
+    )
+
+    result.assert_outcomes(passed=1)
+
+    result = testdir.runpytest(
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--build-dir', os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
+        '--embedded-services', 'idf',
     )
 
     result.assert_outcomes(passed=1)
