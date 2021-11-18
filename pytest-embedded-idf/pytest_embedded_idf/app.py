@@ -12,11 +12,6 @@ class IdfApp(App):
     """
     Idf App class
 
-    Args:
-        app_path (str): App path
-        build_dir (str): Build directory
-        part_tool (str): Partition tool path
-
     Attributes:
         app_path (str): App path
         binary_path (str): binary file path
@@ -32,11 +27,17 @@ class IdfApp(App):
 
     def __init__(
         self,
-        app_path: Optional[str] = None,
+        app_path: str,
         build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         **kwargs,
     ):
+        """
+        Args:
+            app_path: App path
+            build_dir: Build directory
+            part_tool: Partition tool path
+        """
         super().__init__(app_path, **kwargs)
         self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:

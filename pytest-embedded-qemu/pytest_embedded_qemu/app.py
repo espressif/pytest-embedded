@@ -66,11 +66,16 @@ class IdfFlashImageMaker:
 class QemuApp(IdfApp):
     """
     QEMU App class
+
+    Attributes:
+        pexpect_proc (pexpect.spawn): pexpect process
+        image_path (str): QEMU flashable bin path
     """
 
     def __init__(
         self,
-        app_path: Optional[str] = None,
+        app_path: str,
+        build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         qemu_image_path: Optional[str] = None,
         pexpect_proc: Optional[pexpect.spawn] = None,
@@ -79,14 +84,16 @@ class QemuApp(IdfApp):
         """
         Args:
             app_path: App path
-            part_tool: Partition tool
-            qemu_image_path: QEMU image path, would create with `IdfFlashImageMaker.make_bin()` if not exists.
-            pexpect_proc: `PexpectProcess` instance
+            build_dir: Build directory
+            part_tool: Partition tool path
+            qemu_image_path: QEMU flashable bin path
+            pexpect_proc: pexpect process
         """
+
         self.pexpect_proc = pexpect_proc
         self.image_path = qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)
 
-        super().__init__(app_path, part_tool, **kwargs)
+        super().__init__(app_path, build_dir=build_dir, part_tool=part_tool, **kwargs)
 
         if self.target != 'esp32':
             raise ValueError('For now on QEMU we only support ESP32')

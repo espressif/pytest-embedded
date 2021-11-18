@@ -374,11 +374,15 @@ def embedded_services(request) -> Optional[str]:
 
 @pytest.fixture
 @parse_configuration
-def app_path(request) -> Optional[str]:
+def app_path(request, test_file_path) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('app_path')
+    return (
+        getattr(request, 'param', None)
+        or request.config.option.__dict__.get('app_path')
+        or os.path.dirname(test_file_path)
+    )
 
 
 ##########
@@ -600,8 +604,9 @@ def _fixture_classes_and_options(
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
                         {
+                            'build_dir': build_dir,
                             'part_tool': part_tool,
-                            'qemu_image_path': (qemu_image_path or os.path.join(app_path or '', DEFAULT_IMAGE_FN)),
+                            'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
                             'pexpect_proc': pexpect_proc,
                         }
                     )
