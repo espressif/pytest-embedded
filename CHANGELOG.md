@@ -1,3 +1,16 @@
+## v0.4.4 (2021-11-18)
+
+### Fix
+
+- **qemu**: add the missing `build_dir` to the parent `IdfApp`
+- use realpath instead
+
+### Feat
+
+- **base**: use the folder where `test_file_path` locates as the default `app_path`
+- **idf**: replace parse binary config from sdkconfig to sdkconfig.json
+- **idf**: add cli option "build_dir"
+
 ## v0.4.3 (2021-11-16)
 
 ### Feat
