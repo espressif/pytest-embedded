@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import tempfile
 import time
@@ -63,6 +64,8 @@ class Qemu(DuplicateStdoutPopen):
         self.qemu_inst = None
 
         cmd = f'{qemu_prog_path} {qemu_cli_args} {" ".join(qemu_extra_args)}'
+        logging.debug(cmd)
+
         super().__init__(cmd, **kwargs)
 
     def _forward_io(self, pexpect_proc: Optional[pexpect.spawn] = None, source: Optional[str] = None) -> None:

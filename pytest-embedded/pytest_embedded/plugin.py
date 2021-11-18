@@ -604,6 +604,7 @@ def _fixture_classes_and_options(
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
                         {
+                            'build_dir': build_dir,
                             'part_tool': part_tool,
                             'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
                             'pexpect_proc': pexpect_proc,
