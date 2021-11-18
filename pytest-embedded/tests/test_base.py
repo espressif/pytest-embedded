@@ -120,3 +120,17 @@ def test_multi_count_fixtures(testdir):
     )
 
     result.assert_outcomes(passed=5)
+
+
+def test_default_app_path(testdir):
+    testdir.makepyfile(f"""
+            import pytest
+            import pexpect
+
+            def test_default_app_path(app):
+                assert app.app_path == '{testdir.tmpdir}'
+        """)
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=1)
