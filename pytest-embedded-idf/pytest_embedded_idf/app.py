@@ -45,9 +45,12 @@ class IdfApp(App):
         self.elf_file = self._get_elf_file()
         self.parttool_path = self._get_parttool_file(part_tool)
 
-        self.sdkconfig = self._parse_sdkconfig()
         self.flash_files, self.flash_settings = self._parse_flash_args()
         self.partition_table = self._parse_partition_table()
+
+        self.sdkconfig = self._parse_sdkconfig()
+        if not self.sdkconfig:
+            return
 
         self.target = self._get_target_from_sdkconfig()
 
@@ -69,30 +72,13 @@ class IdfApp(App):
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def _get_possible_sdkconfig_paths(self) -> List[str]:
-        return [
-            os.path.join(self.binary_path, '..', 'sdkconfig'),
-            os.path.join(self.binary_path, 'sdkconfig'),
-        ]
-
-    def _get_sdkconfig_file(self) -> Optional[str]:
-        for file in self._get_possible_sdkconfig_paths():
-            if os.path.isfile(file):
-                return os.path.realpath(file)
-        return None
-
     def _parse_sdkconfig(self) -> Optional[Dict[str, Any]]:
-        sdkconfig_filepath = self._get_sdkconfig_file()
-        if not sdkconfig_filepath:
-            return None
+        sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
+        if not os.path.isfile(sdkconfig_json_path):
+            logging.warning(f'{sdkconfig_json_path} not exists. skipping...')
+            return
 
-        res = {}
-        with open(self._get_sdkconfig_file()) as fr:
-            for line in fr:
-                configs = line.split('=')
-                if len(configs) == 2:
-                    res[configs[0]] = configs[1].rstrip().strip('"')
-        return res
+        return json.load(open(sdkconfig_json_path))
 
     def _get_flash_args_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
@@ -198,4 +184,4 @@ class IdfApp(App):
         return partition_table
 
     def _get_target_from_sdkconfig(self):
-        return self.sdkconfig.get('CONFIG_IDF_TARGET', 'esp32')
+        return self.sdkconfig.get('IDF_TARGET', 'esp32')
