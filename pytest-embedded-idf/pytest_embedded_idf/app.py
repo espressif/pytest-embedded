@@ -53,7 +53,7 @@ class IdfApp(App):
 
     def _get_binary_path(self, build_dir: str) -> Optional[str]:
         if os.path.isdir(build_dir):
-            return build_dir
+            return os.path.realpath(build_dir)
 
         logging.debug(f'{build_dir} not exists. treat as relative path...')
         path = os.path.join(self.app_path, build_dir)
