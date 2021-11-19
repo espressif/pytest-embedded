@@ -18,6 +18,7 @@ from typing import (
 )
 
 import pytest
+from _pytest.nodes import Item
 
 from .log import DuplicateStdout, PexpectProcess
 
@@ -291,6 +292,15 @@ def pytest_addoption(parser):
         '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
     )
     base_group.addoption(
+        '--parallel-count', default=1, type=_gte_one_int, help='Number of parallel build jobs. (Default: 1)'
+    )
+    base_group.addoption(
+        '--parallel-index',
+        default=1,
+        type=_gte_one_int,
+        help='Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)',
+    )
+    base_group.addoption(
         '--embedded-services',
         default='',
         help='Activate comma-separated services for different functionalities. (Default: "")\n'
@@ -355,6 +365,30 @@ def pytest_addoption(parser):
         '--qemu-log-path',
         help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
+
+
+def pytest_collection_modifyitems(config, items: List[Item]):
+    if config.option.parallel_index == 1 and config.option.parallel_count == 1:
+        return
+
+    current_job_index = config.option.parallel_index - 1  # convert to 0-based index
+    max_cases_num_per_job = (len(items) + config.option.parallel_count - 1) // config.option.parallel_count
+
+    run_case_start_index = max_cases_num_per_job * current_job_index
+    if run_case_start_index >= len(items):
+        logging.warning(
+            f'Nothing to do for job {current_job_index + 1} '
+            f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
+        )
+        items.clear()
+        return
+
+    run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
+    logging.info(
+        f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
+        f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+    )
+    items[:] = items[run_case_start_index : run_case_end_index + 1]
 
 
 ###############################
