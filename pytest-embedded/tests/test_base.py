@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 
 def test_help(testdir):
     result = testdir.runpytest(
@@ -84,33 +86,33 @@ def test_fixtures(testdir):
 
 def test_multi_count_fixtures(testdir):
     testdir.makepyfile("""
-            import pytest
-            import pexpect
+        import pytest
+        import pexpect
 
-            def test_fixtures_test_file_name(test_file_path):
-                assert test_file_path.endswith('test_multi_count_fixtures.py')
+        def test_fixtures_test_file_name(test_file_path):
+            assert test_file_path.endswith('test_multi_count_fixtures.py')
 
-            def test_fixtures_test_case_name(test_case_name):
-                assert test_case_name == 'test_fixtures_test_case_name'
+        def test_fixtures_test_case_name(test_case_name):
+            assert test_case_name == 'test_fixtures_test_case_name'
 
-            def test_fixtures_app(app):
-                assert app[0]
-                assert app[1]
-                assert app[0].app_path.endswith('hello_world_esp32')
-                assert app[1].app_path.endswith('hello_world_esp32c3')
+        def test_fixtures_app(app):
+            assert app[0]
+            assert app[1]
+            assert app[0].app_path.endswith('hello_world_esp32')
+            assert app[1].app_path.endswith('hello_world_esp32c3')
 
-            def test_fixtures_dut(dut):
-                assert dut[0].app.app_path.endswith('hello_world_esp32')
-                assert dut[1].app.app_path.endswith('hello_world_esp32c3')
+        def test_fixtures_dut(dut):
+            assert dut[0].app.app_path.endswith('hello_world_esp32')
+            assert dut[1].app.app_path.endswith('hello_world_esp32c3')
 
-            def test_fixture_redirect(dut, redirect):
-                with redirect[1]('prefix'):
-                    print('been redirected')
-                dut[1].expect('been redirected')
+        def test_fixture_redirect(dut, redirect):
+            with redirect[1]('prefix'):
+                print('been redirected')
+            dut[1].expect('been redirected')
 
-                with pytest.raises(pexpect.TIMEOUT):
-                    dut[0].expect('not been redirected', timeout=1)
-        """)
+            with pytest.raises(pexpect.TIMEOUT):
+                dut[0].expect('not been redirected', timeout=1)
+    """)
 
     result = testdir.runpytest(
         '--count', 2,
@@ -124,13 +126,43 @@ def test_multi_count_fixtures(testdir):
 
 def test_default_app_path(testdir):
     testdir.makepyfile(f"""
-            import pytest
-            import pexpect
+        import pytest
+        import pexpect
 
-            def test_default_app_path(app):
-                assert app.app_path == '{testdir.tmpdir}'
-        """)
+        def test_default_app_path(app):
+            assert app.app_path == '{testdir.tmpdir}'
+    """)
 
     result = testdir.runpytest()
 
     result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize('parallel_count, parallel_index, res', [
+    (5, 1, 1),
+    (5, 6, 0),
+    (4, 1, 2),
+    (4, 3, 1),
+    (4, 4, 0),
+    (3, 1, 2),
+    (3, 3, 1),
+    (2, 1, 3),
+    (2, 2, 2),
+])
+def test_parallel_run(testdir, parallel_count, parallel_index, res):
+    from pytest_embedded.plugin import pytest_collection_modifyitems
+
+    class FakeObject:
+        def __init__(self, _count, _index):
+            self.parallel_count = _count
+            self.parallel_index = _index
+
+    class FakeConfig:
+        def __init__(self, _count, _index):
+            self.option = FakeObject(_count, _index)
+
+    config = FakeConfig(parallel_count, parallel_index)
+    items = [1, 2, 3, 4, 5]
+
+    pytest_collection_modifyitems(config, items)  # noqa
+    assert len(items) == res
