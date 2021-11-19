@@ -53,7 +53,6 @@ select =
     E133,           # closing bracket is missing indentation
     E201,           # whitespace after '('
     E202,           # whitespace before ')'
-    E203,           # whitespace before ':'
     E211,           # whitespace before '('
     E221,           # multiple spaces before operator
     E222,           # multiple spaces after operator
@@ -129,6 +128,8 @@ ignore =
     E241,           # multiple spaces after ','
     W503,           # line break before binary operator
     W504            # line break after binary operator
+    # black required
+    E203,           # whitespace before ':'
 
 max-line-length = 120
 
