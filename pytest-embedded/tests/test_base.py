@@ -166,3 +166,45 @@ def test_parallel_run(testdir, parallel_count, parallel_index, res):
 
     pytest_collection_modifyitems(config, items)  # noqa
     assert len(items) == res
+
+
+def test_expect(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+        import pexpect
+        import re
+
+        def test_expect(dut, pexpect_proc, redirect):
+            with redirect():
+                print('test1, test2, test3\n')
+            dut.expect('test1')
+            res = dut.expect('test2')
+            assert res.group() == b'test2'
+            pexpect_proc.terminate()  # close the pexpect_proc to make a EOF
+            res = dut.expect(pexpect.EOF, timeout=None)
+            assert res == b', test3'
+
+        def test_expect_exact(dut, pexpect_proc, redirect):
+            with redirect():
+                 print('test1, test2, test3')
+            dut.expect_exact('test1')
+            res = dut.expect_exact('test2')
+            assert res == b'test2'
+            pexpect_proc.terminate()  # close the pexpect_proc to make a EOF
+            res = dut.expect_exact(pexpect.EOF, timeout=None)
+            assert res == b', test3'
+
+        def test_expect_list(dut, pexpect_proc, redirect):
+            with redirect():
+                print('test1, test2, test3')
+            dut.expect_list([re.compile(b'test4'), re.compile(b'test5'), re.compile(b'test1')])
+            res = dut.expect_list([re.compile(b'test4'), re.compile(b'test5'), re.compile(b'test2')])
+            assert res.group() == b'test2'
+            pexpect_proc.terminate()  # close the pexpect_proc to make a EOF
+            res = dut.expect_list([re.compile(b'test4'), re.compile(b'test5'), pexpect.EOF], timeout=None)
+            assert res == b', test3'
+       """)
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=3)
