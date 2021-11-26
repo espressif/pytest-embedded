@@ -338,10 +338,10 @@ def pytest_addoption(parser):
         '--gdb-cli-args',
         help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
     )
-    jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd"')
+    jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
     jtag_group.addoption(
         '--openocd-cli-args',
-        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2"',
+        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")',
     )
 
     qemu_group = parser.getgroup('embedded-qemu')

@@ -64,6 +64,10 @@ embedded:
                         The configuration would be duplicated when it has only one value but the "count" amount is greater than 1. It would raise an exception when the configuration has multi values but the amount is different from the "count" amount.
                         For example:
                         "--embedded-services=idf|esp-idf --count=3" would raise an exception.
+  --parallel-count=PARALLEL_COUNT
+                        Number of parallel build jobs. (Default: 1)
+  --parallel-index=PARALLEL_INDEX
+                        Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)
   --embedded-services=EMBEDDED_SERVICES
                         Activate comma-separated services for different functionalities. (Default: "")
                         Available services:
@@ -82,6 +86,8 @@ embedded-esp:
   --target=TARGET       serial target chip type. (Default: "auto")
 
 embedded-idf:
+  --build-dir=BUILD_DIR
+                        build directory under the app_path. (Default: "build")
   --part-tool=PART_TOOL
                         Partition tool path, used for parsing partition table. (Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"
   --skip-autoflash=SKIP_AUTOFLASH
@@ -93,7 +99,7 @@ embedded-jtag:
   --gdb-cli-args=GDB_CLI_ARGS
                         GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"
   --openocd-prog-path=OPENOCD_PROG_PATH
-                        openocd program path. (Default: "openocd"
+                        openocd program path. (Default: "openocd")
   --openocd-cli-args=OPENOCD_CLI_ARGS
                         openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")
 

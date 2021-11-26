@@ -138,3 +138,43 @@ Here's a simple example of a configuration file that logs to the console and the
     log_file_format = %(asctime)s %(levelname)s %(message)s
     log_file_date_format = %Y-%m-%d %H:%M:%S
     ```
+
+### Expecting
+
+We support `expect`, `expect_exact`, and `expect_list` to assert if one string or pattern exists.
+
+These three functions are supported via `pexpect` same name function, but the return value is slightly different in `pytest-embedded`.
+
+!!! example
+
+    ```python
+    def test_something(dut, redirect, pexpect_proc):
+        with redirect():
+            print('foo bar baz qux')  # write "foo bar baz qux" to the buffer
+    
+        res = dut.expect('foo')
+        # res = dut.expect('f[o]{2}')  # could be a pattern
+        # res = dut.expect(re.compile(b'foo'))  # could be a compiled regex for bytes
+    
+        # `expect` would return a `re.Match` object if matched successfully
+        # don't forget to decode, sync they're actually bytes in the buffer
+        logging.info(f'The first word is [{res.group().decode("utf8")}]')
+        # >>> The first word is [foo]
+    
+        # `expect_exact` would do a string compare, and return the matched bytes if matched successfully
+        res = dut.expect_exact(['nonsense1', 'bar', 'nonsense2'])
+        logging.info(f'The second word is [{res.decode("utf8")}]')
+        # >>> The second word is [bar]
+    
+        # `expect_list` would use compiled regex as argument
+        # please note that we should use bytes pattern here, since they are actually bytes in the buffer
+        res = dut.expect_list([re.compile(b'nonsense1'), re.compile(b'baz'), re.compile(b'nonsense2')])
+        logging.info(f'The third word is [{res.group().decode("utf8")}]')
+        # >>> The third word is [baz]
+    
+        # `expect` a `pexpect.EOF` would get all the remaining buffers
+        pexpect_proc.terminate()  # to terminate the pexpect process and generate an EOF
+        res = dut.expect(pexpect.EOF, timeout=None)
+        logging.info(f'The forth word is [{res.decode("utf8")}], with an extra space')
+        # >>> The forth word is [ qux], with an extra space
+    ```
