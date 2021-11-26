@@ -47,6 +47,7 @@ class IdfSerial(EspSerial):
             erase_nvs: erase non-volatile storage blocks
         """
         if self.skip_autoflash:
+            self.hard_reset()
             return
 
         if not self.app.partition_table:
