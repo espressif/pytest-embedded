@@ -52,16 +52,7 @@ class Serial(DuplicateStdoutMixin):
     def _start(self):
         pass
 
-    def _forward_io(
-        self, pexpect_proc: Optional[pexpect.spawn] = None, source: Optional[str] = None, breaker=b'\n'
-    ) -> None:
+    def _forward_io(self, pexpect_proc: Optional[pexpect.spawn] = None, source: Optional[str] = None) -> None:
         with DuplicateStdout(pexpect_proc, source):
-            while True:
-                line = b''
-                sess_output = self.proc.read()  # a single char
-                while sess_output and sess_output != breaker:
-                    line += sess_output
-                    sess_output = self.proc.read()
-                line += sess_output
-                line = to_str(line)
-                print(line)
+            while self.proc.is_open:
+                print(to_str(self.proc.readall()))

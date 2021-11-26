@@ -11,6 +11,8 @@ skip-string-normalization = 'True'
 norecursedirs = 'examples/*'
 
 # log related
+log_auto_indent = 'True'
+
 log_cli = 'True'
 log_cli_level = 'INFO'
 log_cli_format = '%(asctime)s %(levelname)s %(message)s'
