@@ -1,3 +1,15 @@
+## v0.4.5 (2021-11-29)
+
+### Feat
+
+- real-time logging
+- add `expect_list` and `expect_exact` method to `DUT` class
+- add parallel run cli options
+
+### Fix
+
+- **idf**: Run hard reset when skipping auto flash
+
 ## v0.4.4 (2021-11-18)
 
 ### Fix
