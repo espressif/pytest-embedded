@@ -128,6 +128,8 @@ Here's a simple example of a configuration file that logs to the console and the
 
     ```ini
     [pytest]
+    log_auto_indent = True
+
     log_cli = True
     log_cli_level = INFO
     log_cli_format = %(asctime)s %(levelname)s %(message)s

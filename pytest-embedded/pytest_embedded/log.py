@@ -126,8 +126,8 @@ def live_print_call(*args, **kwargs):
     default_kwargs.update(kwargs)
 
     process = subprocess.Popen(*args, **default_kwargs)
-    for line in process.stdout:
-        print(to_str(line))
+    while process.poll() is None:
+        print(to_str(process.stdout.read()))
 
 
 class DuplicateStdoutMixin(ProcessContainer):
@@ -215,8 +215,8 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
 
     def _forward_io(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None) -> None:
         with DuplicateStdout(pexpect_proc, source):
-            for line in self.stdout:
-                print(to_str(line))
+            while self.poll() is None:
+                print(to_str(self.stdout.read()))
 
 
 def cls_redirect_stdout(pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None):
