@@ -369,30 +369,6 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_collection_modifyitems(config: Config, items: List[Item]):
-    if config.option.parallel_index == 1 and config.option.parallel_count == 1:
-        return
-
-    current_job_index = config.option.parallel_index - 1  # convert to 0-based index
-    max_cases_num_per_job = (len(items) + config.option.parallel_count - 1) // config.option.parallel_count
-
-    run_case_start_index = max_cases_num_per_job * current_job_index
-    if run_case_start_index >= len(items):
-        logging.warning(
-            f'Nothing to do for job {current_job_index + 1} '
-            f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
-        )
-        items.clear()
-        return
-
-    run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
-    logging.info(
-        f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
-        f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
-    )
-    items[:] = items[run_case_start_index : run_case_end_index + 1]
-
-
 ###############################
 # CLI Option Related Fixtures #
 ###############################
@@ -879,3 +855,31 @@ def dut(
             elif k == 'qemu':
                 kwargs[k] = qemu
     return cls(**kwargs)
+
+
+##################
+# Hook Functions #
+##################
+@pytest.hookimpl(trylast=True)  # the parallel filter should be the last step
+def pytest_collection_modifyitems(config: Config, items: List[Item]):
+    if config.option.parallel_index == 1 and config.option.parallel_count == 1:
+        return
+
+    current_job_index = config.option.parallel_index - 1  # convert to 0-based index
+    max_cases_num_per_job = (len(items) + config.option.parallel_count - 1) // config.option.parallel_count
+
+    run_case_start_index = max_cases_num_per_job * current_job_index
+    if run_case_start_index >= len(items):
+        logging.warning(
+            f'Nothing to do for job {current_job_index + 1} '
+            f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
+        )
+        items.clear()
+        return
+
+    run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
+    logging.info(
+        f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
+        f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+    )
+    items[:] = items[run_case_start_index : run_case_end_index + 1]
