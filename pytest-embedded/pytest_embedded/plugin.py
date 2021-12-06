@@ -18,8 +18,12 @@ from typing import (
 )
 
 import pytest
+from _pytest.config import Config
+from _pytest.fixtures import FixtureRequest
 from _pytest.nodes import Item
 
+from .app import App
+from .dut import Dut
 from .log import DuplicateStdout, PexpectProcess
 
 if TYPE_CHECKING:
@@ -27,9 +31,6 @@ if TYPE_CHECKING:
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
-
-    from .app import App
-    from .dut import Dut
 
 ###########
 # helpers #
@@ -177,7 +178,7 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
 # General Fixtures #
 ####################
 @pytest.fixture
-def test_file_path(request) -> str:
+def test_file_path(request: FixtureRequest) -> str:
     """
     Current test script file path
     """
@@ -185,7 +186,7 @@ def test_file_path(request) -> str:
 
 
 @pytest.fixture
-def test_case_name(request) -> str:
+def test_case_name(request: FixtureRequest) -> str:
     """
     Current test case function name
     """
@@ -203,7 +204,7 @@ def pexpect_proc(**kwargs) -> PexpectProcess:  # argument passed by `apply_count
 
 @pytest.fixture
 @apply_count_generator
-def redirect(pexpect_proc) -> Callable[..., DuplicateStdout]:
+def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     """
     Provided a context manager that could help log all the `sys.stdout` with pytest logging feature and redirect
     `sys.stdout` to `dut.pexpect_proc`.
@@ -368,7 +369,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_collection_modifyitems(config, items: List[Item]):
+def pytest_collection_modifyitems(config: Config, items: List[Item]):
     if config.option.parallel_index == 1 and config.option.parallel_count == 1:
         return
 
@@ -400,23 +401,21 @@ def pytest_collection_modifyitems(config, items: List[Item]):
 ########
 @pytest.fixture
 @parse_configuration
-def embedded_services(request) -> Optional[str]:
+def embedded_services(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('embedded_services')
+    return getattr(request, 'param', None) or request.config.getoption('embedded_services', None)
 
 
 @pytest.fixture
 @parse_configuration
-def app_path(request, test_file_path) -> Optional[str]:
+def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
     return (
-        getattr(request, 'param', None)
-        or request.config.option.__dict__.get('app_path')
-        or os.path.dirname(test_file_path)
+        getattr(request, 'param', None) or request.config.getoption('app_path', None) or os.path.dirname(test_file_path)
     )
 
 
@@ -425,11 +424,11 @@ def app_path(request, test_file_path) -> Optional[str]:
 ##########
 @pytest.fixture
 @parse_configuration
-def port(request) -> Optional[str]:
+def port(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('port')
+    return getattr(request, 'param', None) or request.config.getoption('port', None)
 
 
 #######
@@ -437,20 +436,20 @@ def port(request) -> Optional[str]:
 #######
 @pytest.fixture
 @parse_configuration
-def target(request) -> Optional[str]:
+def target(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('target')
+    return getattr(request, 'param', None) or request.config.getoption('target', None)
 
 
 @pytest.fixture
 @parse_configuration
-def baud(request) -> Optional[str]:
+def baud(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('baud')
+    return getattr(request, 'param', None) or request.config.getoption('baud', None)
 
 
 #######
@@ -458,29 +457,29 @@ def baud(request) -> Optional[str]:
 #######
 @pytest.fixture
 @parse_configuration
-def build_dir(request) -> Optional[str]:
+def build_dir(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('build_dir')
+    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
 
 
 @pytest.fixture
 @parse_configuration
-def part_tool(request) -> Optional[str]:
+def part_tool(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('part_tool')
+    return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
 
 
 @pytest.fixture
 @parse_configuration
-def skip_autoflash(request) -> Optional[bool]:
+def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('skip_autoflash')
+    return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
 
 
 ########
@@ -488,38 +487,38 @@ def skip_autoflash(request) -> Optional[bool]:
 ########
 @pytest.fixture
 @parse_configuration
-def gdb_prog_path(request) -> Optional[str]:
+def gdb_prog_path(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('gdb_prog_path')
+    return getattr(request, 'param', None) or request.config.getoption('gdb_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
-def gdb_cli_args(request) -> Optional[str]:
+def gdb_cli_args(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('gdb_cli_args')
+    return getattr(request, 'param', None) or request.config.getoption('gdb_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
-def openocd_prog_path(request) -> Optional[str]:
+def openocd_prog_path(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('openocd_prog_path')
+    return getattr(request, 'param', None) or request.config.getoption('openocd_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
-def openocd_cli_args(request) -> Optional[str]:
+def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('openocd_cli_args')
+    return getattr(request, 'param', None) or request.config.getoption('openocd_cli_args', None)
 
 
 ########
@@ -527,47 +526,47 @@ def openocd_cli_args(request) -> Optional[str]:
 ########
 @pytest.fixture
 @parse_configuration
-def qemu_image_path(request) -> Optional[str]:
+def qemu_image_path(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('qemu_image_path')
+    return getattr(request, 'param', None) or request.config.getoption('qemu_image_path', None)
 
 
 @pytest.fixture
 @parse_configuration
-def qemu_prog_path(request) -> Optional[str]:
+def qemu_prog_path(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('qemu_prog_path')
+    return getattr(request, 'param', None) or request.config.getoption('qemu_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
-def qemu_cli_args(request) -> Optional[str]:
+def qemu_cli_args(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('qemu_cli_args')
+    return getattr(request, 'param', None) or request.config.getoption('qemu_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
-def qemu_extra_args(request) -> Optional[str]:
+def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('qemu_extra_args')
+    return getattr(request, 'param', None) or request.config.getoption('qemu_extra_args', None)
 
 
 @pytest.fixture
 @parse_configuration
-def qemu_log_path(request) -> Optional[str]:
+def qemu_log_path(request: FixtureRequest) -> Optional[str]:
     """
     Enable parametrization for the same cli option
     """
-    return getattr(request, 'param', None) or request.config.option.__dict__.get('qemu_log_path')
+    return getattr(request, 'param', None) or request.config.getoption('qemu_log_path', None)
 
 
 ####################
@@ -575,7 +574,10 @@ def qemu_log_path(request) -> Optional[str]:
 ####################
 @pytest.fixture
 @apply_count
-def _services(embedded_services) -> List[str]:
+def _services(embedded_services: Optional[str]) -> List[str]:
+    if not embedded_services:
+        return ['base']
+
     services = [s for s in embedded_services.split(',') if s]
 
     for s in services:
@@ -780,7 +782,7 @@ def _fixture_classes_and_options(
 ####################
 @pytest.fixture
 @apply_count
-def app(_fixture_classes_and_options) -> 'App':
+def app(_fixture_classes_and_options: ClassCliOptions) -> App:
     """
     A pytest fixture to gather information from the specified built binary folder
     """
@@ -807,7 +809,7 @@ def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
 
 @pytest.fixture
 @apply_count_generator
-def openocd(_fixture_classes_and_options) -> Optional['OpenOcd']:
+def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd']:
     """
     A openocd subprocess that could read/redirect/write
     """
@@ -821,7 +823,7 @@ def openocd(_fixture_classes_and_options) -> Optional['OpenOcd']:
 
 @pytest.fixture
 @apply_count_generator
-def gdb(_fixture_classes_and_options) -> Optional['Gdb']:
+def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
     """
     A gdb subprocess that could read/redirect/write
     """
@@ -835,7 +837,7 @@ def gdb(_fixture_classes_and_options) -> Optional['Gdb']:
 
 @pytest.fixture
 @apply_count_generator
-def qemu(_fixture_classes_and_options) -> Optional['Qemu']:
+def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
     """
     A qemu subprocess that could read/redirect/write
     """
@@ -849,7 +851,14 @@ def qemu(_fixture_classes_and_options) -> Optional['Qemu']:
 
 @pytest.fixture
 @apply_count_generator
-def dut(_fixture_classes_and_options, app, serial, openocd, gdb, qemu) -> 'Dut':
+def dut(
+    _fixture_classes_and_options: ClassCliOptions,
+    app: App,
+    serial: Optional['Serial'],
+    openocd: Optional['OpenOcd'],
+    gdb: Optional['Gdb'],
+    qemu: Optional['Qemu'],
+) -> Dut:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
