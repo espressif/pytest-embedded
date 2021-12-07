@@ -36,7 +36,11 @@ class IdfSerial(EspSerial):
         super().__init__(target or app.target, port, pexpect_proc, **kwargs)
 
     def _start(self):
-        self.flash()
+        if self.skip_autoflash:
+            logging.info('Skipping auto flash...')
+            super()._start()
+        else:
+            self.flash()
 
     @cls_redirect_stdout(source='flash')
     def flash(self, erase_nvs: bool = True) -> None:
@@ -46,26 +50,10 @@ class IdfSerial(EspSerial):
         Args:
             erase_nvs: erase non-volatile storage blocks
         """
-        if self.skip_autoflash:
-            self.hard_reset()
-            return
-
         if not self.app.partition_table:
             logging.error('Partition table not parsed. Skipping auto flash...')
             return
 
-        last_error = None
-        for baud_rate in [921600, 115200]:
-            try:
-                self._try_flash(erase_nvs, baud_rate)
-                break
-            except RuntimeError as e:
-                last_error = e
-        else:
-            raise last_error
-
-    @EspSerial._uses_esptool
-    def _try_flash(self, erase_nvs=True, baud_rate=115200):
         flash_files = [
             (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
         ]
@@ -107,9 +95,10 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            self.stub.change_baud(baud_rate)
-            esptool.detect_flash_size(self.stub, flash_args)
-            esptool.write_flash(self.stub, flash_args)
+            self.esp.change_baud(921600)  # higher baudrate for data transferring
+            esptool.detect_flash_size(self.esp, flash_args)
+            esptool.write_flash(self.esp, flash_args)
+            self.esp.change_baud(115200)
         except Exception:  # noqa
             raise
         finally:
@@ -120,3 +109,4 @@ class IdfSerial(EspSerial):
                 f.close()
             for (_, f) in encrypt_files:
                 f.close()
+            self.esp.hard_reset()
