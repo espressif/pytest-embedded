@@ -48,7 +48,7 @@ Here are a few examples of how to enable this. For detailed information, please 
 
         ```shell
         pytest \
-        --embedded-service serial|serial \
+        --embedded-services serial|serial \
         --count 2 \
         --app-path <master_bin>|<slave_bin>
         ```
@@ -72,12 +72,12 @@ Here are a few examples of how to enable this. For detailed information, please 
   
         ```shell
         pytest \
-        --embedded-service serial \
+        --embedded-services serial \
         --count 2 \
         --app-path <master_bin>|<slave_bin> \
         ```
   
-        `--embedded-service serial` would apply to all DUTs
+        `--embedded-services serial` would apply to all DUTs
 
 4. The configuration could be vacant if this value is only useful for certain DUTs.
 
@@ -85,7 +85,7 @@ Here are a few examples of how to enable this. For detailed information, please 
   
         ```shell
         pytest \
-        --embedded-service qemu|serial \
+        --embedded-services qemu|serial \
         --count 2 \
         --app-path <master_bin>|<slave_bin> \
         --qemu-cli-args "<args>|" \
