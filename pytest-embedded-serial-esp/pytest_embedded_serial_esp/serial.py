@@ -34,6 +34,9 @@ class EspSerial(Serial):
             self.esp = esptool.get_default_connected_device(
                 ports, port=port, connect_attempts=3, initial_baud=initial_baud, chip=target
             )
+            if not self.esp:
+                raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
+
             self.esp = self.esp.run_stub()
             if baud > initial_baud:
                 self.esp.change_baud(baud)  # change back to the users settings
