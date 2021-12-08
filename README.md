@@ -44,55 +44,49 @@ Here are a few examples of how to enable this. For detailed information, please 
 
 1. We can enable multi DUTs by specifying `--count`. In this way, all the fixtures would be a tuple with instances. Each configuration will use `|` as a separator for each instance.
 
-    !!! example
+```shell
+pytest \
+--embedded-services serial|serial \
+--count 2 \
+--app-path <master_bin>|<slave_bin>
+```
 
-        ```shell
-        pytest \
-        --embedded-services serial|serial \
-        --count 2 \
-        --app-path <master_bin>|<slave_bin>
-        ```
-  
-        In this example, `app` would be a tuple of 2 `App` instances, `dut` would be a tuple of 2 `Dut` Instances.
-  
-        You can test with:
-  
-        ```python
-        def test(dut):
-            master = dut[0]
-            slave = dut[1]
-  
-            master.expect('sent')
-            slave.expect('received')
-        ```
+In this example, `app` would be a tuple of 2 `App` instances, `dut` would be a tuple of 2 `Dut` Instances.
+
+You can test with:
+
+```python
+def test(dut):
+    master = dut[0]
+    slave = dut[1]
+
+    master.expect('sent')
+    slave.expect('received')
+```
 
 3. The configuration could have only one value when this value is applying to all DUTs.
 
-    !!! example
-  
-        ```shell
-        pytest \
-        --embedded-services serial \
-        --count 2 \
-        --app-path <master_bin>|<slave_bin> \
-        ```
-  
-        `--embedded-services serial` would apply to all DUTs
+```shell
+pytest \
+--embedded-services serial \
+--count 2 \
+--app-path <master_bin>|<slave_bin> \
+```
+
+`--embedded-services serial` would apply to all DUTs
 
 4. The configuration could be vacant if this value is only useful for certain DUTs.
 
-    !!! example
-  
-        ```shell
-        pytest \
-        --embedded-services qemu|serial \
-        --count 2 \
-        --app-path <master_bin>|<slave_bin> \
-        --qemu-cli-args "<args>|" \
-        --port "|<port>" \
-        ```
-  
-        `--qemu-cli-args` would apply to the first DUT and `--port` would apply to the second DUT.
+```shell
+pytest \
+--embedded-services qemu|serial \
+--count 2 \
+--app-path <master_bin>|<slave_bin> \
+--qemu-cli-args "<args>|" \
+--port "|<port>" \
+```
+
+`--qemu-cli-args` would apply to the first DUT and `--port` would apply to the second DUT.
 
 ### Parametrizing
 
@@ -100,21 +94,19 @@ All the CLI options support parametrizing via `indirect=True`. Parametrizing is 
 
 In order to support multi DUT and parametrizing, we use string to represent bool value. "y/yes/true" for `True` and "n/no/false" for `False`, case-insensitive.
 
-!!! example
-
-    ```python
-    @pytest.mark.parametrize(
-        'embedded_service,app_path',
-        [
-            ('idf', app_path_1),
-            ('idf', app_path_2),
-        ],
-        indirect=True,
-    )
-    def test_serial_tcp(dut):
-        assert dut.app.target == 'esp32'
-        dut.expect('Restart now')
-    ```
+```python
+@pytest.mark.parametrize(
+    'embedded_service,app_path',
+    [
+        ('idf', app_path_1),
+        ('idf', app_path_2),
+    ],
+    indirect=True,
+)
+def test_serial_tcp(dut):
+    assert dut.app.target == 'esp32'
+    dut.expect('Restart now')
+```
 
 ### Logging
 
@@ -124,22 +116,20 @@ For the configuration of pytest logging, please refer to [pytest documentation: 
 
 Here's a simple example of a configuration file that logs to the console and the file simultaneously.
 
-!!! example
+```ini
+[pytest]
+log_auto_indent = True
 
-    ```ini
-    [pytest]
-    log_auto_indent = True
+log_cli = True
+log_cli_level = INFO
+log_cli_format = %(asctime)s %(levelname)s %(message)s
+log_cli_date_format = %Y-%m-%d %H:%M:%S
 
-    log_cli = True
-    log_cli_level = INFO
-    log_cli_format = %(asctime)s %(levelname)s %(message)s
-    log_cli_date_format = %Y-%m-%d %H:%M:%S
-
-    log_file = test.log
-    log_file_level = INFO
-    log_file_format = %(asctime)s %(levelname)s %(message)s
-    log_file_date_format = %Y-%m-%d %H:%M:%S
-    ```
+log_file = test.log
+log_file_level = INFO
+log_file_format = %(asctime)s %(levelname)s %(message)s
+log_file_date_format = %Y-%m-%d %H:%M:%S
+```
 
 ### Expecting
 
@@ -147,36 +137,34 @@ We support `expect`, `expect_exact`, and `expect_list` to assert if one string o
 
 These three functions are supported via `pexpect` same name function, but the return value is slightly different in `pytest-embedded`.
 
-!!! example
+```python
+def test_something(dut, redirect, pexpect_proc):
+    with redirect():
+        print('foo bar baz qux')  # write "foo bar baz qux" to the buffer
 
-    ```python
-    def test_something(dut, redirect, pexpect_proc):
-        with redirect():
-            print('foo bar baz qux')  # write "foo bar baz qux" to the buffer
-    
-        res = dut.expect('foo')
-        # res = dut.expect('f[o]{2}')  # could be a pattern
-        # res = dut.expect(re.compile(b'foo'))  # could be a compiled regex for bytes
-    
-        # `expect` would return a `re.Match` object if matched successfully
-        # don't forget to decode, sync they're actually bytes in the buffer
-        logging.info(f'The first word is [{res.group().decode("utf8")}]')
-        # >>> The first word is [foo]
-    
-        # `expect_exact` would do a string compare, and return the matched bytes if matched successfully
-        res = dut.expect_exact(['nonsense1', 'bar', 'nonsense2'])
-        logging.info(f'The second word is [{res.decode("utf8")}]')
-        # >>> The second word is [bar]
-    
-        # `expect_list` would use compiled regex as argument
-        # please note that we should use bytes pattern here, since they are actually bytes in the buffer
-        res = dut.expect_list([re.compile(b'nonsense1'), re.compile(b'baz'), re.compile(b'nonsense2')])
-        logging.info(f'The third word is [{res.group().decode("utf8")}]')
-        # >>> The third word is [baz]
-    
-        # `expect` a `pexpect.EOF` would get all the remaining buffers
-        pexpect_proc.terminate()  # to terminate the pexpect process and generate an EOF
-        res = dut.expect(pexpect.EOF, timeout=None)
-        logging.info(f'The forth word is [{res.decode("utf8")}], with an extra space')
-        # >>> The forth word is [ qux], with an extra space
-    ```
+    res = dut.expect('foo')
+    # res = dut.expect('f[o]{2}')  # could be a pattern
+    # res = dut.expect(re.compile(b'foo'))  # could be a compiled regex for bytes
+
+    # `expect` would return a `re.Match` object if matched successfully
+    # don't forget to decode, sync they're actually bytes in the buffer
+    logging.info(f'The first word is [{res.group().decode("utf8")}]')
+    # >>> The first word is [foo]
+
+    # `expect_exact` would do a string compare, and return the matched bytes if matched successfully
+    res = dut.expect_exact(['nonsense1', 'bar', 'nonsense2'])
+    logging.info(f'The second word is [{res.decode("utf8")}]')
+    # >>> The second word is [bar]
+
+    # `expect_list` would use compiled regex as argument
+    # please note that we should use bytes pattern here, since they are actually bytes in the buffer
+    res = dut.expect_list([re.compile(b'nonsense1'), re.compile(b'baz'), re.compile(b'nonsense2')])
+    logging.info(f'The third word is [{res.group().decode("utf8")}]')
+    # >>> The third word is [baz]
+
+    # `expect` a `pexpect.EOF` would get all the remaining buffers
+    pexpect_proc.terminate()  # to terminate the pexpect process and generate an EOF
+    res = dut.expect(pexpect.EOF, timeout=None)
+    logging.info(f'The forth word is [{res.decode("utf8")}], with an extra space')
+    # >>> The forth word is [ qux], with an extra space
+```
