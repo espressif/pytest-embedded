@@ -1,8 +1,7 @@
 import os
 from typing import Optional
 
-import pexpect
-from pytest_embedded.log import cls_redirect_stdout, live_print_call
+from pytest_embedded.log import PexpectProcess, cls_redirect_stdout, live_print_call
 from pytest_embedded_idf.app import IdfApp
 
 from . import DEFAULT_IMAGE_FN
@@ -68,32 +67,30 @@ class QemuApp(IdfApp):
     QEMU App class
 
     Attributes:
-        pexpect_proc (pexpect.spawn): pexpect process
-        image_path (str): QEMU flashable bin path
+        pexpect_proc (PexpectProcess): pexpect process
+        image_path (str): QEMU flash-able bin path
     """
 
     def __init__(
         self,
-        app_path: str,
+        pexpect_proc: PexpectProcess,
+        app_path: Optional[str] = None,
         build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         qemu_image_path: Optional[str] = None,
-        pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ):
         """
         Args:
+            pexpect_proc: pexpect process
             app_path: App path
             build_dir: Build directory
             part_tool: Partition tool path
             qemu_image_path: QEMU flashable bin path
-            pexpect_proc: pexpect process
         """
-
-        self.pexpect_proc = pexpect_proc
-        self.image_path = qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)
-
         super().__init__(app_path, build_dir=build_dir, part_tool=part_tool, **kwargs)
+        self.pexpect_proc = pexpect_proc
+        self.image_path = qemu_image_path or os.path.join(self.app_path, DEFAULT_IMAGE_FN)
 
         if self.target != 'esp32':
             raise ValueError('For now on QEMU we only support ESP32')

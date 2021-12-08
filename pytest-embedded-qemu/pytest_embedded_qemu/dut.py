@@ -1,8 +1,6 @@
-from typing import Optional
-
-import pexpect
 from pytest_embedded.app import App
 from pytest_embedded.dut import Dut
+from pytest_embedded.log import PexpectProcess
 
 from .qemu import Qemu
 
@@ -15,17 +13,17 @@ class QemuDut(Dut):
     def __init__(
         self,
         qemu: Qemu,
-        app: Optional[App] = None,
-        pexpect_proc: Optional[pexpect.spawn] = None,
+        app: App,
+        pexpect_proc: PexpectProcess,
         **kwargs,
     ) -> None:
         """
         Args:
-            qemu: `Qemu` instance
-            app: `App` instance
             pexpect_proc: `PexpectProcess` instance
+            app: `App` instance
+            qemu: `Qemu` instance
         """
-        super().__init__(app, pexpect_proc, **kwargs)
+        super().__init__(pexpect_proc, app, **kwargs)
         self.qemu = qemu
 
         self.qemu.create_forward_io_process(self.pexpect_proc, source='qemu')

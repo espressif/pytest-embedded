@@ -4,8 +4,7 @@ import tempfile
 from typing import Optional
 
 import esptool
-import pexpect
-from pytest_embedded.log import cls_redirect_stdout
+from pytest_embedded.log import PexpectProcess, cls_redirect_stdout
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -20,12 +19,12 @@ class IdfSerial(EspSerial):
 
     def __init__(
         self,
+        pexpect_proc: PexpectProcess,
         app: IdfApp,
         target: Optional[str] = None,
         port: Optional[str] = None,
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
-        pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
     ) -> None:
         self.app = app
@@ -34,7 +33,7 @@ class IdfSerial(EspSerial):
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'target not match. App target: {self.app.target}, Cmd target: {target}.')
 
-        super().__init__(target or app.target, port, baud, pexpect_proc, **kwargs)
+        super().__init__(pexpect_proc, target or app.target, port, baud, **kwargs)
 
     def _start(self):
         if self.skip_autoflash:
@@ -53,6 +52,14 @@ class IdfSerial(EspSerial):
         """
         if not self.app.partition_table:
             logging.error('Partition table not parsed. Skipping auto flash...')
+            return
+
+        if not self.app.flash_files:
+            logging.error('No flash files detected. Skipping auto flash...')
+            return
+
+        if not self.app.flash_settings:
+            logging.error('No flash settings detected. Skipping auto flash...')
             return
 
         flash_files = [
