@@ -1,5 +1,5 @@
 import logging
-from typing import AnyStr, Match, Optional, Union
+from typing import AnyStr, Match, Union
 
 import pexpect
 
@@ -13,7 +13,7 @@ class Dut(ProcessContainer):
     Device under test (DUT) base class
     """
 
-    def __init__(self, app: Optional[App] = None, pexpect_proc: Optional[PexpectProcess] = None, **kwargs) -> None:
+    def __init__(self, pexpect_proc: PexpectProcess, app: App, **kwargs) -> None:
         """
         Args:
             app: `App` instance
@@ -21,8 +21,8 @@ class Dut(ProcessContainer):
         """
         super().__init__()
 
-        self.app = app
         self.pexpect_proc = pexpect_proc
+        self.app = app
 
         for k, v in kwargs.items():
             setattr(self, k, v)

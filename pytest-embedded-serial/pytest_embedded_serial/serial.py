@@ -1,9 +1,8 @@
 import copy
 from typing import Optional, Union
 
-import pexpect
 import serial as pyserial
-from pytest_embedded.log import DuplicateStdout, DuplicateStdoutMixin
+from pytest_embedded.log import DuplicateStdout, DuplicateStdoutMixin, PexpectProcess
 from pytest_embedded.utils import to_str
 
 
@@ -26,11 +25,11 @@ class Serial(DuplicateStdoutMixin):
         'rtscts': False,
     }
 
-    def __init__(self, port: Union[str, pyserial.Serial], pexpect_proc: Optional[pexpect.spawn] = None, **kwargs):
+    def __init__(self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], **kwargs):
         """
         Args:
-            port: port string or pyserial Serial instance
             pexpect_proc: `PexpectProcess` instance
+            port: port string or pyserial Serial instance
         """
         super().__init__()
 
@@ -57,7 +56,7 @@ class Serial(DuplicateStdoutMixin):
     def _start(self):
         pass
 
-    def _forward_io(self, pexpect_proc: Optional[pexpect.spawn] = None, source: Optional[str] = None) -> None:
+    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         with DuplicateStdout(pexpect_proc, source):
             while self.proc.is_open:
                 print(to_str(self.proc.readall()))

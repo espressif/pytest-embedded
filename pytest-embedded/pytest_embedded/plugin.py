@@ -591,7 +591,7 @@ def _services(embedded_services) -> List[str]:
     return ['base'] + services
 
 
-ClassCliOptions = namedtuple('cls_kwargs', ['classes', 'kwargs'])  # Tuple[Dict[str, type], Dict[str, list[str]]]
+ClassCliOptions = namedtuple('ClassCliOptions', ['classes', 'kwargs'])  # Tuple[Dict[str, type], Dict[str, list[str]]]
 
 
 @pytest.fixture
@@ -636,8 +636,8 @@ def _fixture_classes_and_options(
         ...
     }
     """
-    classes = {}  # type: Dict[str, type]
-    kwargs = defaultdict(dict)  # type: Dict[str, Dict[str, Any]]  # For store options for each fixtures
+    classes: Dict[str, type] = {}
+    kwargs: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
     for fixture, provide_services in FIXTURES_SERVICES.items():
         if fixture == 'app':
@@ -649,10 +649,10 @@ def _fixture_classes_and_options(
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
                         {
+                            'pexpect_proc': pexpect_proc,
                             'build_dir': build_dir,
                             'part_tool': part_tool,
                             'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
-                            'pexpect_proc': pexpect_proc,
                         }
                     )
                 else:
@@ -661,9 +661,9 @@ def _fixture_classes_and_options(
                     classes[fixture] = IdfApp
                     kwargs[fixture].update(
                         {
+                            'pexpect_proc': pexpect_proc,
                             'build_dir': build_dir,
                             'part_tool': part_tool,
-                            'pexpect_proc': pexpect_proc,
                         }
                     )
             else:
@@ -675,10 +675,10 @@ def _fixture_classes_and_options(
                 from pytest_embedded_serial_esp.serial import EspSerial
 
                 kwargs[fixture] = {
+                    'pexpect_proc': pexpect_proc,
                     'target': target,
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
-                    'pexpect_proc': pexpect_proc,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial
@@ -735,8 +735,8 @@ def _fixture_classes_and_options(
                 }
         elif fixture == 'dut':
             kwargs[fixture] = {
-                'app': None,
                 'pexpect_proc': pexpect_proc,
+                'app': None,
             }
             if 'qemu' in _services:
                 from pytest_embedded_qemu.dut import QemuDut

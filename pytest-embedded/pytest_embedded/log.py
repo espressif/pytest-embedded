@@ -49,13 +49,14 @@ class DuplicateStdout(TextIOWrapper):
         All the `args` and `kwargs` passed to `print()` would be ignored and could be not working as expected.
     """
 
-    def __init__(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None):  # noqa
+    def __init__(self, pexpect_proc: PexpectProcess, source: Optional[str] = None):  # noqa
         """
         Args:
             pexpect_proc: `PexpectProcess` instance
             source: where the `sys.stdout` comes from.
                 Would set the prefix to the log, like `[SOURCE] this line is a log`
         """
+        # DO NOT call super().__init__(), use TextIOWrapper as parent class only for types and functions
         self.pexpect_proc = pexpect_proc
         self.source = source
 
@@ -79,7 +80,7 @@ class DuplicateStdout(TextIOWrapper):
         if data.strip():
             if self.source:
                 log_string = '[{}] {}'.format(self.source, data.rstrip().lstrip('\n\r'))
-                if self.pexpect_proc.source:
+                if self.pexpect_proc and self.pexpect_proc.source:
                     log_string = f'[{self.pexpect_proc.source}]' + log_string
             else:
                 log_string = data.rstrip().lstrip('\n\r')
@@ -149,9 +150,7 @@ class DuplicateStdoutMixin(ProcessContainer):
 
         self._forward_io_proc = None
 
-    def create_forward_io_process(
-        self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None
-    ) -> None:
+    def create_forward_io_process(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         """
         Create a forward io process if not exists.
 
@@ -168,7 +167,7 @@ class DuplicateStdoutMixin(ProcessContainer):
 
         self.proc_close_methods.append(self._forward_io_proc.terminate)
 
-    def _forward_io(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None) -> None:
+    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         raise NotImplementedError('should be implemented by subclasses')
 
 
@@ -213,7 +212,7 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
         """
         self.stdin.write(to_bytes(s, '\n'))
 
-    def _forward_io(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None) -> None:
+    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         with DuplicateStdout(pexpect_proc, source):
             while self.poll() is None:
                 print(to_str(self.stdout.read()))
@@ -236,8 +235,7 @@ def cls_redirect_stdout(pexpect_proc: Optional[PexpectProcess] = None, source: O
     def decorator(func):
         @wraps(func)
         def inner(self, *args, **kwargs):
-            self_pexpect_proc = getattr(self, 'pexpect_proc', None)
-            with DuplicateStdout(pexpect_proc or self_pexpect_proc, source):
+            with DuplicateStdout(pexpect_proc or self.pexpect_proc, source):
                 res = func(self, *args, **kwargs)
 
             return res

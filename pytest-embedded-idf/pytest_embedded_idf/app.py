@@ -27,7 +27,7 @@ class IdfApp(App):
 
     def __init__(
         self,
-        app_path: str,
+        app_path: Optional[str] = None,
         build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         **kwargs,
@@ -41,6 +41,7 @@ class IdfApp(App):
         super().__init__(app_path, **kwargs)
         self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:
+            logging.warning('binary path not specified, skipping parsing app...')
             return
 
         self.elf_file = self._get_elf_file()
@@ -77,7 +78,7 @@ class IdfApp(App):
         sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
         if not os.path.isfile(sdkconfig_json_path):
             logging.warning(f'{sdkconfig_json_path} not exists. skipping...')
-            return
+            return None
 
         return json.load(open(sdkconfig_json_path))
 
@@ -147,15 +148,15 @@ class IdfApp(App):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
-                (raw_data, raw_error) = process.communicate()
-                if isinstance(raw_error, bytes):
-                    raw_error = raw_error.decode()
+                stdout, stderr = process.communicate()
+                raw_data = stdout.decode() if isinstance(stdout, bytes) else stdout
+                raw_error = stderr.decode() if isinstance(stderr, bytes) else stderr
+
                 if 'Traceback' in raw_error:
                     # Some exception occurred. It is possible that we've tried the wrong binary file.
                     errors.append((file, raw_error))
                     continue
-                if isinstance(raw_data, bytes):
-                    raw_data = raw_data.decode()
+
                 break
         else:
             traceback_msg = '\n'.join([f'{self.parttool_path} {p}:{os.linesep}{msg}' for p, msg in errors])
