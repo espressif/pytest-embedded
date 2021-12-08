@@ -1,5 +1,5 @@
 import copy
-from typing import Optional
+from typing import Optional, Union
 
 import pexpect
 import serial as pyserial
@@ -26,25 +26,30 @@ class Serial(DuplicateStdoutMixin):
         'rtscts': False,
     }
 
-    def __init__(self, port: str, pexpect_proc: Optional[pexpect.spawn] = None, **kwargs):
+    def __init__(self, port: Union[str, pyserial.Serial], pexpect_proc: Optional[pexpect.spawn] = None, **kwargs):
         """
         Args:
-            port: port
+            port: port string or pyserial Serial instance
             pexpect_proc: `PexpectProcess` instance
         """
         super().__init__()
 
         if port is None:
             raise ValueError('please specify port')
-        else:
+
+        if isinstance(port, str):
             self.port = port
+            self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
+            self.port_config.update(**kwargs)
+            self.proc = pyserial.serial_for_url(self.port, **self.port_config)
+        elif isinstance(port, pyserial.Serial):  # pyserial instance
+            self.proc = port
+            self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
+            self.port = self.proc.port
+        else:
+            raise ValueError('port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
-        self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
-        self.port_config.update(**kwargs)
-
-        self.proc = pyserial.serial_for_url(self.port, **self.port_config)
-
         self.proc_close_methods.append(self.proc.close)
 
         self._start()

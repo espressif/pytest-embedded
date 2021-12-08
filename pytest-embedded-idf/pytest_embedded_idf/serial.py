@@ -23,6 +23,7 @@ class IdfSerial(EspSerial):
         app: IdfApp,
         target: Optional[str] = None,
         port: Optional[str] = None,
+        baud: int = EspSerial.DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         pexpect_proc: Optional[pexpect.spawn] = None,
         **kwargs,
@@ -33,7 +34,7 @@ class IdfSerial(EspSerial):
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'target not match. App target: {self.app.target}, Cmd target: {target}.')
 
-        super().__init__(target or app.target, port, pexpect_proc, **kwargs)
+        super().__init__(target or app.target, port, baud, pexpect_proc, **kwargs)
 
     def _start(self):
         if self.skip_autoflash:
@@ -95,10 +96,10 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            self.esp.change_baud(921600)  # higher baudrate for data transferring
             esptool.detect_flash_size(self.esp, flash_args)
             esptool.write_flash(self.esp, flash_args)
-            self.esp.change_baud(115200)
+            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
+                self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
         except Exception:  # noqa
             raise
         finally:
