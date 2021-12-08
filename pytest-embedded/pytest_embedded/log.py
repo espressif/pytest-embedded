@@ -162,7 +162,17 @@ class DuplicateStdoutMixin(ProcessContainer):
         if self._forward_io_proc:
             return
 
-        self._forward_io_proc = multiprocessing.Process(target=self._forward_io, args=(pexpect_proc, source))
+        # pexpect process cannot be serialized
+        # set the default start method to `fork` on linux and macOS
+        # For further reading, please refer to
+        # https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
+        # and https://bugs.python.org/issue33725
+        if sys.platform != 'win32':
+            ctx = multiprocessing.get_context('fork')
+        else:
+            ctx = multiprocessing.get_context('spawn')  # keep the default value for windows
+
+        self._forward_io_proc = ctx.Process(target=self._forward_io, args=(pexpect_proc, source))
         self._forward_io_proc.start()
 
         self.proc_close_methods.append(self._forward_io_proc.terminate)
