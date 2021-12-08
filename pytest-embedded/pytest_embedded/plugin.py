@@ -315,10 +315,11 @@ def pytest_addoption(parser):
     base_group.addoption('--app-path', help='App path')
 
     serial_group = parser.getgroup('embedded-serial')
-    serial_group.addoption('--port', help='serial port. (Default: "None")')
+    serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
 
     esp_group = parser.getgroup('embedded-esp')
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
+    esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
 
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
@@ -441,6 +442,15 @@ def target(request) -> Optional[str]:
     Enable parametrization for the same cli option
     """
     return getattr(request, 'param', None) or request.config.option.__dict__.get('target')
+
+
+@pytest.fixture
+@parse_configuration
+def baud(request) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.option.__dict__.get('baud')
 
 
 #######
@@ -592,6 +602,7 @@ def _fixture_classes_and_options(
     app_path,
     port,
     target,
+    baud,
     build_dir,
     part_tool,
     skip_autoflash,
@@ -661,9 +672,12 @@ def _fixture_classes_and_options(
                 classes[fixture] = App
         elif fixture == 'serial':
             if 'esp' in _services:
+                from pytest_embedded_serial_esp.serial import EspSerial
+
                 kwargs[fixture] = {
                     'target': target,
-                    'port': port,
+                    'port': os.getenv('ESPPORT') or port,
+                    'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
                     'pexpect_proc': pexpect_proc,
                 }
                 if 'idf' in _services:
