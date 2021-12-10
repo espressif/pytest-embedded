@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen
+from pytest_embedded.log import DuplicateStdoutPopen, PexpectProcess
 
 
 class OpenOcd(DuplicateStdoutPopen):
@@ -16,7 +16,13 @@ class OpenOcd(DuplicateStdoutPopen):
     TELNET_HOST = '127.0.0.1'
     TELNET_PORT = 4444
 
-    def __init__(self, openocd_prog_path: Optional[str] = None, openocd_cli_args: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        pexpect_proc: PexpectProcess,
+        openocd_prog_path: Optional[str] = None,
+        openocd_cli_args: Optional[str] = None,
+        **kwargs,
+    ):
         """
         Args:
             openocd_prog_path: openocd program path
@@ -30,5 +36,6 @@ class OpenOcd(DuplicateStdoutPopen):
             openocd_cli_args += f' -s {openocd_scripts_path}'
 
         cmd = f'{openocd_prog_path} {openocd_cli_args}'
-        logging.info(cmd)
-        super().__init__(cmd, **kwargs)
+
+        logging.debug(cmd)
+        super().__init__(pexpect_proc, cmd, **kwargs)

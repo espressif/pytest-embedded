@@ -1,7 +1,11 @@
 import os
 from typing import Optional
 
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout, live_print_call
+from pytest_embedded.log import (
+    PexpectProcess,
+    cls_redirect_stdout,
+    duplicate_stdout_run,
+)
 from pytest_embedded_idf.app import IdfApp
 
 from . import DEFAULT_IMAGE_FN
@@ -12,12 +16,14 @@ class IdfFlashImageMaker:
     Create a single image for qemu based on the `IdfApp`'s partition table and all the flash files.
     """
 
-    def __init__(self, app: IdfApp, image_path: str):
+    def __init__(self, pexpect_proc: PexpectProcess, app: IdfApp, image_path: str):
         """
         Args:
+            pexpect_proc: `PexpectProcess` instance
             app: `IdfApp` instance
             image_path: output image path
         """
+        self.pexpect_proc = pexpect_proc
         self.app = app
         self.image_path = image_path
 
@@ -35,23 +41,27 @@ class IdfFlashImageMaker:
                 self._write_bin(file_path, seek=offset)
 
     def _write_empty_bin(self, count: int, bs: int = 1024, seek: int = 0):
-        live_print_call(
+        duplicate_stdout_run(
+            self.pexpect_proc,
             f'dd if=/dev/zero bs={bs} count={count} seek={seek} of={self.image_path}',
             shell=True,
         )
 
     def _write_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        live_print_call(
+        duplicate_stdout_run(
+            self.pexpect_proc,
             f'dd if={binary_filepath} bs={bs} seek={seek} of={self.image_path} conv=notrunc',
             shell=True,
         )
 
     def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        live_print_call(
+        duplicate_stdout_run(
+            self.pexpect_proc,
             f'dd if=/dev/zero bs=1 count=32 of=key.bin',
             shell=True,
         )  # generate a fake key bin
-        live_print_call(
+        duplicate_stdout_run(
+            self.pexpect_proc,
             f'espsecure.py encrypt_flash_data --keyfile key.bin --output decrypted.bin --address {seek} '
             f'{binary_filepath}',
             shell=True,
@@ -105,5 +115,5 @@ class QemuApp(IdfApp):
         if os.path.exists(self.image_path):
             print(f'Using image already exists: {self.image_path}')
         else:
-            image_maker = IdfFlashImageMaker(self, self.image_path)
+            image_maker = IdfFlashImageMaker(self.pexpect_proc, self, self.image_path)
             image_maker.make_bin()

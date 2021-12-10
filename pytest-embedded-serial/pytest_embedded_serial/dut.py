@@ -20,9 +20,11 @@ class SerialDut(Dut):
         super().__init__(pexpect_proc, app, **kwargs)
 
         self.serial = serial
-        self.serial.create_forward_io_process(self.pexpect_proc, source='serial')
 
-        self.proc_close_methods.append(self.serial.close)
+        self.proc_close_methods.append(self.serial.redirect_proc.terminate)
+        self.serial.redirect_proc.start()
+
+        self.proc_close_methods.append(self.serial.proc.close)
 
     def write(self, data: bytes) -> int:
         return self.serial.proc.write(data)

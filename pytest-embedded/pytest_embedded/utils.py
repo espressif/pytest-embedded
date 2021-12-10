@@ -1,5 +1,11 @@
+import errno
 import logging
+import os
+from threading import Thread
 from typing import Optional, Union
+
+from pexpect import EOF, TIMEOUT
+from pexpect.fdpexpect import fdspawn
 
 
 class ProcessContainer:
@@ -64,3 +70,52 @@ def to_bytes(bytes_str: Union[bytes, str], ending: Optional[Union[bytes, str]] =
             return bytes_str + ending
 
     return bytes_str
+
+
+class ReadThread(Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None, timeout=None) -> None:
+        super().__init__(group=group, target=target, name=name, args=args, kwargs=kwargs, daemon=daemon)
+        self.timeout = timeout
+        self.data = b''  # default as empty bytes
+
+    def run(self) -> None:
+        if self._target is not None:  # noqa
+            self.data = self._target(*self._args, **self._kwargs)  # noqa
+
+    def join(self, timeout: Optional[int] = None) -> bytes:
+        timeout = timeout if timeout is not None else self.timeout
+        super().join(timeout)
+        return self.data
+
+
+class FileDescSpawn(fdspawn):
+    def read_nonblocking(self, size=1, timeout=-1):
+        if os.name == 'posix':
+            # for POSIX go to the pexpect fdspawn one
+            return super().read_nonblocking(size, timeout)
+
+        if not timeout:
+            # set a default timeout value to windows. otherwise would be permanently blocked at os.read().
+            timeout = 30
+
+        try:
+            read_thread = ReadThread(target=os.read, args=(self.child_fd, size), timeout=timeout)
+            read_thread.daemon = True  # Mark this thread as daemon thread in case won't block main process exit
+            read_thread.start()
+            s = read_thread.join(timeout)
+            if read_thread.is_alive():
+                raise TIMEOUT('Timeout exceeded.')
+        except OSError as err:
+            if err.args[0] == errno.EIO:
+                # Linux-style EOF
+                self.flag_eof = True
+                raise EOF('End Of File (EOF). Exception style platform.')
+            raise
+
+        if s == b'':
+            self.flag_eof = True
+            raise EOF('End Of File (EOF). Empty string style platform.')
+
+        s = self._decoder.decode(s, final=False)
+        self._log(s, 'read')
+        return s

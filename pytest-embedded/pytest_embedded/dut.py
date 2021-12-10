@@ -11,13 +11,17 @@ from .utils import ProcessContainer
 class Dut(ProcessContainer):
     """
     Device under test (DUT) base class
+
+    Attributes:
+        pexpect_proc: `PexpectProcess` instance
+        app: `App` instance
     """
 
     def __init__(self, pexpect_proc: PexpectProcess, app: App, **kwargs) -> None:
         """
         Args:
-            app: `App` instance
             pexpect_proc: `PexpectProcess` instance
+            app: `App` instance
         """
         super().__init__()
 
@@ -38,18 +42,21 @@ class Dut(ProcessContainer):
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect()`.
 
         Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            AnyStr: if you're matching `pexpect.TIMEOUT` to get all the current buffers.
 
         Returns:
             re.Match: if matched given string.
+
+        Warnings:
+            Does not support expect `pexpect.EOF`
         """
         try:
             self.pexpect_proc.expect(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
+        except pexpect.TIMEOUT:
             logging.error(f'Not found {args}, {kwargs}')
             raise
         else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+            if self.pexpect_proc.match in [pexpect.TIMEOUT]:
                 return self.pexpect_proc.before.rstrip()
 
             return self.pexpect_proc.match
@@ -59,18 +66,18 @@ class Dut(ProcessContainer):
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_exact()`.
 
         Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            AnyStr: if you're matching r pexpect.TIMEOUT to get all the current buffers.
 
         Returns:
             re.Match: if matched given string.
         """
         try:
             self.pexpect_proc.expect_exact(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
+        except (pexpect.TIMEOUT):
             logging.error(f'Not found {args}, {kwargs}')
             raise
         else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+            if self.pexpect_proc.match in [pexpect.TIMEOUT]:
                 return self.pexpect_proc.before.rstrip()
 
             return self.pexpect_proc.match
@@ -80,7 +87,7 @@ class Dut(ProcessContainer):
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_list()`.
 
         Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            AnyStr: if you're matching r pexpect.TIMEOUT to get all the current buffers.
 
         Returns:
             re.Match: if matched given compiled regex.
@@ -92,11 +99,11 @@ class Dut(ProcessContainer):
         """
         try:
             self.pexpect_proc.expect_list(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
+        except (pexpect.TIMEOUT):
             logging.error(f'Not found {args}, {kwargs}')
             raise
         else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+            if self.pexpect_proc.match in [pexpect.TIMEOUT]:
                 return self.pexpect_proc.before.rstrip()
 
             return self.pexpect_proc.match

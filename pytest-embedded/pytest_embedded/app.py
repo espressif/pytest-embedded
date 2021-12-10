@@ -5,6 +5,9 @@ from typing import Optional
 class App:
     """
     Built binary files base class
+
+    Attributes:
+        app_path: App path
     """
 
     def __init__(self, app_path: Optional[str] = None, **kwargs):

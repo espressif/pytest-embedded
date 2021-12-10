@@ -1,45 +1,47 @@
-import copy
 import logging
-import multiprocessing
+import os
 import subprocess
 import sys
 from functools import wraps
 from io import TextIOWrapper
-from typing import List, Optional, Union
+from typing import Optional
 
-import pexpect
-
-from .utils import ProcessContainer, to_bytes, to_str
+from .utils import FileDescSpawn, to_str
 
 
-class PexpectProcess(pexpect.spawn):
+class PexpectProcess(FileDescSpawn):
     """
-    `pexpect.spawn` instance with default cmd `cat`.
-
-    `cat` will copy the stdin to stdout, that could help to gather multiple inputs into one output, and do
-    `pexpect.expect()` from one place.
+    TODO
     """
 
-    DEFAULT_CLI_ARGS = ['cat']
+    DUT_PREFIX = 'dut'
 
-    def __init__(self, cmd: Optional[list] = None, count: int = 1, total: int = 1, **kwargs):
-        cmd = cmd or copy.deepcopy(self.DEFAULT_CLI_ARGS)
-
+    def __init__(self, count: int = 1, total: int = 1, **kwargs):
         self._count = count
         self._total = total
 
         if self._total > 1:
-            self.source = f'dut-{self._count}'
+            self.source = f'{self.DUT_PREFIX}-{self._count}'
         else:
             self.source = None
 
-        super().__init__(cmd, **kwargs, codec_errors='ignore')
-        self.setecho(False)
+        # read pipe is used as gathered output, write pipe is used as read pipe
+        self.r_pipe, self.w_pipe = os.pipe()
+
+        super().__init__(self.r_pipe, **kwargs)
+        # self.logfile_send = self._logfile_fw  # only log output, since the input is the same
+
+    def send(self, s):
+        s = self._coerce_send_string(s)
+
+        b = self._encoder.encode(s, final=False)
+        return os.write(self.w_pipe, b)
 
 
 class DuplicateStdout(TextIOWrapper):
     """
-    A context manager to redirect `sys.stdout` to `pexpect_proc` and log by each line.
+    A context manager to duplicate the `sys.stdout` to the specified file descriptor and use `logging` module to log
+     the `sys.stdout` at the same time.
 
     use pytest logging functionality to log to cli or file by setting `log_cli` or `log_file` related attributes.
     These attributes could be set at the same time.
@@ -85,7 +87,7 @@ class DuplicateStdout(TextIOWrapper):
             else:
                 log_string = data.rstrip().lstrip('\n\r')
             logging.info(log_string)
-            sys.stdout = self  # logging info would modify the sys.stdout again, re assigning here
+            sys.stdout = self  # logging info would modify the sys.stdout again, re-assigning here
 
         if self.pexpect_proc:
             self.pexpect_proc.write(data)
@@ -131,104 +133,7 @@ def live_print_call(*args, **kwargs):
         print(to_str(process.stdout.read()))
 
 
-class DuplicateStdoutMixin(ProcessContainer):
-    """
-    A mixin class which provides function `create_forward_io_process` to create a forward io process.
-
-    Note:
-        `_forward_io()` should be implemented in subclasses, the function should be something like:
-
-        ```python
-        def _forward_io(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None) -> None:
-            with DuplicateStdout(pexpect_proc, source):
-                # you code here
-        ```
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._forward_io_proc = None
-
-    def create_forward_io_process(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
-        """
-        Create a forward io process if not exists.
-
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            source: where the `sys.stdout` comes from.
-                Would set the prefix to the log, like `[SOURCE] this line is a log`
-        """
-        if self._forward_io_proc:
-            return
-
-        # pexpect process cannot be serialized
-        # set the default start method to `fork` on linux and macOS
-        # For further reading, please refer to
-        # https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
-        # and https://bugs.python.org/issue33725
-        if sys.platform != 'win32':
-            ctx = multiprocessing.get_context('fork')
-        else:
-            ctx = multiprocessing.get_context('spawn')  # keep the default value for windows
-
-        self._forward_io_proc = ctx.Process(target=self._forward_io, args=(pexpect_proc, source))
-        self._forward_io_proc.start()
-
-        self.proc_close_methods.append(self._forward_io_proc.terminate)
-
-    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
-        raise NotImplementedError('should be implemented by subclasses')
-
-
-class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
-    """
-    `subprocess.Popen` with `DuplicateStdoutMixin` mixed with default popen kwargs.
-    """
-
-    POPEN_KWARGS = {
-        'bufsize': 0,
-        'stdin': subprocess.PIPE,
-        'stdout': subprocess.PIPE,
-        'stderr': subprocess.STDOUT,
-        'shell': True,
-    }
-
-    def __init__(self, cmd: Union[str, List[str]], **kwargs):
-        kwargs.update(self.POPEN_KWARGS)
-        super().__init__(cmd, **kwargs)
-
-        self.proc_close_methods.append(self.terminate)
-
-    def terminate(self) -> None:
-        """
-        Terminate the process with `SIGTERM`, will also terminate the forward io process if created.
-        """
-        if self._forward_io_proc:
-            self._forward_io_proc.terminate()
-
-        super().terminate()
-
-    def send(self, s: Union[bytes, str]) -> None:
-        """
-        Write `s` to `stdin` via `stdin.write`.
-
-        If the input is `str`, will encode to `bytes` and add a b'\\n' automatically in the end.
-
-        if the input is `bytes`, will pass this directly.
-
-        Args:
-            s: bytes or str
-        """
-        self.stdin.write(to_bytes(s, '\n'))
-
-    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
-        with DuplicateStdout(pexpect_proc, source):
-            while self.poll() is None:
-                print(to_str(self.stdout.read()))
-
-
-def cls_redirect_stdout(pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None):
+def cls_duplicate_stdout(pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None):
     """
     A decorator which redirects the stdout to the pexpect thread. Should be the outermost decorator
     if there are multiple decorators.

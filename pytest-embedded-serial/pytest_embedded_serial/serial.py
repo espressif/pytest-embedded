@@ -1,12 +1,13 @@
 import copy
-from typing import Optional, Union
+import multiprocessing
+from typing import Union
 
 import serial as pyserial
-from pytest_embedded.log import DuplicateStdout, DuplicateStdoutMixin, PexpectProcess
+from pytest_embedded.log import DuplicateStdout, PexpectProcess
 from pytest_embedded.utils import to_str
 
 
-class Serial(DuplicateStdoutMixin):
+class Serial:
     """
     Custom serial class
 
@@ -49,14 +50,16 @@ class Serial(DuplicateStdoutMixin):
             raise ValueError('port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
-        self.proc_close_methods.append(self.proc.close)
+
+        # pyserial instance doesn't support redirect to other file descriptor, use a redirect process instead
+        self.redirect_proc = multiprocessing.Process(target=self._forward_io)
 
         self._start()
 
     def _start(self):
         pass
 
-    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
-        with DuplicateStdout(pexpect_proc, source):
+    def _forward_io(self) -> None:
+        with DuplicateStdout(self.pexpect_proc, 'serial'):
             while self.proc.is_open:
                 print(to_str(self.proc.readall()))

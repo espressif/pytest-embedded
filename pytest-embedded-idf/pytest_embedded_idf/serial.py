@@ -4,7 +4,7 @@ import tempfile
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout
+from pytest_embedded.log import PexpectProcess, cls_duplicate_stdout
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -42,7 +42,7 @@ class IdfSerial(EspSerial):
         else:
             self.flash()
 
-    @cls_redirect_stdout(source='flash')
+    @cls_duplicate_stdout(source='flash')
     def flash(self, erase_nvs: bool = True) -> None:
         """
         Flash the `app.flash_files` to the dut

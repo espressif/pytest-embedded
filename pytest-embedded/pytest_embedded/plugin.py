@@ -687,6 +687,7 @@ def _fixture_classes_and_options(
 
                     classes[fixture] = OpenOcd
                     kwargs[fixture] = {
+                        'pexpect_proc': pexpect_proc,
                         'openocd_prog_path': openocd_prog_path,
                         'openocd_cli_args': openocd_cli_args,
                     }
@@ -695,6 +696,7 @@ def _fixture_classes_and_options(
 
                     classes[fixture] = Gdb
                     kwargs[fixture] = {
+                        'pexpect_proc': pexpect_proc,
                         'gdb_prog_path': gdb_prog_path,
                         'gdb_cli_args': gdb_cli_args,
                     }
@@ -705,11 +707,11 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
+                    'pexpect_proc': pexpect_proc,
                     'qemu_image_path': (qemu_image_path or os.path.join(app_path or '', DEFAULT_IMAGE_FN)),
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
-                    'qemu_log_path': qemu_log_path,
                 }
         elif fixture == 'dut':
             kwargs[fixture] = {
