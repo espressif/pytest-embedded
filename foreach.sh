@@ -7,6 +7,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-idf \
   pytest-embedded-jtag \
   pytest-embedded-qemu \
+  pytest-embedded-arduino \
 "
 
 action=${1:-"install"}

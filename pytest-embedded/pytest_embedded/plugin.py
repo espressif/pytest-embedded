@@ -270,11 +270,12 @@ SERVICE_LIB_NAMES = {
     'idf': f'{BASE_LIB_NAME}-idf',
     'jtag': f'{BASE_LIB_NAME}-jtag',
     'qemu': f'{BASE_LIB_NAME}-qemu',
+    'arduino': f'{BASE_LIB_NAME}-arduino',
 }
 
 FIXTURES_SERVICES = {
-    'app': ['base', 'idf', 'qemu'],
-    'serial': ['serial', 'esp', 'idf'],
+    'app': ['base', 'idf', 'qemu', 'arduino'],
+    'serial': ['serial', 'esp', 'idf', 'arduino'],
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
@@ -349,6 +350,7 @@ def pytest_addoption(parser):
         '- idf: auto-detect more app info with idf specific rules, auto flash-in\n'
         '- jtag: openocd and gdb\n'
         '- qemu: use qemu simulator instead of the real target\n'
+        '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
         'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
@@ -405,7 +407,6 @@ def pytest_addoption(parser):
         '--qemu-log-path',
         help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
-
 
 ###############################
 # CLI Option Related Fixtures #
@@ -582,7 +583,6 @@ def qemu_log_path(request: FixtureRequest) -> Optional[str]:
     """
     return getattr(request, 'param', None) or request.config.getoption('qemu_log_path', None)
 
-
 ####################
 # Private Fixtures #
 ####################
@@ -682,6 +682,17 @@ def _fixture_classes_and_options(
                             'part_tool': part_tool,
                         }
                     )
+            elif 'arduino' in _services:
+                from pytest_embedded_arduino.app import ArduinoApp
+
+                classes[fixture] = ArduinoApp
+                kwargs[fixture].update(
+                    {
+                        'pexpect_proc': pexpect_proc,
+                        'build_dir': build_dir,
+                        'app_path': app_path,
+                    }
+                )
             else:
                 from .app import App
 
@@ -700,6 +711,16 @@ def _fixture_classes_and_options(
                     from pytest_embedded_idf.serial import IdfSerial
 
                     classes[fixture] = IdfSerial
+                    kwargs[fixture].update(
+                        {
+                            'app': None,
+                            'skip_autoflash': skip_autoflash,
+                        }
+                    )
+                elif 'arduino' in _services:
+                    from pytest_embedded_arduino.serial import ArduinoSerial
+
+                    classes[fixture] = ArduinoSerial
                     kwargs[fixture].update(
                         {
                             'app': None,
