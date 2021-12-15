@@ -1,18 +1,21 @@
-import copy
+import errno
 import logging
 import multiprocessing
+import os
 import subprocess
 import sys
 from functools import wraps
 from io import TextIOWrapper
-from typing import List, Optional, Union
+from typing import BinaryIO, List, Optional, Union
 
-import pexpect
+import pexpect.fdpexpect
+from pexpect import EOF, TIMEOUT
+from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
 from .utils import ProcessContainer, to_bytes, to_str
 
 
-class PexpectProcess(pexpect.spawn):
+class PexpectProcess(pexpect.fdpexpect.fdspawn):
     """
     `pexpect.spawn` instance with default cmd `cat`.
 
@@ -20,11 +23,7 @@ class PexpectProcess(pexpect.spawn):
     `pexpect.expect()` from one place.
     """
 
-    DEFAULT_CLI_ARGS = ['cat']
-
-    def __init__(self, cmd: Optional[list] = None, count: int = 1, total: int = 1, **kwargs):
-        cmd = cmd or copy.deepcopy(self.DEFAULT_CLI_ARGS)
-
+    def __init__(self, pexpect_fr: BinaryIO, pexpect_fw: BinaryIO, count: int = 1, total: int = 1, **kwargs):
         self._count = count
         self._total = total
 
@@ -33,8 +32,55 @@ class PexpectProcess(pexpect.spawn):
         else:
             self.source = None
 
-        super().__init__(cmd, **kwargs, codec_errors='ignore')
-        self.setecho(False)
+        super().__init__(pexpect_fr, **kwargs)
+
+        self._fr = pexpect_fr
+        self._fw = pexpect_fw
+
+    def send(self, s):
+        s = self._coerce_send_string(s)
+        self._log(s, 'send')
+
+        b = self._encoder.encode(s, final=False)
+        written = self._fw.write(b)
+        self._fw.flush()
+        return written
+
+    def read_nonblocking(self, size=1, timeout=-1):
+        try:
+            if os.name == 'posix':
+                if timeout == -1:
+                    timeout = self.timeout
+                rlist = [self.child_fd]
+                wlist = []
+                xlist = []
+                if self.use_poll:
+                    rlist = poll_ignore_interrupts(rlist, timeout)
+                else:
+                    rlist, wlist, xlist = select_ignore_interrupts(rlist, wlist, xlist, timeout)
+                if self.child_fd not in rlist:
+                    raise TIMEOUT('Timeout exceeded.')
+
+            s = os.read(self.child_fd, size)
+        except OSError as err:
+            if err.args[0] == errno.EIO:  # Linux-style EOF
+                pass
+            if err.args[0] == errno.EBADF:  # Bad file descriptor
+                raise EOF('Bad File Descriptor')
+            raise
+        if s == b'':
+            pass
+
+        s = self._decoder.decode(s, final=False)
+        self._log(s, 'read')
+        return s
+
+    def terminate(self, force=False):
+        try:
+            self._fr.close()
+            self._fw.close()
+        except:  # noqa
+            pass
 
 
 class DuplicateStdout(TextIOWrapper):
@@ -92,7 +138,7 @@ class DuplicateStdout(TextIOWrapper):
 
     def flush(self) -> None:
         """
-        Don't need to flush anymore since the write method would directly log the `sys.stdout`.
+        Don't need to flush anymore since the the flush would be called in `pexpect_proc`.
         """
         pass
 

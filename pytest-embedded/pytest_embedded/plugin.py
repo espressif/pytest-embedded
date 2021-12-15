@@ -1,13 +1,17 @@
+import datetime
 import functools
 import importlib
 import logging
 import os
 import sys
+import tempfile
+import uuid
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from typing import (
     TYPE_CHECKING,
     Any,
+    BinaryIO,
     Callable,
     Dict,
     Generator,
@@ -141,11 +145,15 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
         def _close_or_terminate(obj):
             try:
                 obj.close()
+            except OSError:
+                pass
             except AttributeError:
                 try:
                     obj.terminate()
                 except AttributeError:
-                    del obj
+                    pass
+            finally:
+                del obj
 
         res = []
         if COUNT == 1:
@@ -195,11 +203,37 @@ def test_case_name(request: FixtureRequest) -> str:
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_proc(**kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
+def pexpect_logfile(**kwargs) -> str:
+    if 'count' in kwargs:
+        name = f'dut-{count}'
+    else:
+        name = 'dut'
+
+    return os.path.join(
+        tempfile.gettempdir(), datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'), f'{name}-{uuid.uuid4()}.log'
+    )
+
+
+@pytest.fixture
+@apply_count_generator
+def pexpect_fw(pexpect_logfile) -> BinaryIO:
+    os.makedirs(os.path.dirname(pexpect_logfile), exist_ok=True)
+    return open(pexpect_logfile, 'wb')
+
+
+@pytest.fixture
+@apply_count_generator
+def pexpect_fr(pexpect_logfile, pexpect_fw) -> BinaryIO:
+    return open(pexpect_logfile, 'rb')
+
+
+@pytest.fixture
+@apply_count_generator
+def pexpect_proc(pexpect_fr, pexpect_fw, **kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
     """
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
     """
-    return PexpectProcess(**kwargs)
+    return PexpectProcess(pexpect_fr, pexpect_fw, **kwargs)
 
 
 @pytest.fixture
