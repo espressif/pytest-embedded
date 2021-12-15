@@ -247,6 +247,10 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     with redirect('prefix'):
         print('this should be logged and sent to pexpect_proc')
     ```
+
+    Warnings:
+        This is NOT thread-safe, DO NOT use this in a thread. If you want to duplicate the stdout of a thread to both
+        pexpect process and `logging.info`, please use `pexpect_proc.write()` instead.
     """
 
     def _inner(source=None):

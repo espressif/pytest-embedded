@@ -4,7 +4,7 @@ import tempfile
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout
+from pytest_embedded.log import DuplicateStdout, PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -42,7 +42,6 @@ class IdfSerial(EspSerial):
         else:
             self.flash()
 
-    @cls_redirect_stdout(source='flash')
     def flash(self, erase_nvs: bool = True) -> None:
         """
         Flash the `app.flash_files` to the dut
@@ -103,10 +102,11 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            esptool.detect_flash_size(self.esp, flash_args)
-            esptool.write_flash(self.esp, flash_args)
-            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
+            with DuplicateStdout(self.pexpect_proc, source='flash'):
+                esptool.detect_flash_size(self.esp, flash_args)
+                esptool.write_flash(self.esp, flash_args)
+                if self.proc.baudrate > self.DEFAULT_BAUDRATE:
+                    self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
         except Exception:  # noqa
             raise
         finally:

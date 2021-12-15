@@ -1,7 +1,8 @@
+import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout, live_print_call
+from pytest_embedded.log import DuplicateStdout, PexpectProcess, live_print_call
 from pytest_embedded_idf.app import IdfApp
 
 from . import DEFAULT_IMAGE_FN
@@ -97,13 +98,13 @@ class QemuApp(IdfApp):
 
         self.create_image()
 
-    @cls_redirect_stdout(source='create image')
     def create_image(self) -> None:
         """
         Create the image, if it doesn't exist.
         """
         if os.path.exists(self.image_path):
-            print(f'Using existing image: {self.image_path}')
+            logging.info(f'Using existing image: {self.image_path}')
         else:
-            image_maker = IdfFlashImageMaker(self, self.image_path)
-            image_maker.make_bin()
+            with DuplicateStdout(self.pexpect_proc, source='create image'):
+                image_maker = IdfFlashImageMaker(self, self.image_path)
+                image_maker.make_bin()
