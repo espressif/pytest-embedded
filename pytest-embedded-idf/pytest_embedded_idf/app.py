@@ -41,7 +41,7 @@ class IdfApp(App):
         super().__init__(app_path, **kwargs)
         self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:
-            logging.warning('binary path not specified, skipping parsing app...')
+            logging.warning('Binary path not specified, skipping parsing app...')
             return
 
         self.elf_file = self._get_elf_file()
@@ -60,12 +60,12 @@ class IdfApp(App):
         if os.path.isdir(build_dir):
             return os.path.realpath(build_dir)
 
-        logging.debug(f'{build_dir} not exists. treat as relative path...')
+        logging.debug(f'{build_dir} doesn\'t exist. Treat as relative path...')
         path = os.path.join(self.app_path, build_dir)
         if os.path.isdir(path):
             return path
 
-        logging.warning(f'{path} not exists')
+        logging.warning(f'{path} doesn\'t exist.')
         return None
 
     def _get_elf_file(self) -> Optional[str]:
@@ -77,7 +77,7 @@ class IdfApp(App):
     def _parse_sdkconfig(self) -> Optional[Dict[str, Any]]:
         sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
         if not os.path.isfile(sdkconfig_json_path):
-            logging.warning(f'{sdkconfig_json_path} not exists. skipping...')
+            logging.warning(f'{sdkconfig_json_path} doesn\'t exist. Skipping...')
             return None
 
         return json.load(open(sdkconfig_json_path))

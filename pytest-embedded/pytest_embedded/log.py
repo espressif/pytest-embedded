@@ -41,12 +41,12 @@ class DuplicateStdout(TextIOWrapper):
     """
     A context manager to redirect `sys.stdout` to `pexpect_proc` and log by each line.
 
-    use pytest logging functionality to log to cli or file by setting `log_cli` or `log_file` related attributes.
+    Use pytest logging functionality to log to cli or file by setting `log_cli` or `log_file` related attributes.
     These attributes could be set at the same time.
 
     Warning:
-        within this context manager, the `print()` would be redirected to `write()`.
-        All the `args` and `kwargs` passed to `print()` would be ignored and could be not working as expected.
+        Within this context manager, the `print()` would be redirected to `write()`.
+        All the `args` and `kwargs` passed to `print()` would be ignored and might not work as expected.
     """
 
     def __init__(self, pexpect_proc: PexpectProcess, source: Optional[str] = None):  # noqa
@@ -152,7 +152,7 @@ class DuplicateStdoutMixin(ProcessContainer):
 
     def create_forward_io_process(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         """
-        Create a forward io process if not exists.
+        Create a forward io process if it doesn't exist.
 
         Args:
             pexpect_proc: `PexpectProcess` instance

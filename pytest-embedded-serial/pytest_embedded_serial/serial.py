@@ -34,7 +34,7 @@ class Serial(DuplicateStdoutMixin):
         super().__init__()
 
         if port is None:
-            raise ValueError('please specify port')
+            raise ValueError('Please specify port')
 
         if isinstance(port, str):
             self.port = port
@@ -46,7 +46,7 @@ class Serial(DuplicateStdoutMixin):
             self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
             self.port = self.proc.port
         else:
-            raise ValueError('port should be a string or a pyserial.Serial instance')
+            raise ValueError('Port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
         self.proc_close_methods.append(self.proc.close)

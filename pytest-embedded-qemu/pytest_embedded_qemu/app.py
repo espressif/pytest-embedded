@@ -9,7 +9,7 @@ from . import DEFAULT_IMAGE_FN
 
 class IdfFlashImageMaker:
     """
-    Create a single image for qemu based on the `IdfApp`'s partition table and all the flash files.
+    Create a single image for QEMU based on the `IdfApp`'s partition table and all the flash files.
     """
 
     def __init__(self, app: IdfApp, image_path: str):
@@ -25,7 +25,7 @@ class IdfFlashImageMaker:
         """
         Create a single image file for qemu.
         """
-        # flash files is sorted, if the first offset is not 0x0, we need to fill in with empty bin
+        # flash_files is sorted, if the first offset is not 0x0, we need to fill it with empty bin
         if self.app.flash_files[0][0] != 0x0:
             self._write_empty_bin(count=self.app.flash_files[0][0])
         for offset, file_path, encrypted in self.app.flash_files:
@@ -100,10 +100,10 @@ class QemuApp(IdfApp):
     @cls_redirect_stdout(source='create image')
     def create_image(self) -> None:
         """
-        Create the image if not exists
+        Create the image, if it doesn't exist.
         """
         if os.path.exists(self.image_path):
-            print(f'Using image already exists: {self.image_path}')
+            print(f'Using existing image: {self.image_path}')
         else:
             image_maker = IdfFlashImageMaker(self, self.image_path)
             image_maker.make_bin()
