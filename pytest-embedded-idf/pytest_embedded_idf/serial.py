@@ -31,7 +31,7 @@ class IdfSerial(EspSerial):
         self.skip_autoflash = skip_autoflash
 
         if target and self.app.target and self.app.target != target:
-            raise ValueError(f'target not match. App target: {self.app.target}, Cmd target: {target}.')
+            raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
         super().__init__(pexpect_proc, target or app.target, port, baud, **kwargs)
 
