@@ -1,3 +1,5 @@
+import logging
+
 from pytest_embedded.app import App
 from pytest_embedded.dut import Dut
 from pytest_embedded.log import PexpectProcess
@@ -22,7 +24,12 @@ class SerialDut(Dut):
         self.serial = serial
         self.serial.create_forward_io_thread(self.pexpect_proc, source='serial')
 
-        self.proc_close_methods.append(self.serial.proc.close)
+        self.proc_close_methods.append(self._close)
 
     def write(self, data: bytes) -> int:
         return self.serial.proc.write(data)
+
+    def _close(self) -> None:
+        self.serial.proc.close()
+        self.serial.occupied_ports.pop(self.serial.port, None)
+        logging.debug(f'released {self.serial.port}')

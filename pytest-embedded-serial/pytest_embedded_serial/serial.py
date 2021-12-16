@@ -1,6 +1,7 @@
 import copy
+import logging
 import time
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import serial as pyserial
 from pytest_embedded.log import DuplicateStdoutMixin, PexpectProcess
@@ -27,6 +28,8 @@ class Serial(DuplicateStdoutMixin):
         'rtscts': False,
     }
 
+    occupied_ports: Dict[str, None] = dict()
+
     def __init__(self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], **kwargs):
         """
         Args:
@@ -51,6 +54,8 @@ class Serial(DuplicateStdoutMixin):
             raise ValueError('Port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
+        self.occupied_ports[self.port] = None
+        logging.debug(f'occupied {self.port}')
 
         self._start()
 

@@ -25,7 +25,9 @@ class EspSerial(Serial):
         **kwargs,
     ) -> None:
         if port is None:
-            ports = esptool.get_port_list()
+            available_ports = esptool.get_port_list()
+            ports = list(set(available_ports) - set(self.occupied_ports.keys()))
+            logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
             ports = [port]
 
@@ -42,11 +44,11 @@ class EspSerial(Serial):
                 self.esp.change_baud(baud)  # change back to the users settings
 
         target = self.esp.CHIP_NAME.lower().replace('-', '')
-        port = self.esp.serial_port
-        logging.info(f'Target: {target}, Port: {port}')
+        logging.info(f'Target: {target}, Port: {self.esp.serial_port}')
 
         self.target = target
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
 
     def _start(self):
-        self.esp.hard_reset()
+        with DuplicateStdout(self.pexpect_proc, 'esptool'):
+            self.esp.hard_reset()
