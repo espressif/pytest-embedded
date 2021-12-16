@@ -112,7 +112,10 @@ class IdfSerial(EspSerial):
         finally:
             if nvs_file:
                 nvs_file.close()
-                os.remove(nvs_file.name)
+                try:
+                    os.remove(nvs_file.name)
+                except OSError:
+                    pass
             for (_, f) in flash_files:
                 f.close()
             for (_, f) in encrypt_files:
