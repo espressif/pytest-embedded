@@ -55,4 +55,4 @@ class Gdb(DuplicateStdoutPopen):
         """
         GDB/MI commands `-exec-continue --all`
         """
-        self.send(f'-exec-continue --all')
+        self.send('-exec-continue --all')

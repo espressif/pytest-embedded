@@ -203,7 +203,7 @@ def test_case_name(request: FixtureRequest) -> str:
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_logfile(**kwargs) -> str:
+def _pexpect_logfile(**kwargs) -> str:
     if 'count' in kwargs:
         name = f'dut-{count}'
     else:
@@ -216,24 +216,24 @@ def pexpect_logfile(**kwargs) -> str:
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_fw(pexpect_logfile) -> BinaryIO:
-    os.makedirs(os.path.dirname(pexpect_logfile), exist_ok=True)
-    return open(pexpect_logfile, 'wb')
+def _pexpect_fw(_pexpect_logfile) -> BinaryIO:
+    os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
+    return open(_pexpect_logfile, 'wb')
 
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_fr(pexpect_logfile, pexpect_fw) -> BinaryIO:
-    return open(pexpect_logfile, 'rb')
+def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
+    return open(_pexpect_logfile, 'rb')
 
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_proc(pexpect_fr, pexpect_fw, **kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
+def pexpect_proc(_pexpect_fr, _pexpect_fw, **kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
     """
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
     """
-    return PexpectProcess(pexpect_fr, pexpect_fw, **kwargs)
+    return PexpectProcess(_pexpect_fr, _pexpect_fw, **kwargs)
 
 
 @pytest.fixture
@@ -248,9 +248,9 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
         print('this should be logged and sent to pexpect_proc')
     ```
 
-    Warnings:
-        This is NOT thread-safe, DO NOT use this in a thread. If you want to duplicate the stdout of a thread to both
-        pexpect process and `logging.info`, please use `pexpect_proc.write()` instead.
+    Warning:
+        This is NOT thread-safe, DO NOT use this in a thread. If you want to redirect the stdout of a thread to the
+        pexpect process and log it, please use `pexpect_proc.write()` instead.
     """
 
     def _inner(source=None):
@@ -715,8 +715,8 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Serial
                 kwargs[fixture] = {
-                    'port': port,
                     'pexpect_proc': pexpect_proc,
+                    'port': port,
                 }
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:

@@ -5,7 +5,7 @@ import subprocess
 import sys
 import threading
 from io import TextIOWrapper
-from typing import BinaryIO, List, Optional, Union
+from typing import AnyStr, BinaryIO, List, Optional, Union
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -16,10 +16,7 @@ from .utils import to_bytes, to_str
 
 class PexpectProcess(pexpect.fdpexpect.fdspawn):
     """
-    `pexpect.spawn` instance with default cmd `cat`.
-
-    `cat` will copy the stdin to stdout, that could help to gather multiple inputs into one output, and do
-    `pexpect.expect()` from one place.
+    Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
     """
 
     def __init__(self, pexpect_fr: BinaryIO, pexpect_fw: BinaryIO, count: int = 1, total: int = 1, **kwargs):
@@ -36,7 +33,18 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self._fr = pexpect_fr
         self._fw = pexpect_fw
 
-    def send(self, s, source: Optional[str] = None) -> int:  # noqa
+    def send(self, s: AnyStr, source: Optional[str] = None) -> int:  # noqa
+        """
+        Write to the pexpect process and log.
+
+        Args:
+            s: bytes or str
+            source: where the `sys.stdout` comes from.
+                Would set the prefix to the log, like `[SOURCE] this line is a log`
+
+        Returns:
+            number of written bytes.
+        """
         s = self._coerce_send_string(s)
         self._log(s, 'send')
 
@@ -62,7 +70,18 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
     def write(self, s, source: Optional[str] = None) -> None:  # noqa
         self.send(s, source)  # noqa
 
-    def read_nonblocking(self, size=1, timeout=-1):
+    def read_nonblocking(self, size=1, timeout=-1) -> bytes:
+        """
+        Since we're using real file stream, here we only raise an EOF error only when the file stream has been closed.
+        This could solve the `os.read()` blocked issue.
+
+        Args:
+            size: most read bytes
+            timeout: timeout
+
+        Returns:
+            read bytes
+        """
         try:
             if os.name == 'posix':
                 if timeout == -1:
@@ -85,14 +104,14 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
                 raise EOF('Bad File Descriptor')
             raise
 
-        if s == b'':
-            pass
-
         s = self._decoder.decode(s, final=False)
         self._log(s, 'read')
         return s
 
     def terminate(self, force=False):
+        """
+        Close the temporary file streams
+        """
         try:
             self._fr.close()
             self._fw.close()
@@ -102,13 +121,13 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
 class DuplicateStdout(TextIOWrapper):
     """
-    A context manager to redirect `sys.stdout` to `pexpect_proc` and log by each line.
+    A context manager to redirect `sys.stdout` to `pexpect_proc`.
 
     Use pytest logging functionality to log to cli or file by setting `log_cli` or `log_file` related attributes.
     These attributes could be set at the same time.
 
-    Warnings:
-        - Within this context manager, the `print()` would be redirected to `write()`.
+    Warning:
+        - Within this context manager, the `print()` would be redirected to `self.write()`.
         All the `args` and `kwargs` passed to `print()` would be ignored and might not work as expected.
 
         - The context manager replacement of `sys.stdout` is NOT thread-safe. DO NOT use it in a thread.
@@ -138,9 +157,9 @@ class DuplicateStdout(TextIOWrapper):
     def __del__(self):
         self.close()
 
-    def write(self, data) -> None:
+    def write(self, data: bytes) -> None:
         """
-        Write string with `logging.info()`, and duplicate the string to `pexpect_proc`.
+        Call `pexpect_proc.write()` instead of `sys.stdout.write()`
         """
         if not data:
             return
@@ -197,9 +216,8 @@ class DuplicateStdoutMixin:
         `_forward_io()` should be implemented in subclasses, the function should be something like:
 
         ```python
-        def _forward_io(self, pexpect_proc: Optional[PexpectProcess] = None, source: Optional[str] = None) -> None:
-            with DuplicateStdout(pexpect_proc, source) as fw:
-                fw.write(...)
+        def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
+            pexpect_proc.write(...)
         ```
     """
 
@@ -210,7 +228,7 @@ class DuplicateStdoutMixin:
 
     def create_forward_io_thread(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
         """
-        Create a forward io daemon thread if doesn't exist.
+        Create a forward io daemon thread if it doesn't exist.
 
         Args:
             pexpect_proc: `PexpectProcess` instance
@@ -244,9 +262,9 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
         kwargs.update(self.POPEN_KWARGS)
         super().__init__(cmd, **kwargs)
 
-    def send(self, s: Union[bytes, str]) -> None:
+    def send(self, s: AnyStr) -> None:
         """
-        Write `s` to `stdin` via `stdin.write`.
+        Write to `stdin` via `stdin.write`.
 
         If the input is `str`, will encode to `bytes` and add a b'\\n' automatically in the end.
 

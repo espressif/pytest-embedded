@@ -1,6 +1,6 @@
 import telnetlib
 from time import sleep
-from typing import Union
+from typing import AnyStr
 
 from pytest_embedded.app import App
 from pytest_embedded.log import PexpectProcess
@@ -56,7 +56,7 @@ class JtagDut(SerialDut):
             ]
         )
 
-    def telnet_send(self, s: Union[bytes, str]) -> None:
+    def telnet_send(self, s: AnyStr) -> None:
         """
         Send commands through telnet port, could also be called by `self.telnet.send()`
 

@@ -49,7 +49,7 @@ class IdfFlashImageMaker:
 
     def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
         live_print_call(
-            f'dd if=/dev/zero bs=1 count=32 of=key.bin',
+            'dd if=/dev/zero bs=1 count=32 of=key.bin',
             shell=True,
         )  # generate a fake key bin
         live_print_call(

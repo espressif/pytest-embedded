@@ -1,7 +1,5 @@
 import os
 
-import pytest  # noqa
-
 
 def test_idf_serial_flash(testdir):
     testdir.makepyfile("""
