@@ -1,13 +1,17 @@
+import datetime
 import functools
 import importlib
 import logging
 import os
 import sys
+import tempfile
+import uuid
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from typing import (
     TYPE_CHECKING,
     Any,
+    BinaryIO,
     Callable,
     Dict,
     Generator,
@@ -141,11 +145,15 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
         def _close_or_terminate(obj):
             try:
                 obj.close()
+            except OSError:
+                pass
             except AttributeError:
                 try:
                     obj.terminate()
                 except AttributeError:
-                    del obj
+                    pass
+            finally:
+                del obj
 
         res = []
         if COUNT == 1:
@@ -195,11 +203,37 @@ def test_case_name(request: FixtureRequest) -> str:
 
 @pytest.fixture
 @apply_count_generator
-def pexpect_proc(**kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
+def _pexpect_logfile(**kwargs) -> str:
+    if 'count' in kwargs:
+        name = f'dut-{count}'
+    else:
+        name = 'dut'
+
+    return os.path.join(
+        tempfile.gettempdir(), datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'), f'{name}-{uuid.uuid4()}.log'
+    )
+
+
+@pytest.fixture
+@apply_count_generator
+def _pexpect_fw(_pexpect_logfile) -> BinaryIO:
+    os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
+    return open(_pexpect_logfile, 'wb')
+
+
+@pytest.fixture
+@apply_count_generator
+def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
+    return open(_pexpect_logfile, 'rb')
+
+
+@pytest.fixture
+@apply_count_generator
+def pexpect_proc(_pexpect_fr, _pexpect_fw, **kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
     """
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
     """
-    return PexpectProcess(**kwargs)
+    return PexpectProcess(_pexpect_fr, _pexpect_fw, **kwargs)
 
 
 @pytest.fixture
@@ -213,6 +247,10 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     with redirect('prefix'):
         print('this should be logged and sent to pexpect_proc')
     ```
+
+    Warning:
+        This is NOT thread-safe, DO NOT use this in a thread. If you want to redirect the stdout of a thread to the
+        pexpect process and log it, please use `pexpect_proc.write()` instead.
     """
 
     def _inner(source=None):
@@ -677,8 +715,8 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Serial
                 kwargs[fixture] = {
-                    'port': port,
                     'pexpect_proc': pexpect_proc,
+                    'port': port,
                 }
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:

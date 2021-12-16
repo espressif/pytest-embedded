@@ -1,6 +1,3 @@
-import pytest  # noqa
-
-
 def test_detect_port(testdir):
     testdir.makepyfile("""
         def test_detect_port(dut):

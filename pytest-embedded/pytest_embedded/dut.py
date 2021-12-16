@@ -16,8 +16,8 @@ class Dut(ProcessContainer):
     def __init__(self, pexpect_proc: PexpectProcess, app: App, **kwargs) -> None:
         """
         Args:
-            app: `App` instance
             pexpect_proc: `PexpectProcess` instance
+            app: `App` instance
         """
         super().__init__()
 

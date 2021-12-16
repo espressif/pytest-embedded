@@ -1,9 +1,12 @@
 import copy
-from typing import Optional, Union
+import logging
+import time
+from typing import Dict, Optional, Union
 
 import serial as pyserial
-from pytest_embedded.log import DuplicateStdout, DuplicateStdoutMixin, PexpectProcess
+from pytest_embedded.log import DuplicateStdoutMixin, PexpectProcess
 from pytest_embedded.utils import to_str
+from serial import PortNotOpenError
 
 
 class Serial(DuplicateStdoutMixin):
@@ -24,6 +27,8 @@ class Serial(DuplicateStdoutMixin):
         'xonxoff': False,
         'rtscts': False,
     }
+
+    occupied_ports: Dict[str, None] = dict()
 
     def __init__(self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], **kwargs):
         """
@@ -49,7 +54,8 @@ class Serial(DuplicateStdoutMixin):
             raise ValueError('Port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
-        self.proc_close_methods.append(self.proc.close)
+        self.occupied_ports[self.port] = None
+        logging.debug(f'occupied {self.port}')
 
         self._start()
 
@@ -57,6 +63,9 @@ class Serial(DuplicateStdoutMixin):
         pass
 
     def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
-        with DuplicateStdout(pexpect_proc, source):
-            while self.proc.is_open:
-                print(to_str(self.proc.readall()))
+        while self.proc.is_open:
+            try:
+                pexpect_proc.write(to_str(self.proc.readall()), source)
+            except PortNotOpenError:  # ensure thread safe
+                break
+            time.sleep(0.5)  # set interval

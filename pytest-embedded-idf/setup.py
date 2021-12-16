@@ -12,8 +12,8 @@ def read(fname):
 
 
 def get_version():
-    regex = re.compile(r'^version = "([0-9.]+)"$', re.MULTILINE)
-    return regex.findall(read('../pyproject.toml'))[0]
+    regex = re.compile(r'version = "([0-9.]+)"')
+    return regex.findall(read(os.path.join('..', 'pyproject.toml')))[0]
 
 
 AUTHOR = 'Fu Hanxi'

@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Union
+from typing import AnyStr, Optional
 
 
 class ProcessContainer:
@@ -21,14 +21,15 @@ class ProcessContainer:
         """
         Call all the sessions/threads/processes terminate methods defined in `proc_close_methods`
         """
-        for func in getattr(self, 'proc_close_methods', []):
+        # the later it appends, the upper level it is. close the upper one first.
+        for func in getattr(self, 'proc_close_methods', [])[::-1]:
             try:
                 func()
             except Exception as e:
                 logging.error(e)
 
 
-def to_str(bytes_str: Union[bytes, str]) -> str:
+def to_str(bytes_str: AnyStr) -> str:
     """
     Turn `bytes` or `str` to `str`
 
@@ -43,7 +44,7 @@ def to_str(bytes_str: Union[bytes, str]) -> str:
     return bytes_str
 
 
-def to_bytes(bytes_str: Union[bytes, str], ending: Optional[Union[bytes, str]] = None) -> bytes:
+def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
     """
     Turn `bytes` or `str` to `bytes`
 

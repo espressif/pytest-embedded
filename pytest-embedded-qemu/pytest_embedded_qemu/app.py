@@ -1,7 +1,8 @@
+import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout, live_print_call
+from pytest_embedded.log import DuplicateStdout, PexpectProcess, live_print_call
 from pytest_embedded_idf.app import IdfApp
 
 from . import DEFAULT_IMAGE_FN
@@ -48,7 +49,7 @@ class IdfFlashImageMaker:
 
     def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
         live_print_call(
-            f'dd if=/dev/zero bs=1 count=32 of=key.bin',
+            'dd if=/dev/zero bs=1 count=32 of=key.bin',
             shell=True,
         )  # generate a fake key bin
         live_print_call(
@@ -97,13 +98,13 @@ class QemuApp(IdfApp):
 
         self.create_image()
 
-    @cls_redirect_stdout(source='create image')
     def create_image(self) -> None:
         """
         Create the image, if it doesn't exist.
         """
         if os.path.exists(self.image_path):
-            print(f'Using existing image: {self.image_path}')
+            logging.info(f'Using existing image: {self.image_path}')
         else:
-            image_maker = IdfFlashImageMaker(self, self.image_path)
-            image_maker.make_bin()
+            with DuplicateStdout(self.pexpect_proc, source='create image'):
+                image_maker = IdfFlashImageMaker(self, self.image_path)
+                image_maker.make_bin()

@@ -132,7 +132,7 @@ class IdfApp(App):
         )
         if os.path.isfile(parttool_filepath):
             return os.path.realpath(parttool_filepath)
-        logging.error('Partition Tool not found. (Default: $IDF_PATH/components/partition_table/gen_esp32part.py)')
+        logging.warning('Partition Tool not found. (Default: $IDF_PATH/components/partition_table/gen_esp32part.py)')
         return None
 
     def _parse_partition_table(self) -> Optional[Dict[str, Any]]:

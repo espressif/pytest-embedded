@@ -4,7 +4,7 @@ import tempfile
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import PexpectProcess, cls_redirect_stdout
+from pytest_embedded.log import DuplicateStdout, PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -16,6 +16,8 @@ class IdfSerial(EspSerial):
 
     Auto flash the app while starting test.
     """
+
+    SUGGEST_FLASH_BAUDRATE = 921600
 
     def __init__(
         self,
@@ -42,7 +44,6 @@ class IdfSerial(EspSerial):
         else:
             self.flash()
 
-    @cls_redirect_stdout(source='flash')
     def flash(self, erase_nvs: bool = True) -> None:
         """
         Flash the `app.flash_files` to the dut
@@ -103,16 +104,24 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            esptool.detect_flash_size(self.esp, flash_args)
-            esptool.write_flash(self.esp, flash_args)
-            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
+            with DuplicateStdout(self.pexpect_proc, source='flash'):
+                if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
+                    self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
+
+                esptool.detect_flash_size(self.esp, flash_args)
+                esptool.write_flash(self.esp, flash_args)
+
+                if self.proc.baudrate > self.DEFAULT_BAUDRATE:
+                    self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
         except Exception:  # noqa
             raise
         finally:
             if nvs_file:
                 nvs_file.close()
-                os.remove(nvs_file.name)
+                try:
+                    os.remove(nvs_file.name)
+                except OSError:
+                    pass
             for (_, f) in flash_files:
                 f.close()
             for (_, f) in encrypt_files:

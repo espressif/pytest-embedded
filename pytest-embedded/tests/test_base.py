@@ -130,7 +130,7 @@ def test_default_app_path(testdir):
         import pexpect
 
         def test_default_app_path(app):
-            assert app.app_path == '{testdir.tmpdir}'
+            assert app.app_path == r'{testdir.tmpdir}'
     """)
 
     result = testdir.runpytest()
