@@ -39,10 +39,9 @@ class ArduinoApp(App):
             build_dir: Build directory.
         """
 
-        super().__init__(app_path, **kwargs)
+        super().__init__(app_path, build_dir, **kwargs)
 
         self.sketch = os.path.basename(app_path)
-        self.build_dir = build_dir or 'build'
         self.build_path = os.path.realpath(os.path.join(self.app_path, self.build_dir))
         self.fqbn = self._get_fqbn(self.build_path)
         self.target = self.fqbn.split(':')[2]

@@ -354,6 +354,7 @@ def pytest_addoption(parser):
         'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
+    base_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
@@ -363,7 +364,6 @@ def pytest_addoption(parser):
     esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
 
     idf_group = parser.getgroup('embedded-idf')
-    idf_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
     idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
@@ -408,6 +408,7 @@ def pytest_addoption(parser):
         help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
 
+
 ###############################
 # CLI Option Related Fixtures #
 ###############################
@@ -432,6 +433,15 @@ def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
     return (
         getattr(request, 'param', None) or request.config.getoption('app_path', None) or os.path.dirname(test_file_path)
     )
+
+
+@pytest.fixture
+@parse_configuration
+def build_dir(request: FixtureRequest) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
 
 
 ##########
@@ -470,15 +480,6 @@ def baud(request: FixtureRequest) -> Optional[str]:
 #######
 # idf #
 #######
-@pytest.fixture
-@parse_configuration
-def build_dir(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
-
-
 @pytest.fixture
 @parse_configuration
 def part_tool(request: FixtureRequest) -> Optional[str]:
@@ -583,6 +584,7 @@ def qemu_log_path(request: FixtureRequest) -> Optional[str]:
     """
     return getattr(request, 'param', None) or request.config.getoption('qemu_log_path', None)
 
+
 ####################
 # Private Fixtures #
 ####################
@@ -616,10 +618,10 @@ def _fixture_classes_and_options(
     _services,
     # parametrize fixtures
     app_path,
+    build_dir,
     port,
     target,
     baud,
-    build_dir,
     part_tool,
     skip_autoflash,
     openocd_prog_path,
@@ -657,7 +659,7 @@ def _fixture_classes_and_options(
 
     for fixture, provide_services in FIXTURES_SERVICES.items():
         if fixture == 'app':
-            kwargs['app'] = {'app_path': app_path}
+            kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
             if 'idf' in _services:
                 if 'qemu' in _services:
                     from pytest_embedded_qemu.app import DEFAULT_IMAGE_FN, QemuApp
@@ -666,7 +668,6 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'pexpect_proc': pexpect_proc,
-                            'build_dir': build_dir,
                             'part_tool': part_tool,
                             'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
                         }
@@ -678,7 +679,6 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'pexpect_proc': pexpect_proc,
-                            'build_dir': build_dir,
                             'part_tool': part_tool,
                         }
                     )
@@ -689,7 +689,6 @@ def _fixture_classes_and_options(
                 kwargs[fixture].update(
                     {
                         'pexpect_proc': pexpect_proc,
-                        'build_dir': build_dir,
                         'app_path': app_path,
                     }
                 )
