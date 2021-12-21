@@ -1,0 +1,8 @@
+build/
+
+# idf related
+sdkconfig
+sdkconfig.old
+
+# qemu image
+flash_image.bin

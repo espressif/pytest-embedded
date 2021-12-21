@@ -69,11 +69,3 @@ venv/
 
 # IDE
 .idea/
-
-# idf related
-sdkconfig
-sdkconfig.old
-build/
-
-# qemu image
-flash_image.bin
