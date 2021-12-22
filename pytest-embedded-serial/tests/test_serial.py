@@ -3,7 +3,7 @@ import sys
 import pytest
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='does not have socat on windows')
+@pytest.mark.skipif(sys.platform == 'win32', reason='No socat support on windows')
 def test_serial_port(testdir):
     testdir.makepyfile("""
         import pytest

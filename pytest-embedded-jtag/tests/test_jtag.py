@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-jtag_connection_required = pytest.mark.skipif(
-    os.getenv('DONT_SKIP_JTAG_TESTS', False) is False,
-    reason='after connected via JTAG, use "DONT_SKIP_JTAG_TESTS" to run this test')
+jtag_connection_required = pytest.mark.skipif(os.getenv('DONT_SKIP_JTAG_TESTS', False) is False,
+                                              reason='Connect the board to a JTAG adapter then '
+                                                     'use "DONT_SKIP_JTAG_TESTS" to run this test.')
 
 
 @jtag_connection_required

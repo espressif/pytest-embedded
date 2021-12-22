@@ -3,8 +3,8 @@ import os
 import pytest
 
 qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
-                                       reason='after compiled qemu bin for esp32 locally, '
-                                              'use "DONT_SKIP_QEMU_TESTS" to run this test')
+                                       reason='Build QEMU for ESP32 locally and then '
+                                              'use "DONT_SKIP_QEMU_TESTS" to run this test.')
 
 
 @qemu_bin_required
