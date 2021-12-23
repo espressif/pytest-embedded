@@ -362,16 +362,16 @@ def pytest_addoption(parser):
     esp_group = parser.getgroup('embedded-esp')
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
     esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
+    esp_group.addoption(
+        '--skip-autoflash',
+        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
+    )
 
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
-    )
-    idf_group.addoption(
-        '--skip-autoflash',
-        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -477,6 +477,15 @@ def baud(request: FixtureRequest) -> Optional[str]:
     return getattr(request, 'param', None) or request.config.getoption('baud', None)
 
 
+@pytest.fixture
+@parse_configuration
+def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
+
+
 #######
 # idf #
 #######
@@ -487,15 +496,6 @@ def part_tool(request: FixtureRequest) -> Optional[str]:
     Enable parametrization for the same cli option
     """
     return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
-
-
-@pytest.fixture
-@parse_configuration
-def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
 
 
 ########
@@ -622,8 +622,8 @@ def _fixture_classes_and_options(
     port,
     target,
     baud,
-    part_tool,
     skip_autoflash,
+    part_tool,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -705,6 +705,7 @@ def _fixture_classes_and_options(
                     'target': target,
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
+                    'skip_autoflash': skip_autoflash,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial
@@ -713,7 +714,6 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
-                            'skip_autoflash': skip_autoflash,
                         }
                     )
                 elif 'arduino' in _services:
@@ -723,7 +723,6 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
-                            'skip_autoflash': skip_autoflash,
                         }
                     )
                 else:

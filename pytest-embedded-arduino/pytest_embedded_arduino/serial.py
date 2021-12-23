@@ -28,8 +28,7 @@ class ArduinoSerial(EspSerial):
         **kwargs,
     ) -> None:
         self.app = app
-        self.skip_autoflash = skip_autoflash
-        super().__init__(pexpect_proc, target or self.app.target, port, baud, **kwargs)
+        super().__init__(pexpect_proc, target or self.app.target, port, baud, skip_autoflash, **kwargs)
 
     def _start(self):
         if self.skip_autoflash:
