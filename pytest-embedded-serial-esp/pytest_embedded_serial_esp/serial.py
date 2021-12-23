@@ -22,6 +22,7 @@ class EspSerial(Serial):
         target: Optional[str] = None,
         port: Optional[str] = None,
         baud: int = DEFAULT_BAUDRATE,
+        skip_autoflash: bool = False,
         **kwargs,
     ) -> None:
         if port is None:
@@ -47,6 +48,7 @@ class EspSerial(Serial):
         logging.info(f'Target: {target}, Port: {self.esp.serial_port}')
 
         self.target = target
+        self.skip_autoflash = skip_autoflash
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
 
     def _start(self):

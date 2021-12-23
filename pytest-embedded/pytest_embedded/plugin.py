@@ -270,11 +270,12 @@ SERVICE_LIB_NAMES = {
     'idf': f'{BASE_LIB_NAME}-idf',
     'jtag': f'{BASE_LIB_NAME}-jtag',
     'qemu': f'{BASE_LIB_NAME}-qemu',
+    'arduino': f'{BASE_LIB_NAME}-arduino',
 }
 
 FIXTURES_SERVICES = {
-    'app': ['base', 'idf', 'qemu'],
-    'serial': ['serial', 'esp', 'idf'],
+    'app': ['base', 'idf', 'qemu', 'arduino'],
+    'serial': ['serial', 'esp', 'idf', 'arduino'],
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
@@ -349,9 +350,11 @@ def pytest_addoption(parser):
         '- idf: auto-detect more app info with idf specific rules, auto flash-in\n'
         '- jtag: openocd and gdb\n'
         '- qemu: use qemu simulator instead of the real target\n'
+        '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
         'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
+    base_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
@@ -359,17 +362,16 @@ def pytest_addoption(parser):
     esp_group = parser.getgroup('embedded-esp')
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
     esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
+    esp_group.addoption(
+        '--skip-autoflash',
+        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
+    )
 
     idf_group = parser.getgroup('embedded-idf')
-    idf_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
     idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
-    )
-    idf_group.addoption(
-        '--skip-autoflash',
-        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -433,6 +435,15 @@ def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
     )
 
 
+@pytest.fixture
+@parse_configuration
+def build_dir(request: FixtureRequest) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
+
+
 ##########
 # serial #
 ##########
@@ -466,27 +477,6 @@ def baud(request: FixtureRequest) -> Optional[str]:
     return getattr(request, 'param', None) or request.config.getoption('baud', None)
 
 
-#######
-# idf #
-#######
-@pytest.fixture
-@parse_configuration
-def build_dir(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
-
-
-@pytest.fixture
-@parse_configuration
-def part_tool(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
-
-
 @pytest.fixture
 @parse_configuration
 def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
@@ -494,6 +484,18 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
     Enable parametrization for the same cli option
     """
     return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
+
+
+#######
+# idf #
+#######
+@pytest.fixture
+@parse_configuration
+def part_tool(request: FixtureRequest) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
 
 
 ########
@@ -616,12 +618,12 @@ def _fixture_classes_and_options(
     _services,
     # parametrize fixtures
     app_path,
+    build_dir,
     port,
     target,
     baud,
-    build_dir,
-    part_tool,
     skip_autoflash,
+    part_tool,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -657,7 +659,7 @@ def _fixture_classes_and_options(
 
     for fixture, provide_services in FIXTURES_SERVICES.items():
         if fixture == 'app':
-            kwargs['app'] = {'app_path': app_path}
+            kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
             if 'idf' in _services:
                 if 'qemu' in _services:
                     from pytest_embedded_qemu.app import DEFAULT_IMAGE_FN, QemuApp
@@ -666,7 +668,6 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'pexpect_proc': pexpect_proc,
-                            'build_dir': build_dir,
                             'part_tool': part_tool,
                             'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
                         }
@@ -678,10 +679,19 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'pexpect_proc': pexpect_proc,
-                            'build_dir': build_dir,
                             'part_tool': part_tool,
                         }
                     )
+            elif 'arduino' in _services:
+                from pytest_embedded_arduino.app import ArduinoApp
+
+                classes[fixture] = ArduinoApp
+                kwargs[fixture].update(
+                    {
+                        'pexpect_proc': pexpect_proc,
+                        'app_path': app_path,
+                    }
+                )
             else:
                 from .app import App
 
@@ -695,6 +705,7 @@ def _fixture_classes_and_options(
                     'target': target,
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
+                    'skip_autoflash': skip_autoflash,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial
@@ -703,7 +714,15 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
-                            'skip_autoflash': skip_autoflash,
+                        }
+                    )
+                elif 'arduino' in _services:
+                    from pytest_embedded_arduino.serial import ArduinoSerial
+
+                    classes[fixture] = ArduinoSerial
+                    kwargs[fixture].update(
+                        {
+                            'app': None,
                         }
                     )
                 else:

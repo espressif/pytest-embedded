@@ -38,7 +38,7 @@ class IdfApp(App):
             build_dir: Build directory
             part_tool: Partition tool path
         """
-        super().__init__(app_path, **kwargs)
+        super().__init__(app_path, build_dir, **kwargs)
         self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:
             logging.warning('Binary path not specified, skipping parsing app...')

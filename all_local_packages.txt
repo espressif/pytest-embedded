@@ -4,3 +4,4 @@
 -e ./pytest-embedded-idf/
 -e ./pytest-embedded-jtag/
 -e ./pytest-embedded-qemu/
+-e ./pytest-embedded-arduino/
