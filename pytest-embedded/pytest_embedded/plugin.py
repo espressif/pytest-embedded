@@ -155,15 +155,16 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
             finally:
                 del obj
 
-        res = []
         if COUNT == 1:
-            res = func(*args, **kwargs)
+            res = None
             try:
+                res = func(*args, **kwargs)
                 yield res
             finally:
                 if res:
                     _close_or_terminate(res)
         else:
+            res = []
             for i in range(COUNT):
                 getter = itemgetter(i)
                 current_kwargs = {}
@@ -176,8 +177,9 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
             try:
                 yield res
             finally:
-                for item in res:
-                    _close_or_terminate(item)
+                if res:
+                    for item in res:
+                        _close_or_terminate(item)
 
     return wrapper
 
