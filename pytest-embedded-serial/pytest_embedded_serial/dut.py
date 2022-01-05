@@ -22,7 +22,7 @@ class SerialDut(Dut):
         super().__init__(pexpect_proc, app, **kwargs)
 
         self.serial = serial
-        self.serial.create_forward_io_thread(self.pexpect_proc, source='serial')
+        self.serial.create_forward_io_thread(self.pexpect_proc)
 
         self.proc_close_methods.append(self._close)
 

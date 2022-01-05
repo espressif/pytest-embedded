@@ -66,7 +66,7 @@ class ArduinoSerial(EspSerial):
         flash_args = FlashArgs(default_kwargs)
 
         try:
-            with DuplicateStdout(self.pexpect_proc, source='flash'):
+            with DuplicateStdout(self.pexpect_proc):
                 if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
                     self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 

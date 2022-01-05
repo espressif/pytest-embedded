@@ -246,7 +246,7 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
-    with redirect('prefix'):
+    with redirect():
         print('this should be logged and sent to pexpect_proc')
     ```
 
@@ -255,8 +255,8 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
         pexpect process and log it, please use `pexpect_proc.write()` instead.
     """
 
-    def _inner(source=None):
-        return DuplicateStdout(pexpect_proc, source=source)
+    def _inner():
+        return DuplicateStdout(pexpect_proc)
 
     return _inner
 

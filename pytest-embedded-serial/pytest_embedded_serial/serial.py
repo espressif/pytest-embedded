@@ -1,11 +1,10 @@
 import copy
 import logging
 import time
-from typing import Dict, Optional, Union
+from typing import Dict, Union
 
 import serial as pyserial
 from pytest_embedded.log import DuplicateStdoutMixin, PexpectProcess
-from pytest_embedded.utils import to_str
 from serial import PortNotOpenError
 
 
@@ -62,10 +61,10 @@ class Serial(DuplicateStdoutMixin):
     def _start(self):
         pass
 
-    def _forward_io(self, pexpect_proc: PexpectProcess, source: Optional[str] = None) -> None:
+    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
         while self.proc.is_open:
             try:
-                pexpect_proc.write(to_str(self.proc.readall()), source)
+                pexpect_proc.write(self.proc.readall())
             except PortNotOpenError:  # ensure thread safe
                 break
             time.sleep(0.5)  # set interval

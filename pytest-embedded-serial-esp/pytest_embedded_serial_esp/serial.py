@@ -32,7 +32,7 @@ class EspSerial(Serial):
         else:
             ports = [port]
 
-        with DuplicateStdout(pexpect_proc, 'detecting port'):
+        with DuplicateStdout(pexpect_proc):
             initial_baud = min(self.DEFAULT_BAUDRATE, baud)  # don't sync faster than the default baud rate
             self.esp = esptool.get_default_connected_device(
                 ports, port=port, connect_attempts=3, initial_baud=initial_baud, chip=target
@@ -52,5 +52,5 @@ class EspSerial(Serial):
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
 
     def _start(self):
-        with DuplicateStdout(self.pexpect_proc, 'esptool'):
+        with DuplicateStdout(self.pexpect_proc):
             self.esp.hard_reset()
