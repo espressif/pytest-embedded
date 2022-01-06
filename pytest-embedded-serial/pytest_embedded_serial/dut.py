@@ -1,8 +1,10 @@
 import logging
+from typing import AnyStr
 
 from pytest_embedded.app import App
 from pytest_embedded.dut import Dut
 from pytest_embedded.log import PexpectProcess
+from pytest_embedded.utils import to_bytes
 
 from .serial import Serial
 
@@ -26,8 +28,8 @@ class SerialDut(Dut):
 
         self.proc_close_methods.append(self._close)
 
-    def write(self, data: bytes) -> int:
-        return self.serial.proc.write(data)
+    def write(self, data: AnyStr) -> int:
+        return self.serial.proc.write(to_bytes(data, '\n'))
 
     def _close(self) -> None:
         self.serial.proc.close()
