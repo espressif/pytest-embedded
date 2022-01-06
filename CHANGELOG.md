@@ -1,3 +1,26 @@
+## v0.5.0rc0 (2022-01-06)
+
+### Feat
+
+- **arduino**: Add Arduino service
+- **esp**: simplify esptool call process
+- **esp**: use env var `ESPPORT` for "--port" and `ESPBAUD` for "--baud"
+- **esp**: use suggest flash baudrate if lower
+- **log**: log buffer as error when no matched pattern while expecting
+- **windows**: Add Windows support
+
+### Fix
+
+- **esp**: different dut will not use the same ports anymore
+- **macos**: multiprocessing pickle error
+- **windows**: make setup.py installable
+- make the hook function to apply parallel count as the last step
+
+### Breaking Changes
+
+- **log**: remove `source` argument in all `DuplicatedStdout` related functions
+- **qemu**: remove cli option `qemu-log-path`
+
 ## v0.4.5 (2021-11-29)
 
 ### Feat
