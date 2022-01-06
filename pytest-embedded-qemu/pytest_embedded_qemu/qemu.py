@@ -78,4 +78,4 @@ class Qemu(DuplicateStdoutPopen):
     def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
         while self.poll() is None:
             pexpect_proc.write(self._fr.read())
-            time.sleep(0.5)  # set interval
+            time.sleep(0.1)  # set interval

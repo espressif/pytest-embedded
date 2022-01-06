@@ -6,6 +6,7 @@ import sys
 import threading
 from copy import deepcopy
 from io import TextIOWrapper
+from time import sleep
 from typing import AnyStr, BinaryIO, List, Union
 
 import pexpect.fdpexpect
@@ -270,3 +271,4 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
     def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
         while self.poll() is None:
             pexpect_proc.write(self.stdout.read())
+            sleep(0.1)  # set interval

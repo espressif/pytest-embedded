@@ -67,4 +67,4 @@ class Serial(DuplicateStdoutMixin):
                 pexpect_proc.write(self.proc.readall())
             except PortNotOpenError:  # ensure thread safe
                 break
-            time.sleep(0.5)  # set interval
+            time.sleep(0.1)  # set interval
