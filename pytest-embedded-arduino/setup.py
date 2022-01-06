@@ -12,7 +12,7 @@ def read(fname):
 
 
 def get_version():
-    regex = re.compile(r'^version = "([0-9.]+)"$', re.MULTILINE)
+    regex = re.compile(r'version = "(.+)"')
     return regex.findall(read('../pyproject.toml'))[0]
 
 
