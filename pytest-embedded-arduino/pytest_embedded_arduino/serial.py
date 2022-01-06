@@ -81,4 +81,5 @@ class ArduinoSerial(EspSerial):
             for (_, f) in flash_files:
                 f.close()
 
-        self.esp.hard_reset()
+        with DuplicateStdout(self.pexpect_proc):
+            self.esp.hard_reset()

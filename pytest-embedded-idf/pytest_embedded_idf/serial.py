@@ -125,4 +125,6 @@ class IdfSerial(EspSerial):
                 f.close()
             for (_, f) in encrypt_files:
                 f.close()
+
+        with DuplicateStdout(self.pexpect_proc):
             self.esp.hard_reset()
