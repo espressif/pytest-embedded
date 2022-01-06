@@ -112,8 +112,6 @@ embedded-qemu:
                         QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")
   --qemu-extra-args=QEMU_EXTRA_ARGS
                         QEMU cli extra arguments, will append to the argument list. (Default: None)
-  --qemu-log-path=QEMU_LOG_PATH
-                        QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")
 ```
 
 ## Services

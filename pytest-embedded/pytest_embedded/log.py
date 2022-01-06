@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import threading
+from copy import deepcopy
 from io import TextIOWrapper
 from typing import AnyStr, BinaryIO, List, Union
 
@@ -33,7 +34,7 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self._fr = pexpect_fr
         self._fw = pexpect_fw
 
-    def send(self, s: AnyStr) -> int:  # noqa
+    def send(self, s: AnyStr) -> int:
         """
         Write to the pexpect process and log.
 
@@ -241,17 +242,17 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
     `subprocess.Popen` with `DuplicateStdoutMixin` mixed with default popen kwargs.
     """
 
-    POPEN_KWARGS = {
+    DEFAULT_KWARGS = {
         'bufsize': 0,
         'stdin': subprocess.PIPE,
         'stdout': subprocess.PIPE,
         'stderr': subprocess.STDOUT,
-        'shell': True,
     }
 
     def __init__(self, cmd: Union[str, List[str]], **kwargs):
-        kwargs.update(self.POPEN_KWARGS)
-        super().__init__(cmd, **kwargs)
+        default_kwargs = deepcopy(self.DEFAULT_KWARGS)
+        default_kwargs.update(kwargs)
+        super().__init__(cmd, **default_kwargs)
 
     def send(self, s: AnyStr) -> None:
         """
