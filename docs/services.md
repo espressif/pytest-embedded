@@ -19,7 +19,7 @@
     Provided a context manager that could help log all the `sys.stdout` with pytest logging feature and redirect `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
-    with redirect('prefix'):
+    with redirect():
         print('this should be logged and sent to pexpect_proc')
     ```
 
@@ -112,8 +112,6 @@ embedded-qemu:
                         QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")
   --qemu-extra-args=QEMU_EXTRA_ARGS
                         QEMU cli extra arguments, will append to the argument list. (Default: None)
-  --qemu-log-path=QEMU_LOG_PATH
-                        QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")
 ```
 
 ## Services

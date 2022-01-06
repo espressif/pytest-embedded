@@ -1,5 +1,6 @@
+import functools
 import logging
-from typing import AnyStr, Match, Union
+from typing import AnyStr, Callable, Match, Union
 
 import pexpect
 
@@ -33,7 +34,25 @@ class Dut(ProcessContainer):
         """
         self.pexpect_proc.write(*args, **kwargs)
 
-    def expect(self, *args, **kwargs) -> Union[Match, AnyStr]:
+    def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:  # noqa
+        @functools.wraps(func)  # noqa
+        def wrapper(self, *args, **kwargs) -> Union[Match, AnyStr]:
+            try:
+                func(self, *args, **kwargs)  # noqa
+            except (pexpect.EOF, pexpect.TIMEOUT):
+                logging.error(f'Not found {args}, {kwargs}')
+                logging.error(f'Bytes in buffer:\n{self.pexpect_proc.buffer}')
+                raise
+            else:
+                if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                    return self.pexpect_proc.before.rstrip()
+
+                return self.pexpect_proc.match
+
+        return wrapper
+
+    @_pexpect_func  # noqa
+    def expect(self, *args, **kwargs) -> None:
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect()`.
 
@@ -43,18 +62,10 @@ class Dut(ProcessContainer):
         Returns:
             re.Match: if matched given string.
         """
-        try:
-            self.pexpect_proc.expect(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
-            logging.error(f'Not found {args}, {kwargs}')
-            raise
-        else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                return self.pexpect_proc.before.rstrip()
+        self.pexpect_proc.expect(*args, **kwargs)
 
-            return self.pexpect_proc.match
-
-    def expect_exact(self, *args, **kwargs) -> Union[Match, AnyStr]:
+    @_pexpect_func  # noqa
+    def expect_exact(self, *args, **kwargs) -> None:
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_exact()`.
 
@@ -64,18 +75,10 @@ class Dut(ProcessContainer):
         Returns:
             re.Match: if matched given string.
         """
-        try:
-            self.pexpect_proc.expect_exact(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
-            logging.error(f'Not found {args}, {kwargs}')
-            raise
-        else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                return self.pexpect_proc.before.rstrip()
+        self.pexpect_proc.expect_exact(*args, **kwargs)
 
-            return self.pexpect_proc.match
-
-    def expect_list(self, *args, **kwargs) -> Union[Match, AnyStr]:
+    @_pexpect_func  # noqa
+    def expect_list(self, *args, **kwargs) -> None:
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_list()`.
 
@@ -90,13 +93,4 @@ class Dut(ProcessContainer):
 
             For example, could pass `[re.compile(b'foo'), re.compile(b'bar')]`
         """
-        try:
-            self.pexpect_proc.expect_list(*args, **kwargs)
-        except (pexpect.EOF, pexpect.TIMEOUT):
-            logging.error(f'Not found {args}, {kwargs}')
-            raise
-        else:
-            if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                return self.pexpect_proc.before.rstrip()
-
-            return self.pexpect_proc.match
+        self.pexpect_proc.expect_list(*args, **kwargs)

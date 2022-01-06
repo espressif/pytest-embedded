@@ -65,7 +65,7 @@ def test_fixtures(testdir):
             assert dut.app.app_path.endswith('hello_world_esp32')
 
         def test_fixture_redirect(pexpect_proc, dut, redirect):
-            with redirect('prefix'):
+            with redirect():
                 print('redirect to pexpect_proc')
 
             pexpect_proc.expect('redirect')
@@ -107,7 +107,7 @@ def test_multi_count_fixtures(testdir):
             assert dut[1].app.app_path.endswith('hello_world_esp32c3')
 
         def test_fixture_redirect(dut, redirect):
-            with redirect[1]('prefix'):
+            with redirect[1]():
                 print('been redirected')
             dut[1].expect('been redirected')
 

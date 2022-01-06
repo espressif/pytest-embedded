@@ -103,7 +103,7 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            with DuplicateStdout(self.pexpect_proc, source='flash'):
+            with DuplicateStdout(self.pexpect_proc):
                 if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
                     self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 

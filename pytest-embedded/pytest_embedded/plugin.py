@@ -246,7 +246,7 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
-    with redirect('prefix'):
+    with redirect():
         print('this should be logged and sent to pexpect_proc')
     ```
 
@@ -255,8 +255,8 @@ def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
         pexpect process and log it, please use `pexpect_proc.write()` instead.
     """
 
-    def _inner(source=None):
-        return DuplicateStdout(pexpect_proc, source=source)
+    def _inner():
+        return DuplicateStdout(pexpect_proc)
 
     return _inner
 
@@ -404,10 +404,6 @@ def pytest_addoption(parser):
     qemu_group.addoption(
         '--qemu-extra-args',
         help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
-    )
-    qemu_group.addoption(
-        '--qemu-log-path',
-        help='QEMU log file path. (Default: "<temp folder>/<timestamp>/serial.log")',
     )
 
 
@@ -578,15 +574,6 @@ def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
     return getattr(request, 'param', None) or request.config.getoption('qemu_extra_args', None)
 
 
-@pytest.fixture
-@parse_configuration
-def qemu_log_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_log_path', None)
-
-
 ####################
 # Private Fixtures #
 ####################
@@ -634,7 +621,6 @@ def _fixture_classes_and_options(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
-    qemu_log_path,
     # pre-initialized fixtures
     pexpect_proc,
 ) -> ClassCliOptions:
@@ -768,7 +754,6 @@ def _fixture_classes_and_options(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
-                    'qemu_log_path': qemu_log_path,
                 }
         elif fixture == 'dut':
             kwargs[fixture] = {

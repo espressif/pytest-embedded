@@ -15,7 +15,7 @@ def test_hello_world(dut):
     indirect=True,
 )
 def test_serial_tcp(dut, redirect):
-    with redirect('esptool read MAC'):
+    with redirect():
         live_print_call('esptool.py --port socket://localhost:5555 --no-stub --chip esp32 read_mac', shell=True)
 
     dut.expect('Serial port socket://localhost:5555')  # expect from what esptool.py printed to sys.stdout

@@ -105,6 +105,6 @@ class QemuApp(IdfApp):
         if os.path.exists(self.image_path):
             logging.info(f'Using existing image: {self.image_path}')
         else:
-            with DuplicateStdout(self.pexpect_proc, source='create image'):
+            with DuplicateStdout(self.pexpect_proc):
                 image_maker = IdfFlashImageMaker(self, self.image_path)
                 image_maker.make_bin()

@@ -44,7 +44,6 @@ def test_multi_count_qemu(testdir):
         '--embedded-services', 'idf,qemu|qemu',
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|',
         '--qemu-image-path', f'|{os.path.join(testdir.tmpdir, "esp32_qemu.bin")}',
-        '--qemu-log-path', 'serial1.log|serial2.log',
     )
 
     result.assert_outcomes(passed=1)

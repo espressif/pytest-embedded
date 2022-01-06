@@ -45,8 +45,8 @@ class JtagDut(SerialDut):
         self.telnet = telnetlib.Telnet(self.openocd.TELNET_HOST, self.openocd.TELNET_PORT, 5)
         self.telnet.send = self.telnet_send  # type: ignore # bind send method.
 
-        self.openocd.create_forward_io_process(self.pexpect_proc, source='openocd')
-        self.gdb.create_forward_io_process(self.pexpect_proc, source='gdb')
+        self.openocd.create_forward_io_process(self.pexpect_proc)
+        self.gdb.create_forward_io_process(self.pexpect_proc)
 
         self.proc_close_methods.extend(
             [
