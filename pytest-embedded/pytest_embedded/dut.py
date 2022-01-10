@@ -14,7 +14,7 @@ class Dut(ProcessContainer):
     Device under test (DUT) base class
     """
 
-    def __init__(self, pexpect_proc: PexpectProcess, app: App, **kwargs) -> None:
+    def __init__(self, pexpect_proc: PexpectProcess, app: App, pexpect_logfile: str, **kwargs) -> None:
         """
         Args:
             pexpect_proc: `PexpectProcess` instance
@@ -24,6 +24,7 @@ class Dut(ProcessContainer):
 
         self.pexpect_proc = pexpect_proc
         self.app = app
+        self.logfile = pexpect_logfile
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -41,7 +42,8 @@ class Dut(ProcessContainer):
                 func(self, *args, **kwargs)  # noqa
             except (pexpect.EOF, pexpect.TIMEOUT):
                 logging.error(f'Not found {args}, {kwargs}')
-                logging.error(f'Bytes in buffer:\n{self.pexpect_proc.buffer}')
+                logging.error(f'Bytes in current buffer: {self.pexpect_proc.buffer}')
+                logging.error(f'Full pexpect process log file: {self.logfile}')
                 raise
             else:
                 if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:

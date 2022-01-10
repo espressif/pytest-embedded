@@ -630,6 +630,7 @@ def _fixture_classes_and_options(
     qemu_cli_args,
     qemu_extra_args,
     # pre-initialized fixtures
+    _pexpect_logfile,
     pexpect_proc,
 ) -> ClassCliOptions:
     """
@@ -767,6 +768,7 @@ def _fixture_classes_and_options(
             kwargs[fixture] = {
                 'pexpect_proc': pexpect_proc,
                 'app': None,
+                'pexpect_logfile': _pexpect_logfile,
             }
             if 'qemu' in _services:
                 from pytest_embedded_qemu.dut import QemuDut
