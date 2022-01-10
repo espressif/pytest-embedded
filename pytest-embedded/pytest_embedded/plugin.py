@@ -5,7 +5,6 @@ import logging
 import os
 import sys
 import tempfile
-import uuid
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from typing import (
@@ -169,8 +168,11 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
                 getter = itemgetter(i)
                 current_kwargs = {}
                 for k, v in kwargs.items():
-                    current_kwargs[k] = getter(v)
-                if func.__name__ == 'pexpect_proc':
+                    if isinstance(v, list) or isinstance(v, tuple):
+                        current_kwargs[k] = getter(v)
+                    else:
+                        current_kwargs[k] = v
+                if func.__name__ == '_pexpect_logfile':
                     current_kwargs['count'] = i
                     current_kwargs['total'] = COUNT
                 res.append(func(*args, **current_kwargs))
@@ -200,20 +202,26 @@ def test_case_name(request: FixtureRequest) -> str:
     """
     Current test case function name
     """
-    return request.node.originalname
+    return request.node.name
+
+
+@pytest.fixture
+def test_case_tempdir(test_case_name) -> str:
+    tmpdir = os.path.join(
+        tempfile.gettempdir(), f'{test_case_name}-{datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")}'
+    )
+    return tmpdir
 
 
 @pytest.fixture
 @apply_count_generator
-def _pexpect_logfile(**kwargs) -> str:
+def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
     if 'count' in kwargs:
-        name = f'dut-{count}'
+        name = f'dut-{kwargs["count"]}'
     else:
         name = 'dut'
 
-    return os.path.join(
-        tempfile.gettempdir(), datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'), f'{name}-{uuid.uuid4()}.log'
-    )
+    return os.path.join(test_case_tempdir, f'{name}.log')
 
 
 @pytest.fixture
