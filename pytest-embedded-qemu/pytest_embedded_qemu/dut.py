@@ -30,10 +30,13 @@ class QemuDut(Dut):
 
         self.qemu.create_forward_io_thread(self.pexpect_proc)
 
-        self.proc_close_methods.append(self.qemu.terminate)
-
     def write(self, s: AnyStr) -> None:
         """
         Write to qemu process.
         """
         self.qemu.send(s)
+
+    def close(self) -> None:
+        self.qemu.terminate()
+
+        super(QemuDut, self).close()

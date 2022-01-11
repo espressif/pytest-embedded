@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 import time
+import uuid
 from typing import Optional
 
 from pytest_embedded.log import DuplicateStdoutPopen, PexpectProcess
@@ -49,7 +50,9 @@ class Qemu(DuplicateStdoutPopen):
 
         # we use log file to record serial output, pipe-like file object won't be non-blocking.
         _log_file = os.path.join(
-            tempfile.gettempdir(), datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'), 'serial.log'
+            tempfile.gettempdir(),
+            datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+            f'serial-{uuid.uuid4()}.log',
         )
         parent_dir = os.path.dirname(_log_file)
         if parent_dir:  # in case value is a single file under the current dir

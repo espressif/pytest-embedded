@@ -6,10 +6,9 @@ import pexpect
 
 from .app import App
 from .log import PexpectProcess
-from .utils import ProcessContainer
 
 
-class Dut(ProcessContainer):
+class Dut:
     """
     Device under test (DUT) base class
     """
@@ -20,8 +19,6 @@ class Dut(ProcessContainer):
             pexpect_proc: `PexpectProcess` instance
             app: `App` instance
         """
-        super().__init__()
-
         self.pexpect_proc = pexpect_proc
         self.app = app
         self.logfile = pexpect_logfile

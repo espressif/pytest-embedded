@@ -43,18 +43,10 @@ class JtagDut(SerialDut):
 
         sleep(1)  # make sure openocd already opened telnet port
         self.telnet = telnetlib.Telnet(self.openocd.TELNET_HOST, self.openocd.TELNET_PORT, 5)
-        self.telnet.send = self.telnet_send  # type: ignore # bind send method.
+        self.telnet.send = self.telnet_send  # bind send method
 
-        self.openocd.create_forward_io_process(self.pexpect_proc)
-        self.gdb.create_forward_io_process(self.pexpect_proc)
-
-        self.proc_close_methods.extend(
-            [
-                self.openocd.terminate,
-                self.gdb.terminate,
-                self.telnet.close,
-            ]
-        )
+        self.openocd.create_forward_io_thread(self.pexpect_proc)
+        self.gdb.create_forward_io_thread(self.pexpect_proc)
 
     def telnet_send(self, s: AnyStr) -> None:
         """
@@ -64,3 +56,8 @@ class JtagDut(SerialDut):
             s: `bytes` or `str`
         """
         self.telnet.write(to_bytes(s, '\n'))
+
+    def close(self) -> None:
+        self.telnet.close()
+
+        super(JtagDut, self).close()
