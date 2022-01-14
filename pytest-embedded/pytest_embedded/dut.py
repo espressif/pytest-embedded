@@ -96,29 +96,6 @@ class Dut:
         """
         self.pexpect_proc.expect_exact(*args, **kwargs)
 
-    @_pexpect_func  # noqa
-    def expect_list(self, *args, **kwargs) -> Match:  # noqa
-        """
-        Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_list()`.
-
-        Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
-
-        Returns:
-            re.Match: if matched given compiled regex.
-
-        Notes:
-            For the first argument, which is the regex list, you should pass the compiled regex with bytes.
-
-            For example, could pass `[re.compile(b'foo'), re.compile(b'bar')]`
-        """
-        self.pexpect_proc.expect_list(*args, **kwargs)
-
-    SUMMARY_LINE_RE = re.compile(
-        br'^[-]+\s*(\d+) Tests (\d+) Failures (\d+) Ignored\s*(?P<result>OK|FAIL)',
-        re.MULTILINE,
-    )
-
     ANSI_ESCAPE_RE = re.compile(
         r'''
         \x1B  # ESC
