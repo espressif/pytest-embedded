@@ -42,6 +42,7 @@ jobs:
           pyenv install ${{ matrix.python-version }}
       - name: Install dependencies and run tests
         run: |
+          sudo apt update && sudo apt install -y socat
           ~/.pyenv/versions/${{matrix.python-version}}/bin/python -m venv test_venv
           source test_venv/bin/activate
           pip install -U pip
