@@ -10,6 +10,11 @@
 
     Current test case function name
 
+- `test_case_tempdir`
+  
+    Temp directory for each test case.
+    The pexpect process log and the generated junit report (if possible) would be placed under this folder.
+
 - `pexpect_proc`
 
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
@@ -45,7 +50,7 @@
 
 - `dut`
 
-    A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect process, and run `expect()` via its pexpect process.
+    A DUT object that could gather output from various sources and redirect them to the pexpect process, and run `expect()` via its pexpect process.
 
 ## CLI Options
 
@@ -61,7 +66,8 @@ embedded:
                         "--app-path=test_path1|test_path2" when two DUTs are using different built binary files.
                         "--part-tool=part_tool_path|" when only the first DUT needs this option, the second should keep as empty.
                         "--embedded-services=idf --count=2" when both of these DUTs are using the same services.
-                        The configuration would be duplicated when it has only one value but the "count" amount is greater than 1. It would raise an exception when the configuration has multi values but the amount is different from the "count" amount.
+                        The configuration would be duplicated when it has only one value but the "count" amount is greater than 1. It would raise an
+                        exception when the configuration has multi values but the amount is different from the "count" amount.
                         For example:
                         "--embedded-services=idf|esp-idf --count=3" would raise an exception.
   --parallel-count=PARALLEL_COUNT
@@ -76,22 +82,24 @@ embedded:
                         - idf: auto-detect more app info with idf specific rules, auto flash-in
                         - jtag: openocd and gdb
                         - qemu: use qemu simulator instead of the real target
+                        - arduino: auto-detect more app info with arduino specific rules, auto flash-in
                         All the related CLI options are under the groups named by "embedded-<service>"
   --app-path=APP_PATH   App path
+  --build-dir=BUILD_DIR
+                        build directory under the app_path. (Default: "build")
 
 embedded-serial:
-  --port=PORT           serial port. (Default: "None")
+  --port=PORT           serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")
 
 embedded-esp:
   --target=TARGET       serial target chip type. (Default: "auto")
-
-embedded-idf:
-  --build-dir=BUILD_DIR
-                        build directory under the app_path. (Default: "build")
-  --part-tool=PART_TOOL
-                        Partition tool path, used for parsing partition table. (Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"
+  --baud=BAUD           serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)
   --skip-autoflash=SKIP_AUTOFLASH
                         y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)
+
+embedded-idf:
+  --part-tool=PART_TOOL
+                        Partition tool path, used for parsing partition table. (Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"
 
 embedded-jtag:
   --gdb-prog-path=GDB_PROG_PATH
@@ -127,3 +135,21 @@ Activate a service would enable a set of fixtures or add some extra functionalit
 --8<-- "pytest-embedded-jtag/README.md"
 
 --8<-- "pytest-embedded-qemu/README.md"
+
+--8<-- "pytest-embedded-arduino/README.md"
+
+## Dependency Graph
+
+```plantuml
+@startmindmap
+* pytest_embedded
+** pytest_embedded_serial
+*** pytest_embedded_serial_esp
+*** pytest_embedded_jtag
+** pytest_embedded_idf (serial_esp dependency is optional)
+** pytest_embedded_qemu (idf dependency is optional)
+** pytest_embedded_arduino (serial dependency is optional)
+@endmindmap
+```
+
+--8<-- "docs/abbr.md"

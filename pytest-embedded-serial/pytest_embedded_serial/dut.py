@@ -26,12 +26,12 @@ class SerialDut(Dut):
         self.serial = serial
         self.serial.create_forward_io_thread(self.pexpect_proc)
 
-        self.proc_close_methods.append(self._close)
-
     def write(self, data: AnyStr) -> int:
         return self.serial.proc.write(to_bytes(data, '\n'))
 
-    def _close(self) -> None:
+    def close(self) -> None:
         self.serial.proc.close()
         self.serial.occupied_ports.pop(self.serial.port, None)
         logging.debug(f'released {self.serial.port}')
+
+        super().close()

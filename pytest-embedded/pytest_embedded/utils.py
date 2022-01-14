@@ -1,32 +1,5 @@
-import logging
-from typing import AnyStr, Optional
-
-
-class ProcessContainer:
-    """
-    Auto call functions under `proc_close_methods` when being garbage collected or `close()`
-
-    Attributes:
-        proc_close_methods (list[callable]): A list to collect all the methods that need to be run.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.proc_close_methods = []
-        super().__init__(*args, **kwargs)
-
-    def __del__(self):
-        self.close()
-
-    def close(self) -> None:
-        """
-        Call all the sessions/threads/processes terminate methods defined in `proc_close_methods`
-        """
-        # the later it appends, the upper level it is. close the upper one first.
-        for func in getattr(self, 'proc_close_methods', [])[::-1]:
-            try:
-                func()
-            except Exception as e:
-                logging.error(e)
+import os
+from typing import AnyStr, List, Optional
 
 
 def to_str(bytes_str: AnyStr) -> str:
@@ -65,3 +38,13 @@ def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
             return bytes_str + ending
 
     return bytes_str
+
+
+def find_by_suffix(suffix: str, path: str) -> List[str]:
+    res = []
+    for root, _, files in os.walk(path):
+        for file in files:
+            if file.endswith(suffix):
+                res.append(os.path.join(root, file))
+
+    return res

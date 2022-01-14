@@ -19,6 +19,7 @@ markdown_extensions:
       server: http://www.plantuml.com/plantuml
   - pymdownx.superfences
   - pymdownx.tabbed
+  - abbr
   - pymdownx.snippets:
       check_paths: true
 
@@ -26,5 +27,24 @@ plugins:
   - autorefs
   - search
   - mkdocstrings:
-      default_handler: python
-      custom_templates: templates
+      handlers:
+        python:
+          rendering:
+            members_order: 'source'
+            show_root_heading: True
+
+nav:
+  - pytest-embedded: index.md
+  - key_concepts.md
+  - services.md
+  - expecting.md
+  - CONTRIBUTING.md
+  - CHANGELOG.md
+  - References:
+    - references/pytest_embedded.md
+    - references/pytest_embedded_serial.md
+    - references/pytest_embedded_serial_esp.md
+    - references/pytest_embedded_jtag.md
+    - references/pytest_embedded_idf.md
+    - references/pytest_embedded_arduino.md
+    - references/pytest_embedded_qemu.md
