@@ -1,4 +1,5 @@
-from typing import AnyStr, Optional
+import os
+from typing import AnyStr, List, Optional
 
 
 def to_str(bytes_str: AnyStr) -> str:
@@ -37,3 +38,13 @@ def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
             return bytes_str + ending
 
     return bytes_str
+
+
+def find_by_suffix(suffix: str, path: str) -> List[str]:
+    res = []
+    for root, _, files in os.walk(path):
+        for file in files:
+            if file.endswith(suffix):
+                res.append(os.path.join(root, file))
+
+    return res

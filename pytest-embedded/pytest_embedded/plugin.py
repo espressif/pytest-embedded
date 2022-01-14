@@ -23,11 +23,14 @@ from typing import (
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
+from _pytest.main import Session
 from _pytest.nodes import Item
 
 from .app import App
 from .dut import Dut
 from .log import DuplicateStdout, PexpectProcess
+from .unity import JunitMerger
+from .utils import find_by_suffix
 
 if TYPE_CHECKING:
     from pytest_embedded_jtag.gdb import Gdb
@@ -38,7 +41,13 @@ if TYPE_CHECKING:
 ###########
 # helpers #
 ###########
-COUNT = 1
+_COUNT = 1
+_TEST_SESSION_TMPDIR = os.path.join(
+    tempfile.gettempdir(),
+    'pytest-embedded',
+    datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+)
+os.makedirs(_TEST_SESSION_TMPDIR, exist_ok=True)
 
 
 @pytest.fixture(autouse=True)
@@ -46,8 +55,8 @@ def count(request):
     """
     Enable parametrization for the same cli option. Inject to global variable `COUNT`.
     """
-    global COUNT
-    COUNT = _gte_one_int(getattr(request, 'param', request.config.option.count))
+    global _COUNT
+    _COUNT = _gte_one_int(getattr(request, 'param', request.config.option.count))
 
 
 def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Optional[str]]]]:
@@ -77,12 +86,12 @@ def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Option
             res = [option]
 
         if len(res) == 1:
-            if COUNT == 1:
+            if _COUNT == 1:
                 return _str_bool(res[0])
             else:
-                return tuple([_str_bool(res[0])] * COUNT)
+                return tuple([_str_bool(res[0])] * _COUNT)
         else:  # len(res) > 1
-            if len(res) != COUNT:
+            if len(res) != _COUNT:
                 raise ValueError(
                     'The configuration has multi values but the amount is different from the "count" amount.'
                 )
@@ -108,11 +117,11 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if COUNT == 1:
+        if _COUNT == 1:
             return func(*args, **kwargs)
 
         res = tuple()
-        for i in range(COUNT):
+        for i in range(_COUNT):
             getter = itemgetter(i)
             current_kwargs = {}
             for k, v in kwargs.items():
@@ -154,7 +163,7 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
             finally:
                 del obj
 
-        if COUNT == 1:
+        if _COUNT == 1:
             res = None
             try:
                 res = func(*args, **kwargs)
@@ -164,7 +173,7 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
                     _close_or_terminate(res)
         else:
             res = []
-            for i in range(COUNT):
+            for i in range(_COUNT):
                 getter = itemgetter(i)
                 current_kwargs = {}
                 for k, v in kwargs.items():
@@ -174,7 +183,7 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
                         current_kwargs[k] = v
                 if func.__name__ == '_pexpect_logfile':
                     current_kwargs['count'] = i
-                    current_kwargs['total'] = COUNT
+                    current_kwargs['total'] = _COUNT
                 res.append(func(*args, **current_kwargs))
             try:
                 yield res
@@ -206,11 +215,12 @@ def test_case_name(request: FixtureRequest) -> str:
 
 
 @pytest.fixture
-def test_case_tempdir(test_case_name) -> str:
-    tmpdir = os.path.join(
-        tempfile.gettempdir(), f'{test_case_name}-{datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")}'
-    )
-    return tmpdir
+def test_case_tempdir(test_case_name: str) -> str:
+    """
+    Temp dir for each test case.
+    The pexpect process log and the generated junit report (if possible) would be placed under this folder.
+    """
+    return os.path.join(_TEST_SESSION_TMPDIR, test_case_name)
 
 
 @pytest.fixture
@@ -631,6 +641,7 @@ def _fixture_classes_and_options(
     qemu_extra_args,
     # pre-initialized fixtures
     _pexpect_logfile,
+    test_case_name,
     pexpect_proc,
 ) -> ClassCliOptions:
     """
@@ -769,6 +780,7 @@ def _fixture_classes_and_options(
                 'pexpect_proc': pexpect_proc,
                 'app': None,
                 'pexpect_logfile': _pexpect_logfile,
+                'test_case_name': test_case_name,
             }
             if 'qemu' in _services:
                 from pytest_embedded_qemu.dut import QemuDut
@@ -914,6 +926,12 @@ def dut(
 ##################
 # Hook Functions #
 ##################
+
+
+def pytest_configure(config: Config) -> None:
+    config._store['junit_merger'] = JunitMerger(config.option.xmlpath)
+
+
 @pytest.hookimpl(trylast=True)  # the parallel filter should be the last step
 def pytest_collection_modifyitems(config: Config, items: List[Item]):
     if config.option.parallel_index == 1 and config.option.parallel_count == 1:
@@ -937,3 +955,10 @@ def pytest_collection_modifyitems(config: Config, items: List[Item]):
         f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
     )
     items[:] = items[run_case_start_index : run_case_end_index + 1]
+
+
+@pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
+def pytest_sessionfinish(session: Session, exitstatus: int):  # noqa
+    modifier: JunitMerger = session.config._store['junit_merger']
+    modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
+    exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa

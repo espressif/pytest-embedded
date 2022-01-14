@@ -1,11 +1,14 @@
 import functools
 import logging
+import os.path
+import re
 from typing import AnyStr, Callable, Match, Union
 
 import pexpect
 
 from .app import App
 from .log import PexpectProcess
+from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
 
 
 class Dut:
@@ -13,7 +16,9 @@ class Dut:
     Device under test (DUT) base class
     """
 
-    def __init__(self, pexpect_proc: PexpectProcess, app: App, pexpect_logfile: str, **kwargs) -> None:
+    def __init__(
+        self, pexpect_proc: PexpectProcess, app: App, pexpect_logfile: str, test_case_name: str, **kwargs
+    ) -> None:
         """
         Args:
             pexpect_proc: `PexpectProcess` instance
@@ -21,10 +26,25 @@ class Dut:
         """
         self.pexpect_proc = pexpect_proc
         self.app = app
+
         self.logfile = pexpect_logfile
+        self.logdir = os.path.dirname(self.logfile)
+
+        self.test_case_name = test_case_name
+        self.dut_name = os.path.splitext(os.path.basename(pexpect_logfile))[0]
 
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        # junit related
+        # TODO: if request.option.xmlpath
+        self.testsuite = TestSuite(self.test_case_name)
+
+    def close(self) -> None:
+        if self.testsuite.testcases:
+            junit_report = os.path.join(self.logdir, f'{self.dut_name}.xml')
+            self.testsuite.dump(junit_report)
+            logging.info(f'Created unity output junit report: {junit_report}')
 
     def write(self, *args, **kwargs) -> None:
         """
@@ -51,7 +71,7 @@ class Dut:
         return wrapper
 
     @_pexpect_func  # noqa
-    def expect(self, *args, **kwargs) -> None:
+    def expect(self, *args, **kwargs) -> Match:  # noqa
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect()`.
 
@@ -64,7 +84,7 @@ class Dut:
         self.pexpect_proc.expect(*args, **kwargs)
 
     @_pexpect_func  # noqa
-    def expect_exact(self, *args, **kwargs) -> None:
+    def expect_exact(self, *args, **kwargs) -> Match:  # noqa
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_exact()`.
 
@@ -77,7 +97,7 @@ class Dut:
         self.pexpect_proc.expect_exact(*args, **kwargs)
 
     @_pexpect_func  # noqa
-    def expect_list(self, *args, **kwargs) -> None:
+    def expect_list(self, *args, **kwargs) -> Match:  # noqa
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_list()`.
 
@@ -93,3 +113,48 @@ class Dut:
             For example, could pass `[re.compile(b'foo'), re.compile(b'bar')]`
         """
         self.pexpect_proc.expect_list(*args, **kwargs)
+
+    SUMMARY_LINE_RE = re.compile(
+        br'^[-]+\s*(\d+) Tests (\d+) Failures (\d+) Ignored\s*(?P<result>OK|FAIL)',
+        re.MULTILINE,
+    )
+
+    ANSI_ESCAPE_RE = re.compile(
+        r'''
+        \x1B  # ESC
+        (?:   # 7-bit C1 Fe (except CSI)
+            [@-Z\\-_]
+        |     # or [ for CSI, followed by a control sequence
+            \[
+            [0-?]*  # Parameter bytes
+            [ -/]*  # Intermediate bytes
+            [@-~]   # Final byte
+        )
+    ''',
+        re.VERBOSE,
+    )
+
+    @_pexpect_func  # noqa
+    def expect_unity_test_output(self, remove_asci_escape_code: bool = True, timeout: int = 30) -> None:
+        """
+        Expect a unity test summary block and parse the output into junit report.
+
+        Would combine the junit report into the main one if you use `pytest --junitxml` feature.
+
+        Args:
+            remove_asci_escape_code: remove asci escape code in the message field. (default: True)
+            timeout: timeout
+
+        Raises:
+            AssertionError: when unity test summary is "FAIL"
+        """
+        res = self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
+
+        log = self.pexpect_proc.before
+        if remove_asci_escape_code:
+            log = self.ANSI_ESCAPE_RE.sub('', log.decode('utf-8', errors='ignore'))
+
+        self.testsuite.add_unity_test_cases(log)
+
+        if res.group('result') == b'FAIL':
+            raise AssertionError('unity test cases failed')
