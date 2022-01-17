@@ -38,6 +38,109 @@ if TYPE_CHECKING:
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
 
+
+def pytest_addoption(parser):
+    base_group = parser.getgroup('embedded')
+    base_group.addoption(
+        '--count',
+        default=1,
+        type=_gte_one_int,
+        help='Use this argument when you need multi DUTs in one test case. e.g., master-slave, or mesh.\n'
+        'All fixtures would be tuples of instances when this value is more than 1. (Default: 1)\n'
+        'Notes:\n'
+        'This value should be an integer greater or equal to 1.\n'
+        'Use separator "|" for all the other cli options when using different configurations for each DUT.\n'
+        'For example:\n'
+        '"--embedded-services=esp,idf|esp" for one idf related app and one other type of app.\n'
+        '"--app-path=test_path1|test_path2" when two DUTs are using different built binary files.\n'
+        '"--part-tool=part_tool_path|" when only the first DUT needs this option, '
+        'the second should keep as empty.\n'
+        '"--embedded-services=idf --count=2" when both of these DUTs are using the same services.\n'
+        'The configuration would be duplicated when it has only one value but the "count" amount is '
+        'greater than 1. It would raise an exception when the configuration has multi values but the amount '
+        'is different from the "count" amount.\n'
+        'For example:\n'
+        '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
+    )
+    base_group.addoption(
+        '--parallel-count', default=1, type=_gte_one_int, help='Number of parallel build jobs. (Default: 1)'
+    )
+    base_group.addoption(
+        '--parallel-index',
+        default=1,
+        type=_gte_one_int,
+        help='Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)',
+    )
+    base_group.addoption(
+        '--embedded-services',
+        default='',
+        help='Activate comma-separated services for different functionalities. (Default: "")\n'
+        'Available services:\n'
+        '- serial: open serial port\n'
+        '- esp: auto-detect target/port by esptool\n'
+        '- idf: auto-detect more app info with idf specific rules, auto flash-in\n'
+        '- jtag: openocd and gdb\n'
+        '- qemu: use qemu simulator instead of the real target\n'
+        '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
+        'All the related CLI options are under the groups named by "embedded-<service>"',
+    )
+    base_group.addoption('--app-path', help='App path')
+    base_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
+    base_group.addoption(
+        '--with-timestamp',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to enable print with timestamp. (Default: True)',
+    )
+
+    serial_group = parser.getgroup('embedded-serial')
+    serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
+
+    esp_group = parser.getgroup('embedded-esp')
+    esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
+    esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
+    esp_group.addoption(
+        '--skip-autoflash',
+        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
+    )
+
+    idf_group = parser.getgroup('embedded-idf')
+    idf_group.addoption(
+        '--part-tool',
+        help='Partition tool path, used for parsing partition table. '
+        '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
+    )
+
+    jtag_group = parser.getgroup('embedded-jtag')
+    jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
+    jtag_group.addoption(
+        '--gdb-cli-args',
+        help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
+    )
+    jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
+    jtag_group.addoption(
+        '--openocd-cli-args',
+        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")',
+    )
+
+    qemu_group = parser.getgroup('embedded-qemu')
+    qemu_group.addoption(
+        '--qemu-image-path',
+        help='QEMU image path. (Default: "<app_path>/flash_image.bin")',
+    )
+    qemu_group.addoption(
+        '--qemu-prog-path',
+        help='QEMU program path. (Default: "qemu-system-xtensa")',
+    )
+    qemu_group.addoption(
+        '--qemu-cli-args',
+        help='QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")',
+    )
+    qemu_group.addoption(
+        '--qemu-extra-args',
+        help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
+    )
+
+
 ###########
 # helpers #
 ###########
@@ -48,6 +151,35 @@ _TEST_SESSION_TMPDIR = os.path.join(
     datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
 )
 os.makedirs(_TEST_SESSION_TMPDIR, exist_ok=True)
+
+
+def _gte_one_int(v) -> int:
+    try:
+        v = int(v)
+    except Exception:  # noqa
+        pass  # deal with it later
+    else:
+        if v >= 1:
+            return v
+
+    print('"count" value should be a integer greater or equal to 1')
+    sys.exit(1)
+
+
+def _str_bool(v) -> Optional[bool]:
+    if v is None:
+        return None
+
+    if v.lower() in ['y', 'yes', 'true']:
+        return True
+    elif v.lower() in ['n', 'no', 'false']:
+        return False
+    else:
+        return v
+
+
+def _drop_none_kwargs(kwargs: Dict[Any, Any]):
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 @pytest.fixture(autouse=True)
@@ -247,13 +379,22 @@ def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
     return open(_pexpect_logfile, 'rb')
 
 
+@pytest.fixture()
+@parse_configuration
+def with_timestamp(request: FixtureRequest) -> bool:
+    return getattr(request, 'param', None) or request.config.getoption('with_timestamp', None)
+
+
 @pytest.fixture
 @apply_count_generator
-def pexpect_proc(_pexpect_fr, _pexpect_fw, **kwargs) -> PexpectProcess:  # argument passed by `apply_count_generator()`
+def pexpect_proc(
+    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs
+) -> PexpectProcess:  # kwargs passed by `apply_count_generator()`
     """
     Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
     """
-    return PexpectProcess(_pexpect_fr, _pexpect_fw, **kwargs)
+    kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
+    return PexpectProcess(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -301,128 +442,6 @@ FIXTURES_SERVICES = {
     'qemu': ['qemu'],
     'dut': ['base', 'serial', 'jtag', 'qemu'],
 }
-
-
-def _gte_one_int(v) -> int:
-    try:
-        v = int(v)
-    except Exception:  # noqa
-        pass  # deal with it later
-    else:
-        if v >= 1:
-            return v
-
-    print('"count" value should be a integer greater or equal to 1')
-    sys.exit(1)
-
-
-def _str_bool(v) -> Optional[bool]:
-    if v is None:
-        return None
-
-    if v.lower() in ['y', 'yes', 'true']:
-        return True
-    elif v.lower() in ['n', 'no', 'false']:
-        return False
-    else:
-        return v
-
-
-def pytest_addoption(parser):
-    base_group = parser.getgroup('embedded')
-    base_group.addoption(
-        '--count',
-        default=1,
-        type=_gte_one_int,
-        help='Use this argument when you need multi DUTs in one test case. e.g., master-slave, or mesh.\n'
-        'All fixtures would be tuples of instances when this value is more than 1. (Default: 1)\n'
-        'Notes:\n'
-        'This value should be an integer greater or equal to 1.\n'
-        'Use separator "|" for all the other cli options when using different configurations for each DUT.\n'
-        'For example:\n'
-        '"--embedded-services=esp,idf|esp" for one idf related app and one other type of app.\n'
-        '"--app-path=test_path1|test_path2" when two DUTs are using different built binary files.\n'
-        '"--part-tool=part_tool_path|" when only the first DUT needs this option, '
-        'the second should keep as empty.\n'
-        '"--embedded-services=idf --count=2" when both of these DUTs are using the same services.\n'
-        'The configuration would be duplicated when it has only one value but the "count" amount is '
-        'greater than 1. It would raise an exception when the configuration has multi values but the amount '
-        'is different from the "count" amount.\n'
-        'For example:\n'
-        '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
-    )
-    base_group.addoption(
-        '--parallel-count', default=1, type=_gte_one_int, help='Number of parallel build jobs. (Default: 1)'
-    )
-    base_group.addoption(
-        '--parallel-index',
-        default=1,
-        type=_gte_one_int,
-        help='Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)',
-    )
-    base_group.addoption(
-        '--embedded-services',
-        default='',
-        help='Activate comma-separated services for different functionalities. (Default: "")\n'
-        'Available services:\n'
-        '- serial: open serial port\n'
-        '- esp: auto-detect target/port by esptool\n'
-        '- idf: auto-detect more app info with idf specific rules, auto flash-in\n'
-        '- jtag: openocd and gdb\n'
-        '- qemu: use qemu simulator instead of the real target\n'
-        '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
-        'All the related CLI options are under the groups named by "embedded-<service>"',
-    )
-    base_group.addoption('--app-path', help='App path')
-    base_group.addoption('--build-dir', help='build directory under the app_path. (Default: "build")')
-
-    serial_group = parser.getgroup('embedded-serial')
-    serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
-
-    esp_group = parser.getgroup('embedded-esp')
-    esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
-    esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
-    esp_group.addoption(
-        '--skip-autoflash',
-        help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
-    )
-
-    idf_group = parser.getgroup('embedded-idf')
-    idf_group.addoption(
-        '--part-tool',
-        help='Partition tool path, used for parsing partition table. '
-        '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
-    )
-
-    jtag_group = parser.getgroup('embedded-jtag')
-    jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
-    jtag_group.addoption(
-        '--gdb-cli-args',
-        help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
-    )
-    jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
-    jtag_group.addoption(
-        '--openocd-cli-args',
-        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")',
-    )
-
-    qemu_group = parser.getgroup('embedded-qemu')
-    qemu_group.addoption(
-        '--qemu-image-path',
-        help='QEMU image path. (Default: "<app_path>/flash_image.bin")',
-    )
-    qemu_group.addoption(
-        '--qemu-prog-path',
-        help='QEMU program path. (Default: "qemu-system-xtensa")',
-    )
-    qemu_group.addoption(
-        '--qemu-cli-args',
-        help='QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")',
-    )
-    qemu_group.addoption(
-        '--qemu-extra-args',
-        help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
-    )
 
 
 ###############################
@@ -822,10 +841,6 @@ def _fixture_classes_and_options(
 ####################
 # Derived Fixtures #
 ####################
-def _drop_none_kwargs(kwargs: Dict[Any, Any]):
-    return {k: v for k, v in kwargs.items() if v is not None}
-
-
 @pytest.fixture
 @apply_count
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:

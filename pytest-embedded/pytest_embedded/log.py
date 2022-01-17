@@ -1,5 +1,5 @@
+import datetime
 import errno
-import logging
 import os
 import subprocess
 import sys
@@ -21,7 +21,17 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
     Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
     """
 
-    def __init__(self, pexpect_fr: BinaryIO, pexpect_fw: BinaryIO, count: int = 1, total: int = 1, **kwargs):
+    STDOUT = sys.stdout
+
+    def __init__(
+        self,
+        pexpect_fr: BinaryIO,
+        pexpect_fw: BinaryIO,
+        with_timestamp: bool = True,
+        count: int = 1,
+        total: int = 1,
+        **kwargs,
+    ):
         self._count = count
         self._total = total
 
@@ -34,6 +44,8 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
         self._fr = pexpect_fr
         self._fw = pexpect_fw
+        self._with_timestamp = with_timestamp
+        self._write_lock = threading.Lock()
 
     def send(self, s: AnyStr) -> int:
         """
@@ -45,15 +57,23 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         Returns:
             number of written bytes.
         """
+        if not s:
+            return 0
+
         s = self._coerce_send_string(s)
         self._log(s, 'send')
 
         # for pytest logging
+        _temp = sys.stdout
+        sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
         for line in to_str(s).replace('\r', '\n').split('\n'):
             if line.strip():
                 if self.source:
-                    line = f'[{self.source}]' + line
-                logging.info(line)
+                    line = f'[{self.source}] {line}'
+                if self._with_timestamp:
+                    line = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + line
+                print(line)
+        sys.stdout = _temp
 
         # write the bytes into the pexpect process
         b = self._encoder.encode(s, final=False)
@@ -66,7 +86,8 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         return written
 
     def write(self, s: AnyStr) -> None:
-        self.send(s)
+        with self._write_lock:
+            self.send(s)
 
     def read_nonblocking(self, size=1, timeout=-1) -> bytes:
         """
@@ -131,6 +152,8 @@ class DuplicateStdout(TextIOWrapper):
         - The context manager replacement of `sys.stdout` is NOT thread-safe. DO NOT use it in a thread.
     """
 
+    STDOUT = sys.stdout
+
     def __init__(self, pexpect_proc: PexpectProcess):  # noqa
         """
         Args:
@@ -138,13 +161,12 @@ class DuplicateStdout(TextIOWrapper):
         """
         # DO NOT call super().__init__(), use TextIOWrapper as parent class only for types and functions
         self.pexpect_proc = pexpect_proc
-
-        self.stdout = None
+        self.before = None
 
     def __enter__(self):
-        if self.stdout is None:
-            self.stdout = sys.stdout
-            sys.stdout = self
+        if sys.stdout != self.STDOUT:
+            self.before = sys.stdout
+        sys.stdout = self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -160,7 +182,6 @@ class DuplicateStdout(TextIOWrapper):
             return
 
         self.pexpect_proc.write(data)
-        sys.stdout = self  # logging info would modify the sys.stdout again, re-assigning here
 
     def flush(self) -> None:
         """
@@ -172,9 +193,10 @@ class DuplicateStdout(TextIOWrapper):
         """
         Stop redirecting `sys.stdout`.
         """
-        if self.stdout is not None:
-            sys.stdout = self.stdout
-            self.stdout = None
+        if self.before:
+            sys.stdout = self.before
+        else:
+            sys.stdout = self.STDOUT
 
     def isatty(self) -> bool:
         """
