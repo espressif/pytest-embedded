@@ -16,6 +16,7 @@ def test_arduino_serial_flash(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--embedded-services', 'arduino,esp',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_arduino'),
         '--build-dir', 'build',

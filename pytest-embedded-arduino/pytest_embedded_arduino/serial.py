@@ -35,7 +35,8 @@ class ArduinoSerial(EspSerial):
             logging.info('Skipping auto flash...')
             super()._start()
         else:
-            self.flash()
+            with DuplicateStdout(self.pexpect_proc):
+                self.flash()
 
     def flash(self) -> None:
         """
@@ -66,20 +67,18 @@ class ArduinoSerial(EspSerial):
         flash_args = FlashArgs(default_kwargs)
 
         try:
-            with DuplicateStdout(self.pexpect_proc):
-                if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                    self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
+            if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
+                self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 
-                esptool.detect_flash_size(self.esp, flash_args)
-                esptool.write_flash(self.esp, flash_args)
+            esptool.detect_flash_size(self.esp, flash_args)
+            esptool.write_flash(self.esp, flash_args)
 
-                if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                    self.esp.change_baud(self.DEFAULT_BAUDRATE)
+            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
+                self.esp.change_baud(self.DEFAULT_BAUDRATE)
         except Exception:
             raise
         finally:
             for (_, f) in flash_files:
                 f.close()
 
-        with DuplicateStdout(self.pexpect_proc):
-            self.esp.hard_reset()
+        self.esp.hard_reset()

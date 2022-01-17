@@ -13,7 +13,8 @@ Each test case would initialize a few fixtures. The most important fixtures are:
 - `app`, the built binary
 - `dut`, a DUT test unit.
 
-    A DUT would contain several daemon threads. The output of each thread would be redirected to `pexpect_proc` and logged by `logging.info()`.
+    A DUT would contain several daemon threads. The output of each thread would be redirected to `pexpect_proc` and 
+    be printed with timestamp by default.
 
 You can run `pytest --fixtures` to get all the fixtures defined with `pytest-embedded`.
 They are under the section `fixtures defined from pytest_embedded.plugin`.
@@ -121,28 +122,9 @@ Sometimes one option is only useful when enabling specific services. You can set
 
 ## Logging
 
-`pytest-embedded` duplicates all the DUT output with `logging.info()` and provides fixtures and context managers to help users duplicate the output as well.
-We recommend using pytest logging functionalities for the best user experience.
+`pytest-embedded` print all the DUT output with timestamp. If you want to remove the timestamp, please run pytest with
+`pytest --with-timestamp n` to disable this feature.
 
-For the configuration of pytest logging, please refer to [pytest documentation: Live Logs](https://docs.pytest.org/en/stable/logging.html#live-logs)
-
-Here's a simple example of a configuration file that logs to the console and the file simultaneously.
-
-!!! example
-
-    ```ini
-    [pytest]
-    log_auto_indent = True
-
-    log_cli = True
-    log_cli_level = INFO
-    log_cli_format = %(asctime)s %(levelname)s %(message)s
-    log_cli_date_format = %Y-%m-%d %H:%M:%S
-
-    log_file = test.log
-    log_file_level = INFO
-    log_file_format = %(asctime)s %(levelname)s %(message)s
-    log_file_date_format = %Y-%m-%d %H:%M:%S
-    ```
+By default, `pytest` would swallow the stdout. If you want to check the live output, please run pytest with `pytest -s`.
 
 --8<-- "docs/abbr.md"

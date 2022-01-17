@@ -41,7 +41,8 @@ class IdfSerial(EspSerial):
             logging.info('Skipping auto flash...')
             super()._start()
         else:
-            self.flash()
+            with DuplicateStdout(self.pexpect_proc):
+                self.flash()
 
     def flash(self, erase_nvs: bool = True) -> None:
         """
@@ -103,15 +104,14 @@ class IdfSerial(EspSerial):
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
         try:
-            with DuplicateStdout(self.pexpect_proc):
-                if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                    self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
+            if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
+                self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 
-                esptool.detect_flash_size(self.esp, flash_args)
-                esptool.write_flash(self.esp, flash_args)
+            esptool.detect_flash_size(self.esp, flash_args)
+            esptool.write_flash(self.esp, flash_args)
 
-                if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                    self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
+            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
+                self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
         except Exception:  # noqa
             raise
         finally:
@@ -126,5 +126,4 @@ class IdfSerial(EspSerial):
             for (_, f) in encrypt_files:
                 f.close()
 
-        with DuplicateStdout(self.pexpect_proc):
-            self.esp.hard_reset()
+        self.esp.hard_reset()

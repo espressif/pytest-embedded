@@ -2,9 +2,10 @@ import os
 
 import pytest
 
-qemu_bin_required = pytest.mark.skipif(os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
-                                       reason='Build QEMU for ESP32 locally and then '
-                                              'use "DONT_SKIP_QEMU_TESTS" to run this test.')
+qemu_bin_required = pytest.mark.skipif(
+    os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
+    reason='Build QEMU for ESP32 locally and then ' 'use "DONT_SKIP_QEMU_TESTS" to run this test.',
+)
 
 
 @qemu_bin_required
@@ -21,6 +22,7 @@ def test_pexpect_by_qemu(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--embedded-services', 'idf,qemu',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
@@ -40,6 +42,7 @@ def test_multi_count_qemu(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--count', 2,
         '--embedded-services', 'idf,qemu|qemu',
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|',

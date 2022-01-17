@@ -6,7 +6,7 @@ Extra Functionalities:
 
 - `openocd`: enable the fixture
 - `gdb`: enable the fixture
-- `dut`: redirect the `openocd` output and the `gdb` output to `pexpect_proc` and duplicate them with `logging.info()`.
+- `dut`: duplicate the `openocd` output and the `gdb` output to `dut.pexpect_proc`.
 
 Used CLI Options:
 
