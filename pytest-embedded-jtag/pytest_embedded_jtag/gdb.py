@@ -19,7 +19,8 @@ class Gdb(DuplicateStdoutPopen):
 
         cmd = f'{gdb_prog_path} {gdb_cli_args}'
         logging.info(cmd)
-        super().__init__(cmd, **kwargs)
+
+        super().__init__(cmd, shell=True, **kwargs)
 
     def interpreter_exec_console(self, cmd):
         """

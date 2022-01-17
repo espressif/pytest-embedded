@@ -1,10 +1,12 @@
 import datetime
 import errno
+import logging
 import os
 import subprocess
 import sys
+import tempfile
 import threading
-from copy import deepcopy
+import uuid
 from io import TextIOWrapper
 from time import sleep
 from typing import AnyStr, BinaryIO, List, Union
@@ -260,17 +262,34 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
     `subprocess.Popen` with `DuplicateStdoutMixin` mixed with default popen kwargs.
     """
 
-    DEFAULT_KWARGS = {
-        'bufsize': 0,
-        'stdin': subprocess.PIPE,
-        'stdout': subprocess.PIPE,
-        'stderr': subprocess.STDOUT,
-    }
-
     def __init__(self, cmd: Union[str, List[str]], **kwargs):
-        default_kwargs = deepcopy(self.DEFAULT_KWARGS)
-        default_kwargs.update(kwargs)
-        super().__init__(cmd, **default_kwargs)
+        # we use real log file to record output, pipe-like file object won't be non-blocking.
+        _log_file = os.path.join(
+            tempfile.gettempdir(),
+            datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+            f'{uuid.uuid4()}.log',
+        )
+        parent_dir = os.path.dirname(_log_file)
+        if parent_dir:  # in case value is a single file under the current dir
+            os.makedirs(os.path.dirname(_log_file), exist_ok=True)
+        self._fw = open(_log_file, 'w')
+        self._fr = open(_log_file, 'r')
+        logging.debug(f'temp log file: {_log_file}')
+
+        kwargs.update(
+            {
+                'bufsize': 0,
+                'stdin': subprocess.PIPE,
+                'stdout': self._fw,
+                'stderr': self._fw,
+            }
+        )
+
+        super().__init__(cmd, **kwargs)
+
+    def __del__(self):
+        self._fw.close()
+        self._fr.close()
 
     def send(self, s: AnyStr) -> None:
         """
@@ -287,5 +306,5 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
 
     def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
         while self.poll() is None:
-            pexpect_proc.write(self.stdout.read())
+            pexpect_proc.write(self._fr.read())
             sleep(0.1)  # set interval

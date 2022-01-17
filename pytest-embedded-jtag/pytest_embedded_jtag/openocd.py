@@ -31,4 +31,5 @@ class OpenOcd(DuplicateStdoutPopen):
 
         cmd = f'{openocd_prog_path} {openocd_cli_args}'
         logging.info(cmd)
-        super().__init__(cmd, **kwargs)
+
+        super().__init__(cmd, shell=True, **kwargs)
