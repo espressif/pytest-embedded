@@ -93,7 +93,7 @@ class QemuApp(IdfApp):
         """
         super().__init__(app_path, build_dir=build_dir, part_tool=part_tool, **kwargs)
         self.pexpect_proc = pexpect_proc
-        self.image_path = qemu_image_path or os.path.join(self.app_path, DEFAULT_IMAGE_FN)
+        self.image_path = qemu_image_path or os.path.join(self.app_path, self.build_dir, DEFAULT_IMAGE_FN)
         self.skip_regenerate_image = skip_regenerate_image
 
         if self.target != 'esp32':

@@ -713,7 +713,7 @@ def _fixture_classes_and_options(
                         {
                             'pexpect_proc': pexpect_proc,
                             'part_tool': part_tool,
-                            'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
+                            'qemu_image_path': qemu_image_path,
                             'skip_regenerate_image': skip_regenerate_image,
                         }
                     )
@@ -807,7 +807,8 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
-                    'qemu_image_path': (qemu_image_path or os.path.join(app_path or '', DEFAULT_IMAGE_FN)),
+                    'qemu_image_path': qemu_image_path
+                    or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
