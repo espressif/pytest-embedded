@@ -1,12 +1,8 @@
-import datetime
 import logging
 import os
-import tempfile
-import time
-import uuid
 from typing import Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen, PexpectProcess
+from pytest_embedded.log import DuplicateStdoutPopen
 
 from . import DEFAULT_IMAGE_FN
 
@@ -48,37 +44,7 @@ class Qemu(DuplicateStdoutPopen):
         qemu_extra_args = [qemu_extra_args] if qemu_extra_args else []
         qemu_extra_args.append(f'-drive file={image_path},if=mtd,format=raw')
 
-        # we use log file to record serial output, pipe-like file object won't be non-blocking.
-        _log_file = os.path.join(
-            tempfile.gettempdir(),
-            datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
-            f'serial-{uuid.uuid4()}.log',
-        )
-        parent_dir = os.path.dirname(_log_file)
-        if parent_dir:  # in case value is a single file under the current dir
-            os.makedirs(os.path.dirname(_log_file), exist_ok=True)
-        self._fw = open(_log_file, 'w')
-        self._fr = open(_log_file, 'r')
-        logging.debug(f'qemu log file: {_log_file}')
-
         cmd = f'{qemu_prog_path} {qemu_cli_args} {" ".join(qemu_extra_args)}'
         logging.debug(cmd)
 
-        kwargs.update(
-            {
-                'shell': True,
-                'stdout': self._fw,
-                'stderr': self._fw,
-            }
-        )
-
-        super().__init__(cmd, **kwargs)
-
-    def __del__(self):
-        self._fw.close()
-        self._fr.close()
-
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
-        while self.poll() is None:
-            pexpect_proc.write(self._fr.read())
-            time.sleep(0.1)  # set interval
+        super().__init__(cmd, shell=True, **kwargs)
