@@ -822,6 +822,10 @@ def _fixture_classes_and_options(
 ####################
 # Derived Fixtures #
 ####################
+def _drop_none_kwargs(kwargs: Dict[Any, Any]):
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
 @pytest.fixture
 @apply_count
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:
@@ -830,7 +834,7 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
     """
     cls = _fixture_classes_and_options.classes['app']
     kwargs = _fixture_classes_and_options.kwargs['app']
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -846,7 +850,7 @@ def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
     kwargs = _fixture_classes_and_options.kwargs['serial']
     if 'app' in kwargs and kwargs['app'] is None:
         kwargs['app'] = app
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -860,7 +864,7 @@ def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd'
 
     cls = _fixture_classes_and_options.classes['openocd']
     kwargs = _fixture_classes_and_options.kwargs['openocd']
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -874,7 +878,7 @@ def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
 
     cls = _fixture_classes_and_options.classes['gdb']
     kwargs = _fixture_classes_and_options.kwargs['gdb']
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -888,7 +892,7 @@ def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
 
     cls = _fixture_classes_and_options.classes['qemu']
     kwargs = _fixture_classes_and_options.kwargs['qemu']
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 @pytest.fixture
@@ -920,14 +924,12 @@ def dut(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
-    return cls(**kwargs)
+    return cls(**_drop_none_kwargs(kwargs))
 
 
 ##################
 # Hook Functions #
 ##################
-
-
 def pytest_configure(config: Config) -> None:
     config._store['junit_merger'] = JunitMerger(config.option.xmlpath)
 
