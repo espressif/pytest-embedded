@@ -401,8 +401,7 @@ def pexpect_proc(
 @apply_count_generator
 def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     """
-    Provided a context manager that could help log all the `sys.stdout` with pytest logging feature and redirect
-    `sys.stdout` to `dut.pexpect_proc`.
+    Provided a context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
     with redirect():

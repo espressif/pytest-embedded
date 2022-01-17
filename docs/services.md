@@ -21,7 +21,8 @@
 
 - `redirect`
 
-    Provided a context manager that could help log all the `sys.stdout` with pytest logging feature and redirect `sys.stdout` to `dut.pexpect_proc`.
+    Provided a context manager that could help print all the `sys.stdout` with timestamp and redirect `sys.stdout` 
+    to `dut.pexpect_proc`.
 
     ```python
     with redirect():

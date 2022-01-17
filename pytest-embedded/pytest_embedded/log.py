@@ -140,15 +140,11 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
 class DuplicateStdout(TextIOWrapper):
     """
-    A context manager to redirect `sys.stdout` to `pexpect_proc`.
-
-    Use pytest logging functionality to log to cli or file by setting `log_cli` or `log_file` related attributes.
-    These attributes could be set at the same time.
+    A context manager to duplicate `sys.stdout` to `pexpect_proc`.
 
     Warning:
         - Within this context manager, the `print()` would be redirected to `self.write()`.
         All the `args` and `kwargs` passed to `print()` would be ignored and might not work as expected.
-
         - The context manager replacement of `sys.stdout` is NOT thread-safe. DO NOT use it in a thread.
     """
 
@@ -208,8 +204,7 @@ class DuplicateStdout(TextIOWrapper):
 
 def live_print_call(*args, **kwargs):
     """`
-    live print the `subprocess.Popen` process. Use this function when redirecting `sys.stdout` to enable
-    live-logging and logging to file simultaneously.
+    live print the `subprocess.Popen` process.
 
     Note:
         This function behaves the same as `subprocess.call()`, it would block your current process.

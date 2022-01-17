@@ -8,12 +8,12 @@ Extra Functionalities:
 
     - `app`: create the qemu bootable image automatically by the built binaries.
     - `qemu`: enable the fixture
-    - `dut`: redirect the `qemu` output to `pexpect_proc` and duplicate it with `logging.info()`.
+    - `dut`: duplicate the `qemu` output to `pexpect_proc`.
 
 === "`pytest-embedded-idf` NOT activated"
 
     - `qemu`: enable the fixture
-    - `dut`: redirect the `qemu` output to `pexpect_proc` and duplicate it with `logging.info()`.
+    - `dut`: duplicate the `qemu` output to `pexpect_proc`.
 
 Used CLI Options:
 
