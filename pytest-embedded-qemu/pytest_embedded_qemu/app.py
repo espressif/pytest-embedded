@@ -79,6 +79,7 @@ class QemuApp(IdfApp):
         build_dir: Optional[str] = None,
         part_tool: Optional[str] = None,
         qemu_image_path: Optional[str] = None,
+        skip_regenerate_image: Optional[bool] = False,
         **kwargs,
     ):
         """
@@ -88,10 +89,12 @@ class QemuApp(IdfApp):
             build_dir: Build directory
             part_tool: Partition tool path
             qemu_image_path: QEMU flashable bin path
+            skip_regenerate_image: skip regenerate QEMU image
         """
         super().__init__(app_path, build_dir=build_dir, part_tool=part_tool, **kwargs)
         self.pexpect_proc = pexpect_proc
         self.image_path = qemu_image_path or os.path.join(self.app_path, DEFAULT_IMAGE_FN)
+        self.skip_regenerate_image = skip_regenerate_image
 
         if self.target != 'esp32':
             raise ValueError('For now on QEMU we only support ESP32')
@@ -102,7 +105,7 @@ class QemuApp(IdfApp):
         """
         Create the image, if it doesn't exist.
         """
-        if os.path.exists(self.image_path):
+        if os.path.exists(self.image_path) and self.skip_regenerate_image:
             logging.info(f'Using existing image: {self.image_path}')
         else:
             with DuplicateStdout(self.pexpect_proc):
