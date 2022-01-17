@@ -139,6 +139,11 @@ def pytest_addoption(parser):
         '--qemu-extra-args',
         help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
     )
+    qemu_group.addoption(
+        '--skip-regenerate-image',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to disable auto regenerate image. (Default: False)',
+    )
 
 
 ###########
@@ -382,6 +387,9 @@ def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
 @pytest.fixture()
 @parse_configuration
 def with_timestamp(request: FixtureRequest) -> bool:
+    """
+    Enable parametrization for the same cli option
+    """
     return getattr(request, 'param', None) or request.config.getoption('with_timestamp', None)
 
 
@@ -610,6 +618,15 @@ def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
     return getattr(request, 'param', None) or request.config.getoption('qemu_extra_args', None)
 
 
+@pytest.fixture
+@parse_configuration
+def skip_regenerate_image(request: FixtureRequest) -> Optional[str]:
+    """
+    Enable parametrization for the same cli option
+    """
+    return getattr(request, 'param', None) or request.config.getoption('skip_regenerate_image', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -657,6 +674,7 @@ def _fixture_classes_and_options(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
+    skip_regenerate_image,
     # pre-initialized fixtures
     _pexpect_logfile,
     test_case_name,
@@ -695,7 +713,8 @@ def _fixture_classes_and_options(
                         {
                             'pexpect_proc': pexpect_proc,
                             'part_tool': part_tool,
-                            'qemu_image_path': (qemu_image_path or os.path.join(app_path, DEFAULT_IMAGE_FN)),
+                            'qemu_image_path': qemu_image_path,
+                            'skip_regenerate_image': skip_regenerate_image,
                         }
                     )
                 else:
@@ -788,7 +807,8 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
-                    'qemu_image_path': (qemu_image_path or os.path.join(app_path or '', DEFAULT_IMAGE_FN)),
+                    'qemu_image_path': qemu_image_path
+                    or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
