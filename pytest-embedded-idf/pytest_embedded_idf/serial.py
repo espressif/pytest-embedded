@@ -31,6 +31,9 @@ class IdfSerial(EspSerial):
     ) -> None:
         self.app = app
 
+        if not hasattr(self.app, 'target'):
+            raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
+
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
