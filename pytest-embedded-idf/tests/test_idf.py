@@ -15,6 +15,7 @@ def test_idf_serial_flash(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--embedded-services', 'esp,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
@@ -36,6 +37,7 @@ def test_idf_app(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--embedded-services', 'idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
     )
@@ -60,6 +62,7 @@ def test_multi_count_app(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--count', 2,
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
                       f'|'
@@ -84,6 +87,7 @@ def test_multi_count_autoflash(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--count', 2,
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
                       f'|'
@@ -109,6 +113,7 @@ def test_different_build_dir(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--build-dir', 'test_new_name',
         '--embedded-services', 'idf',
@@ -117,6 +122,7 @@ def test_different_build_dir(testdir):
     result.assert_outcomes(passed=1)
 
     result = testdir.runpytest(
+        '-s',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--build-dir', os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
         '--embedded-services', 'idf',

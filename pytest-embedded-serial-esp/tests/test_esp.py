@@ -6,9 +6,9 @@ def test_detect_port(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--count', 2,
         '--embedded-services', 'esp',
-        '--target', 'esp32s2|esp32'
-    )
+        '--target', 'esp32s2|esp32')
 
     result.assert_outcomes(passed=1)

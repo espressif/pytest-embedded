@@ -79,6 +79,7 @@ def test_fixtures(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
@@ -116,10 +117,11 @@ def test_multi_count_fixtures(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--count', 2,
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
                       f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}'
+                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
     )
 
     result.assert_outcomes(passed=5)

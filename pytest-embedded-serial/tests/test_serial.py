@@ -21,6 +21,7 @@ def test_serial_port(testdir):
     """)
 
     result = testdir.runpytest(
+        '-s',
         '--embedded-services', 'serial',
         '--port', 'socket://localhost:9876',
     )
