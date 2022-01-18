@@ -38,23 +38,22 @@ def test_basic_expect(redirect, dut: Dut):
 collected 1 item
 
 test_basic.py .                                                        [100%]
+
 ============================= 1 passed in 0.01s =============================
 ```
 
-- if run with `pytest --log-cli-level=INFO`, would get output like:
+- if run with `pytest -s`, would get output like:
 
 ```shell
-collected 1 item
+collected 1 item                                                                                                  
 
-test_basic.py::test_basic_expect
-------------------------------- live log call -------------------------------
-INFO     root:log.py:56 this would be redirected
-PASSED                                                                 [100%]
+test_basic.py 2022-01-01 12:34:56 this would be redirected
+.
 
 ============================= 1 passed in 0.01s =============================
 ```
 
-The `print` line is also logged.
+The `print` line is also duplicated to console output.
 
 ## Extra Services
 

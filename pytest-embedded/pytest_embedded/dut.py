@@ -2,13 +2,14 @@ import functools
 import logging
 import os.path
 import re
-from typing import AnyStr, Callable, Match, Union
+from typing import AnyStr, Callable, Match, Optional, Union
 
 import pexpect
 
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
+from .utils import to_bytes
 
 
 class Dut:
@@ -112,7 +113,9 @@ class Dut:
     )
 
     @_pexpect_func  # noqa
-    def expect_unity_test_output(self, remove_asci_escape_code: bool = True, timeout: int = 30) -> None:
+    def expect_unity_test_output(
+        self, remove_asci_escape_code: bool = True, timeout: int = 30, extra_before: Optional[AnyStr] = None
+    ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
 
@@ -121,13 +124,19 @@ class Dut:
         Args:
             remove_asci_escape_code: remove asci escape code in the message field. (default: True)
             timeout: timeout
+            extra_before: would append before the expected bytes.
+                Use this argument when need to run `expect` functions between one unity test call.
 
         Raises:
             AssertionError: when unity test summary is "FAIL"
         """
         res = self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
 
-        log = self.pexpect_proc.before
+        if extra_before:
+            log = to_bytes(extra_before) + self.pexpect_proc.before
+        else:
+            log = self.pexpect_proc.before
+
         if remove_asci_escape_code:
             log = self.ANSI_ESCAPE_RE.sub('', log.decode('utf-8', errors='ignore'))
 
