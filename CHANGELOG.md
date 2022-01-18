@@ -1,3 +1,29 @@
+## v0.5.0rc1 (2022-01-18)
+
+### Feat
+
+- **qemu**: default image path move to `APP_PATH/BUILD_DIR/IMAGE_NAME`
+- add `Dut.expect_unity_test_output` method
+- add fixture `test_case_tempdir`
+- make import pytest-embedded easier
+- show log file location when expect functions failed
+- show pexpect process full log file location when expect function failed
+
+### Fix
+
+- **jtag**: use real file logging instead of pipe
+- **qemu**: `dut.write` to qemu process correctly
+- **qemu**: re-generate qemu image. add cli option "--skip-regenerate_image"
+- **serial**: `dut.write()` could accept `str` data, auto add `\n` ending
+- ensure use default value set in class if not specified in cli or param
+- raise idf app not parsable error if binary path not parsable
+
+### Breaking Changes
+
+- **log**: thread-safe print instead of logging.info
+- remove `expect_list`
+
+
 ## v0.5.0rc0 (2022-01-06)
 
 ### Feat
