@@ -114,7 +114,7 @@ class Dut:
 
     @_pexpect_func  # noqa
     def expect_unity_test_output(
-        self, remove_asci_escape_code: bool = True, timeout: int = 30, extra_before: Optional[AnyStr] = None
+        self, remove_asci_escape_code: bool = True, timeout: int = 60, extra_before: Optional[AnyStr] = None
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -123,7 +123,7 @@ class Dut:
 
         Args:
             remove_asci_escape_code: remove asci escape code in the message field. (default: True)
-            timeout: timeout
+            timeout: timeout. (default: 60 seconds)
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
 

@@ -156,7 +156,7 @@ Same as [`expect()`][expectpattern-timeout], argument `pattern` could be a list 
 
 [Unity Test](https://github.com/ThrowTheSwitch/Unity) is a c test framework.
 
-This function would parse the output with unity output, and raise `AssertionError` if the result is "FAIL".
+This function would parse the output with unity output, and raise `AssertionError` if the result is "FAIL". The default value of `timeout` is 60 seconds.
 
 What's more, it would dump the junit report under a temp folder and would combine the junit report into the main one 
 if you use `pytest --junitxml` feature.
