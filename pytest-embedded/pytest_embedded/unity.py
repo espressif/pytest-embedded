@@ -111,6 +111,10 @@ class TestSuite:
 
         self._xml = None
 
+    @property
+    def failed_cases(self) -> List[TestCase]:
+        return [case for case in self.testcases if case.result == 'FAIL']
+
     def add_unity_test_cases(self, s: AnyStr, additional_attrs: Optional[Dict[str, Any]] = None) -> None:
         s = to_str(s)
 

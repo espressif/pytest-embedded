@@ -272,8 +272,7 @@ def test_expect(testdir):
             '''
                 )
             )
-            with pytest.raises(AssertionError):
-                dut.expect_unity_test_output()
+            dut.expect_unity_test_output()
 
             assert len(dut.testsuite.testcases) == 2
             assert dut.testsuite.attrs['failures'] == 2
@@ -293,10 +292,30 @@ def test_expect(testdir):
             '''
                 )
             )
-            with pytest.raises(AssertionError):
-                dut.expect_unity_test_output()
+            dut.expect_unity_test_output()
 
             assert len(dut.testsuite.testcases) == 2
+            assert dut.testsuite.attrs['failures'] == 2
+            assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
+            assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
+
+
+        def test_expect_unity_test_output_fail_at_last(dut):
+            dut.write(
+                inspect.cleandoc(
+                    '''
+                TEST(group, test_case):foo.c:100::FAIL:Expected 2 was 1
+                TEST(group, test_case_2):foo.c:101::FAIL:Expected 1 was 2
+                TEST(group, test_case_3):foo.c:102::PASS
+                -------------------
+                3 Tests 2 Failures 0 Ignored
+                FAIL
+            '''
+                )
+            )
+            dut.expect_unity_test_output()
+
+            assert len(dut.testsuite.testcases) == 3
             assert dut.testsuite.attrs['failures'] == 2
             assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
             assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
@@ -304,4 +323,4 @@ def test_expect(testdir):
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=10)
+    result.assert_outcomes(passed=8, failed=3)

@@ -127,10 +127,10 @@ class Dut:
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
 
-        Raises:
-            AssertionError: when unity test summary is "FAIL"
+        Notes:
+            Would raise AssertionError at the end of the test if any unity test case result is "FAIL"
         """
-        res = self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
+        self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
 
         if extra_before:
             log = to_bytes(extra_before) + self.pexpect_proc.before
@@ -141,6 +141,3 @@ class Dut:
             log = self.ANSI_ESCAPE_RE.sub('', log.decode('utf-8', errors='ignore'))
 
         self.testsuite.add_unity_test_cases(log)
-
-        if res.group('result') == b'FAIL':
-            raise AssertionError('unity test cases failed')
