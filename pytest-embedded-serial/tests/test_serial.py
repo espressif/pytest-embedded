@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.skipif(sys.platform == 'win32', reason='No socat support on windows')
 @pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_serial_port(testdir):
-    testdir.makepyfile("""
+    testdir.makepyfile(r"""
         import pytest
         import subprocess
 
@@ -17,7 +17,7 @@ def test_serial_port(testdir):
             proc.terminate()
 
         def test_serial_port(dut):
-            dut.write(b'hello world')
+            dut.write(b'hello world\n')
             dut.expect('hello world')
     """)
 
