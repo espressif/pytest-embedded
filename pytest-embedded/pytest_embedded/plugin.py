@@ -25,6 +25,7 @@ from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
 from _pytest.main import Session
 from _pytest.nodes import Item
+from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
@@ -966,6 +967,29 @@ def dut(
 ##################
 def pytest_configure(config: Config) -> None:
     config._store['junit_merger'] = JunitMerger(config.option.xmlpath)
+
+
+@pytest.hookimpl(trylast=True)  # raise Exception if unity test cases failed
+def pytest_runtest_call(item: Function):
+    if 'dut' not in item.funcargs:
+        return
+
+    dut: Dut = item.funcargs['dut']
+    if isinstance(dut, tuple) or isinstance(dut, list):
+        duts = list(dut)
+    else:
+        duts = [dut]
+
+    failed_cases = []
+    for _dut in duts:
+        if _dut.testsuite.failed_cases:
+            failed_cases.extend(_dut.testsuite.failed_cases)
+
+    if failed_cases:
+        logging.error('Failed Cases:')
+        for case in failed_cases:
+            logging.error(f'  - {case.name}')
+        raise AssertionError('Unity test failed')
 
 
 @pytest.hookimpl(trylast=True)  # the parallel filter should be the last step
