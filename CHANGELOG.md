@@ -1,3 +1,9 @@
+## v0.5.1 (2022-01-21)
+
+### Fix
+
+- **serial**: write to pexpect process until '\n'
+
 ## v0.5.0 (2022-01-21)
 
 ### Feat
