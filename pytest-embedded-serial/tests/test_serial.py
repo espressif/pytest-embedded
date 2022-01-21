@@ -4,6 +4,7 @@ import pytest
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='No socat support on windows')
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_serial_port(testdir):
     testdir.makepyfile("""
         import pytest
