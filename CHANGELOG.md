@@ -1,3 +1,10 @@
+## v0.5.0 (2022-01-21)
+
+### Feat
+
+- **unity**: fail at the end if unity test case failed, try run more tests
+- **unity**: set expect_unity_test_output timeout to 60s
+
 ## v0.5.0rc1 (2022-01-18)
 
 ### Feat
@@ -22,7 +29,6 @@
 
 - **log**: thread-safe print instead of logging.info
 - remove `expect_list`
-
 
 ## v0.5.0rc0 (2022-01-06)
 
