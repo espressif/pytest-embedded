@@ -60,9 +60,23 @@ class Serial(DuplicateStdoutMixin):
         pass
 
     def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+        rest = b''
         while self.proc.is_open:
             try:
                 s = self.proc.read_until()
-                pexpect_proc.write(s)
+                s = rest + s
+
+                res = s.rsplit(b'\n', maxsplit=1)
+                if len(res) == 1:
+                    rest = s
+                else:
+                    s = res[0]
+                    rest = res[1]
+                    if s:
+                        pexpect_proc.write(s + b'\n')
             except:  # noqa daemon thread may run at any case
+                try:
+                    pexpect_proc.write(rest)  # try to write the rest of line
+                except:  # noqa daemon thread may run at any case
+                    pass
                 break
