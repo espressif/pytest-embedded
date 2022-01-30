@@ -58,11 +58,13 @@ class Dut:
         def wrapper(self, *args, **kwargs) -> Union[Match, AnyStr]:
             try:
                 func(self, *args, **kwargs)  # noqa
-            except (pexpect.EOF, pexpect.TIMEOUT):
-                logging.error(f'Not found {args}, {kwargs}')
-                logging.error(f'Bytes in current buffer: {self.pexpect_proc.buffer}')
-                logging.error(f'Full pexpect process log file: {self.logfile}')
-                raise
+            except (pexpect.EOF, pexpect.TIMEOUT) as e:
+                debug_str = (
+                    f'Not found {" ".join(args)} with arguments {str(kwargs)}\n'
+                    f'Bytes in current buffer: {self.pexpect_proc.buffer}\n'
+                    f'Full pexpect process log file: {self.logfile}'
+                )
+                raise e.__class__(debug_str) from e
             else:
                 if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
                     return self.pexpect_proc.before.rstrip()
