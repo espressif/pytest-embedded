@@ -49,6 +49,8 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self._with_timestamp = with_timestamp
         self._write_lock = threading.Lock()
 
+        self._added_prefix = False
+
     def send(self, s: AnyStr) -> int:
         """
         Write to the pexpect process and log.
@@ -68,13 +70,24 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         # for pytest logging
         _temp = sys.stdout
         sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
-        for line in to_str(s).replace('\r', '\n').split('\n'):
-            if line.strip():
-                if self.source:
-                    line = f'[{self.source}] {line}'
-                if self._with_timestamp:
-                    line = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + line
-                print(line)
+
+        _s = to_str(s)
+        prefix = ''
+        if self.source:
+            prefix = f'[{self.source}] ' + prefix
+        if self._with_timestamp:
+            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
+
+        if not self._added_prefix:
+            _s = prefix + _s
+            self._added_prefix = True
+        _s = _s.replace('\n', '\n' + prefix)
+        if _s.endswith(prefix):
+            _s = _s.rsplit(prefix, maxsplit=1)[0]
+            self._added_prefix = False
+
+        sys.stdout.write(_s)
+        sys.stdout.flush()
         sys.stdout = _temp
 
         # write the bytes into the pexpect process
