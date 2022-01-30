@@ -319,7 +319,7 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
                         current_kwargs[k] = getter(v)
                     else:
                         current_kwargs[k] = v
-                if func.__name__ == '_pexpect_logfile':
+                if func.__name__ in ['_pexpect_logfile', 'pexpect_proc']:
                     current_kwargs['count'] = i
                     current_kwargs['total'] = _COUNT
                 res.append(func(*args, **current_kwargs))
