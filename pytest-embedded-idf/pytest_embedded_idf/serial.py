@@ -4,7 +4,7 @@ import tempfile
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import DuplicateStdout, PexpectProcess
+from pytest_embedded.log import PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -44,9 +44,9 @@ class IdfSerial(EspSerial):
             logging.info('Skipping auto flash...')
             super()._start()
         else:
-            with DuplicateStdout(self.pexpect_proc):
-                self.flash()
+            self.flash()
 
+    @EspSerial.use_esptool
     def flash(self, erase_nvs: bool = True) -> None:
         """
         Flash the `app.flash_files` to the dut
@@ -108,13 +108,13 @@ class IdfSerial(EspSerial):
 
         try:
             if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
+                self.stub.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 
-            esptool.detect_flash_size(self.esp, flash_args)
-            esptool.write_flash(self.esp, flash_args)
+            esptool.detect_flash_size(self.stub, flash_args)
+            esptool.write_flash(self.stub, flash_args)
 
             if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.esp.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
+                self.stub.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
         except Exception:  # noqa
             raise
         finally:

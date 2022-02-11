@@ -251,7 +251,7 @@ class DuplicateStdoutMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._forward_io_thread = None
+        self._forward_io_thread: threading.Thread = None  # type: ignore
 
     def create_forward_io_thread(self, pexpect_proc: PexpectProcess) -> None:
         """
@@ -260,7 +260,7 @@ class DuplicateStdoutMixin:
         Args:
             pexpect_proc: `PexpectProcess` instance
         """
-        if self._forward_io_thread:
+        if self._forward_io_thread and self._forward_io_thread.is_alive():
             return
 
         self._forward_io_thread = threading.Thread(target=self._forward_io, args=(pexpect_proc,), daemon=True)
