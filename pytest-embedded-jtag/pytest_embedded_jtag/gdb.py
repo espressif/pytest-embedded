@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 from pytest_embedded.log import DuplicateStdoutPopen
@@ -18,7 +17,6 @@ class Gdb(DuplicateStdoutPopen):
         gdb_cli_args = gdb_cli_args or self.GDB_DEFAULT_ARGS
 
         cmd = f'{gdb_prog_path} {gdb_cli_args}'
-        logging.info(cmd)
 
         super().__init__(cmd, shell=True, **kwargs)
 
@@ -28,11 +26,11 @@ class Gdb(DuplicateStdoutPopen):
         """
         self.send(f'-interpreter-exec console "{cmd}"')
 
-    def gdb_set(self, k, v):
+    def gdb_set(self, *args):
         """
-        GDB/MI commands `-gdb-set [k] [v]`
+        GDB/MI commands `-gdb-set ...`
         """
-        self.send(f'-gdb-set {k} {v}')
+        self.send(f'-gdb-set {" ".join(args)}')
 
     def gdb_exit(self):
         """
