@@ -30,6 +30,7 @@ class Dut:
 
         self.logfile = pexpect_logfile
         self.logdir = os.path.dirname(self.logfile)
+        logging.info(f'Logs recorded under folder: {self.logdir}')
 
         self.test_case_name = test_case_name
         self.dut_name = os.path.splitext(os.path.basename(pexpect_logfile))[0]
