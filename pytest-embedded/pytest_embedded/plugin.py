@@ -842,9 +842,15 @@ def _fixture_classes_and_options(
                     }
                 )
             elif 'serial' in _services or 'esp' in _services:
-                from pytest_embedded_serial.dut import SerialDut
+                if 'esp' in _services and 'idf' in _services:
+                    from pytest_embedded_idf.dut import IdfDut
 
-                classes[fixture] = SerialDut
+                    classes[fixture] = IdfDut
+                else:
+                    from pytest_embedded_serial.dut import SerialDut
+
+                    classes[fixture] = SerialDut
+
                 kwargs[fixture].update(
                     {
                         'serial': None,
