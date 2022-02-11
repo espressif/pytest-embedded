@@ -59,8 +59,9 @@ class Dut:
             try:
                 func(self, *args, **kwargs)  # noqa
             except (pexpect.EOF, pexpect.TIMEOUT) as e:
+                args = [args] if isinstance(args, str) else args
                 debug_str = (
-                    f'Not found {" ".join(args)} with arguments {str(kwargs)}\n'
+                    f'Not found "{str(args)}" with arguments {str(kwargs)}\n'
                     f'Bytes in current buffer: {self.pexpect_proc.buffer}\n'
                     f'Full pexpect process log file: {self.logfile}'
                 )
