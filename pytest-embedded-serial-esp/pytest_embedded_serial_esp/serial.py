@@ -1,3 +1,4 @@
+import functools
 import logging
 from typing import Optional
 
@@ -34,13 +35,16 @@ class EspSerial(Serial):
 
         with DuplicateStdout(pexpect_proc):
             initial_baud = min(self.DEFAULT_BAUDRATE, baud)  # don't sync faster than the default baud rate
-            self.esp = esptool.get_default_connected_device(
+            # normal loader
+            self.esp: esptool.ESPLoader = esptool.get_default_connected_device(
                 ports, port=port, connect_attempts=3, initial_baud=initial_baud, chip=target
             )
             if not self.esp:
                 raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
 
-            self.esp = self.esp.run_stub()
+            # stub loader has more functionalities, need to run after calling `run_stub()`
+            self.stub: esptool.ESPLoader = None  # type: ignore
+
             if baud > initial_baud:
                 self.esp.change_baud(baud)  # change back to the users settings
 
@@ -51,6 +55,36 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
 
+    def use_esptool(func):
+        """
+        1. close the port and open the port to kill the `self._forward_io` thread
+        2. call `run_stub()`
+        3. call to the decorated function, could use `self.stub` as the stubbed loader
+        4. call `hard_reset()`
+        5. create the `self.forward_io` thread again.
+        """
+
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            self.proc.close()
+            self.proc.open()
+
+            settings = self.proc.get_settings()
+
+            try:
+                with DuplicateStdout(self.pexpect_proc):
+                    self.esp.connect('hard_reset')
+                    self.stub = self.esp.run_stub()
+                    ret = func(self, *args, **kwargs)
+                    self.stub.hard_reset()
+            finally:
+                self.proc.apply_settings(settings)
+                self.create_forward_io_thread(self.pexpect_proc)
+
+            return ret
+
+        return wrapper
+
+    @use_esptool
     def _start(self):
-        with DuplicateStdout(self.pexpect_proc):
-            self.esp.hard_reset()
+        pass

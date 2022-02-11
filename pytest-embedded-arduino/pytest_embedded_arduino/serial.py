@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import DuplicateStdout, PexpectProcess
+from pytest_embedded.log import PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import ArduinoApp
@@ -35,9 +35,9 @@ class ArduinoSerial(EspSerial):
             logging.info('Skipping auto flash...')
             super()._start()
         else:
-            with DuplicateStdout(self.pexpect_proc):
-                self.flash()
+            self.flash()
 
+    @EspSerial.use_esptool
     def flash(self) -> None:
         """
         Flash the binary files to the board.
@@ -68,17 +68,15 @@ class ArduinoSerial(EspSerial):
 
         try:
             if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                self.esp.change_baud(self.SUGGEST_FLASH_BAUDRATE)
+                self.stub.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 
-            esptool.detect_flash_size(self.esp, flash_args)
-            esptool.write_flash(self.esp, flash_args)
+            esptool.detect_flash_size(self.stub, flash_args)
+            esptool.write_flash(self.stub, flash_args)
 
             if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.esp.change_baud(self.DEFAULT_BAUDRATE)
+                self.stub.change_baud(self.DEFAULT_BAUDRATE)
         except Exception:
             raise
         finally:
             for (_, f) in flash_files:
                 f.close()
-
-        self.esp.hard_reset()

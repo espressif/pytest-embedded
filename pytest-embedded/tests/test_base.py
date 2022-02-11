@@ -32,7 +32,7 @@ def test_services(testdir):
                 ('esp', {'App', 'EspSerial', 'SerialDut'}),
                 ('idf', {'IdfApp', 'Dut'}),
                 ('idf,serial', {'IdfApp', 'Serial', 'SerialDut'}),
-                ('idf,esp', {'IdfApp', 'IdfSerial', 'SerialDut'}),
+                ('idf,esp', {'IdfApp', 'IdfSerial', 'IdfDut'}),
                 ('idf,qemu', {'QemuApp', 'Qemu', 'QemuDut'}),
                 ('arduino,esp', {'ArduinoApp', 'ArduinoSerial', 'SerialDut'}),
             ],
