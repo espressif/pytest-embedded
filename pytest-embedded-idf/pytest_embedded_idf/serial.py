@@ -129,4 +129,25 @@ class IdfSerial(EspSerial):
             for (_, f) in encrypt_files:
                 f.close()
 
-        self.esp.hard_reset()
+    @EspSerial.use_esptool
+    def dump_flash(
+        self,
+        output_filepath: str,
+        partition: Optional[str] = None,
+        address: Optional[str] = None,
+        size: Optional[str] = None,
+    ):
+        os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+        if partition:
+            partition = self.app.partition_table[partition]
+            _addr = partition['offset']
+            _size = partition['size']
+        elif address and size:
+            _addr = address
+            _size = size
+        else:
+            raise ValueError('You must specify "partition" or ("address" and "size") to dump flash')
+
+        content = self.stub.read_flash(_addr, _size)
+        with open(output_filepath, 'wb') as f:
+            f.write(content)
