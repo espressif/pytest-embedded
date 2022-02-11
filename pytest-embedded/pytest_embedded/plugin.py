@@ -172,7 +172,7 @@ def _gte_one_int(v) -> int:
     sys.exit(1)
 
 
-def _str_bool(v) -> Optional[bool]:
+def _str_bool(v: str) -> Union[bool, str, None]:
     if v is None:
         return None
 
@@ -448,7 +448,7 @@ FIXTURES_SERVICES = {
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
-    'dut': ['base', 'serial', 'jtag', 'qemu'],
+    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf'],
 }
 
 
