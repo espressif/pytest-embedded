@@ -45,6 +45,7 @@ class IdfApp(App):
             return
 
         self.elf_file = self._get_elf_file()
+        self.bin_file = self._get_bin_file()
         self.parttool_path = self._get_parttool_file(part_tool)
 
         self.flash_files, self.flash_settings = self._parse_flash_args()
@@ -71,6 +72,12 @@ class IdfApp(App):
     def _get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.elf':
+                return os.path.realpath(os.path.join(self.binary_path, fn))
+        return None
+
+    def _get_bin_file(self) -> Optional[str]:
+        for fn in os.listdir(self.binary_path):
+            if os.path.splitext(fn)[-1] == '.bin':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
