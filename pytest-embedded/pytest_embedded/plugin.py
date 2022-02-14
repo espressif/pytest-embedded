@@ -333,6 +333,24 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
     return wrapper
 
 
+def _request_param_or_config_option_or_default(request: FixtureRequest, option: str, default: Any = None):
+    """
+    Return as the following sequence:
+    1. Function parametrized value
+    2. CLI option value
+    3. default value
+
+    Args:
+        request: fixture request
+        option: cli option name
+        default: default value
+
+    Returns:
+        Any
+    """
+    return getattr(request, 'param', None) or request.config.getoption(option, None) or default
+
+
 ####################
 # General Fixtures #
 ####################
@@ -388,10 +406,8 @@ def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
 @pytest.fixture()
 @parse_configuration
 def with_timestamp(request: FixtureRequest) -> bool:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('with_timestamp', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'with_timestamp', None)
 
 
 @pytest.fixture
@@ -461,30 +477,22 @@ FIXTURES_SERVICES = {
 @pytest.fixture
 @parse_configuration
 def embedded_services(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('embedded_services', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'embedded_services', None)
 
 
 @pytest.fixture
 @parse_configuration
 def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return (
-        getattr(request, 'param', None) or request.config.getoption('app_path', None) or os.path.dirname(test_file_path)
-    )
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
 
 
 @pytest.fixture
 @parse_configuration
 def build_dir(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'build_dir', 'build')
 
 
 ##########
@@ -493,10 +501,8 @@ def build_dir(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def port(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('port', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'port', None)
 
 
 #######
@@ -505,28 +511,22 @@ def port(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def target(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('target', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'target', None)
 
 
 @pytest.fixture
 @parse_configuration
 def baud(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('baud', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
 @pytest.fixture
 @parse_configuration
 def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
 
 
 #######
@@ -535,10 +535,8 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
 @pytest.fixture
 @parse_configuration
 def part_tool(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
 ########
@@ -547,37 +545,29 @@ def part_tool(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def gdb_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('gdb_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'gdb_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def gdb_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('gdb_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'gdb_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def openocd_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('openocd_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'openocd_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('openocd_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'openocd_cli_args', None)
 
 
 ########
@@ -586,46 +576,36 @@ def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def qemu_image_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_image_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_image_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_extra_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_extra_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def skip_regenerate_image(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('skip_regenerate_image', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
 
 
 ####################
@@ -735,7 +715,6 @@ def _fixture_classes_and_options(
                 kwargs[fixture].update(
                     {
                         'pexpect_proc': pexpect_proc,
-                        'app_path': app_path,
                     }
                 )
             else:
