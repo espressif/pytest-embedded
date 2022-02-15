@@ -153,22 +153,12 @@ def test_default_app_path(testdir):
     (2, 2, 2),
 ])
 def test_parallel_run(testdir, parallel_count, parallel_index, res):
-    from pytest_embedded.plugin import pytest_collection_modifyitems
+    from pytest_embedded.plugin import PytestEmbedded
 
-    class FakeObject:
-        def __init__(self, _count, _index):
-            self.parallel_count = _count
-            self.parallel_index = _index
-
-    class FakeConfig:
-        def __init__(self, _count, _index):
-            self.option = FakeObject(_count, _index)
-
-    config = FakeConfig(parallel_count, parallel_index)
-    items = [1, 2, 3, 4, 5]
-
-    pytest_collection_modifyitems(config, items)  # noqa
-    assert len(items) == res
+    fake_items = [1, 2, 3, 4, 5]
+    fake_plugin = PytestEmbedded(parallel_count, parallel_index)
+    fake_plugin.pytest_collection_modifyitems(fake_items)  # noqa
+    assert len(fake_items) == res
 
 
 def test_expect(testdir):

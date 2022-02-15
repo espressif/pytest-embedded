@@ -14,6 +14,7 @@ from typing import (
     Callable,
     Dict,
     Generator,
+    Iterable,
     List,
     Optional,
     Tuple,
@@ -24,7 +25,6 @@ import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
 from _pytest.main import Session
-from _pytest.nodes import Item
 from _pytest.python import Function
 
 from .app import App
@@ -91,6 +91,11 @@ def pytest_addoption(parser):
         '--with-timestamp',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to enable print with timestamp. (Default: True)',
+    )
+    base_group.addoption(
+        '--reorder-by-app-path',
+        action='store_true',
+        help='Reorder the test sequence according to the [app_path] and [build_dir]. (Default: False)',
     )
 
     serial_group = parser.getgroup('embedded-serial')
@@ -182,6 +187,13 @@ def _str_bool(v: str) -> Union[bool, str, None]:
         return False
     else:
         return v
+
+
+def _to_iterable(s: Any) -> Optional[Iterable[Any]]:
+    if s and not (isinstance(s, list) or isinstance(s, tuple)):
+        return [s]
+
+    return s
 
 
 def _drop_none_kwargs(kwargs: Dict[Any, Any]):
@@ -950,60 +962,118 @@ def dut(
 ##################
 # Hook Functions #
 ##################
+_junit_merger_key = pytest.StashKey['JunitMerger']()
+_pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
+_port_target_cache_key = pytest.StashKey[str]()
+_port_app_cache_key = pytest.StashKey[str]()
+
+
 def pytest_configure(config: Config) -> None:
-    config._store['junit_merger'] = JunitMerger(config.option.xmlpath)
+    port_target_cache: Dict[str, str] = {}
+    port_app_cache: Dict[str, str] = {}
 
+    config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
+    config.stash[_port_target_cache_key] = port_target_cache
+    config.stash[_port_app_cache_key] = port_app_cache
 
-@pytest.hookimpl(trylast=True)  # raise Exception if unity test cases failed
-def pytest_runtest_call(item: Function):
-    if 'dut' not in item.funcargs:
-        return
-
-    dut: Dut = item.funcargs['dut']
-    if isinstance(dut, tuple) or isinstance(dut, list):
-        duts = list(dut)
-    else:
-        duts = [dut]
-
-    failed_cases = []
-    for _dut in duts:
-        if _dut.testsuite.failed_cases:
-            failed_cases.extend(_dut.testsuite.failed_cases)
-
-    if failed_cases:
-        logging.error('Failed Cases:')
-        for case in failed_cases:
-            logging.error(f'  - {case.name}')
-        raise AssertionError('Unity test failed')
-
-
-@pytest.hookimpl(trylast=True)  # the parallel filter should be the last step
-def pytest_collection_modifyitems(config: Config, items: List[Item]):
-    if config.option.parallel_index == 1 and config.option.parallel_count == 1:
-        return
-
-    current_job_index = config.option.parallel_index - 1  # convert to 0-based index
-    max_cases_num_per_job = (len(items) + config.option.parallel_count - 1) // config.option.parallel_count
-
-    run_case_start_index = max_cases_num_per_job * current_job_index
-    if run_case_start_index >= len(items):
-        logging.warning(
-            f'Nothing to do for job {current_job_index + 1} '
-            f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
-        )
-        items.clear()
-        return
-
-    run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
-    logging.info(
-        f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
-        f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+    config.stash[_pytest_embedded_key] = PytestEmbedded(
+        parallel_count=config.getoption('parallel_count'),
+        parallel_index=config.getoption('parallel_index'),
+        port_target_cache=port_target_cache,
+        port_app_cache=port_app_cache,
     )
-    items[:] = items[run_case_start_index : run_case_end_index + 1]
+    config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
 
-@pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
-def pytest_sessionfinish(session: Session, exitstatus: int):  # noqa
-    modifier: JunitMerger = session.config._store['junit_merger']
-    modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
-    exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
+def pytest_unconfigure(config: Config) -> None:
+    _pytest_embedded = config.stash.get(_pytest_embedded_key, None)
+    if _pytest_embedded:
+        del config.stash[_pytest_embedded_key]
+        config.pluginmanager.unregister(_pytest_embedded)
+
+
+class PytestEmbedded:
+    def __init__(
+        self,
+        parallel_count: int = 1,
+        parallel_index: int = 1,
+        port_target_cache: Dict[str, str] = None,
+        port_app_cache: Dict[str, str] = None,
+    ):
+        self.parallel_count = parallel_count
+        self.parallel_index = parallel_index
+
+        self._port_target_cache = port_target_cache
+        self._port_app_path_cache = port_app_cache
+
+    @staticmethod
+    def _raise_dut_failed_cases_if_exists(duts: List[Dut]) -> None:
+        failed_cases = []
+        for _dut in duts:
+            if _dut.testsuite.failed_cases:
+                failed_cases.extend(_dut.testsuite.failed_cases)
+
+        if failed_cases:
+            logging.error('Failed Cases:')
+            for case in failed_cases:
+                logging.error(f'  - {case.name}')
+            raise AssertionError('Unity test failed')
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_runtest_call(self, item: Function):
+        # cache target port, and target app
+        if 'serial' in item.funcargs:
+            serial = item.funcargs['serial']
+            port = getattr(serial, 'port', None)
+            target = getattr(serial, 'target', None)
+            app = getattr(serial, 'app', None)
+
+            port = _to_iterable(port)
+            target = _to_iterable(target)
+            app = _to_iterable(app)
+
+            if port and target:
+                for p, t in zip(port, target):
+                    self._port_target_cache[p] = t
+
+            if port and app:
+                for p, a in zip(port, app):
+                    self._port_app_path_cache[p] = os.path.join(a.app_path, a.build_dir)
+
+        # raise dut failed cases
+        if 'dut' in item.funcargs:
+            duts = _to_iterable(item.funcargs['dut'])
+            self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
+
+        logging.debug(self._port_target_cache)
+        logging.debug(self._port_app_path_cache)
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_collection_modifyitems(self, items: List[Function]):
+        if self.parallel_index == 1 and self.parallel_count == 1:
+            return
+
+        current_job_index = self.parallel_index - 1  # convert to 0-based index
+        max_cases_num_per_job = (len(items) + self.parallel_count - 1) // self.parallel_count
+
+        run_case_start_index = max_cases_num_per_job * current_job_index
+        if run_case_start_index >= len(items):
+            logging.warning(
+                f'Nothing to do for job {current_job_index + 1} '
+                f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
+            )
+            items.clear()
+            return
+
+        run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
+        logging.info(
+            f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
+            f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+        )
+        items[:] = items[run_case_start_index : run_case_end_index + 1]
+
+    @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
+    def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
+        modifier: JunitMerger = session.config.stash[_junit_merger_key]
+        modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
+        exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa

@@ -23,7 +23,7 @@ SHORT_DESCRIPTION = 'pytest embedded plugin'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
 REQUIRES = [
-    'pytest>=6.2.0',
+    'pytest>=7.0',
     'pexpect>=4.4',
 ]
 ENTRY_POINTS = {
