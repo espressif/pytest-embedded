@@ -1038,7 +1038,7 @@ class PytestEmbedded:
 
             if port and app:
                 for p, a in zip(port, app):
-                    self._port_app_path_cache[p] = os.path.join(a.app_path, a.build_dir)
+                    self._port_app_path_cache[p] = a.binary_path
 
         # raise dut failed cases
         if 'dut' in item.funcargs:

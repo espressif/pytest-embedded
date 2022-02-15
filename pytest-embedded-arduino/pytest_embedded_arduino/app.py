@@ -42,10 +42,9 @@ class ArduinoApp(App):
         super().__init__(app_path, build_dir, **kwargs)
 
         self.sketch = os.path.basename(app_path)
-        self.build_path = os.path.realpath(os.path.join(self.app_path, self.build_dir))
-        self.fqbn = self._get_fqbn(self.build_path)
+        self.fqbn = self._get_fqbn(self.binary_path)
         self.target = self.fqbn.split(':')[2]
-        self.flash_files = self._get_bin_files(self.build_path, self.sketch, self.target)
+        self.flash_files = self._get_bin_files(self.binary_path, self.sketch, self.target)
 
     def _get_fqbn(self, build_path) -> str:
         options_file = os.path.realpath(os.path.join(build_path, 'build.options.json'))

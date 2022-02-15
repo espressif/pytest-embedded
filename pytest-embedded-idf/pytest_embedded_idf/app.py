@@ -39,9 +39,8 @@ class IdfApp(App):
             part_tool: Partition tool path
         """
         super().__init__(app_path, build_dir, **kwargs)
-        self.binary_path = self._get_binary_path(build_dir or 'build')
         if not self.binary_path:
-            logging.warning('Binary path not specified, skipping parsing app...')
+            logging.debug('Binary path not specified, skipping parsing app...')
             return
 
         self.elf_file = self._get_elf_file()
@@ -56,18 +55,6 @@ class IdfApp(App):
             return
 
         self.target = self._get_target_from_sdkconfig()
-
-    def _get_binary_path(self, build_dir: str) -> Optional[str]:
-        if os.path.isdir(build_dir):
-            return os.path.realpath(build_dir)
-
-        logging.debug(f'{build_dir} doesn\'t exist. Treat as relative path...')
-        path = os.path.join(self.app_path, build_dir)
-        if os.path.isdir(path):
-            return path
-
-        logging.warning(f'{path} doesn\'t exist.')
-        return None
 
     def _get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
@@ -95,7 +82,8 @@ class IdfApp(App):
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         return None
 
-    def _is_encrypted(self, flash_args: Dict[str, Any], offset: int, file_path: str):
+    @staticmethod
+    def _is_encrypted(flash_args: Dict[str, Any], offset: int, file_path: str):
         for entry in flash_args.values():
             try:
                 if (entry['offset'], entry['file']) == (offset, file_path):
