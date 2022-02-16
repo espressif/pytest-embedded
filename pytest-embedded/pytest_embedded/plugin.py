@@ -18,6 +18,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -38,6 +39,8 @@ if TYPE_CHECKING:
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
+
+_T = TypeVar('_T')
 
 
 def pytest_addoption(parser):
@@ -189,7 +192,7 @@ def _str_bool(v: str) -> Union[bool, str, None]:
         return v
 
 
-def _to_iterable(s: Any) -> Optional[Iterable[Any]]:
+def _to_iterable(s: _T) -> Optional[Iterable[_T]]:
     if s and not (isinstance(s, list) or isinstance(s, tuple)):
         return [s]
 
@@ -214,9 +217,13 @@ def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Option
     Used for parse the configuration value with the "count" amount.
 
     Parsed by the following rules:
+
     - When the return value is a string, split the string by `|`.
+
     - If the configuration value item amount is different from "count" amount, raise ValueError
+
     - If the configuration value only has one item, duplicate this item by the "count" amount
+
     - If the configuration value item amount is the same as the "count" amount, return it directly.
 
     Returns:
@@ -256,9 +263,10 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`
 
     For example:
-    kwargs: {key1: (v1, v2), key2: (v1, v2)}
 
-    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+    - input: `{key1: (v1, v2), key2: (v1, v2)}`
+
+    - output: `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
 
     Returns:
         - if "count" amount is 1, return the return value.
@@ -286,12 +294,7 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
 def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
     """
     Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
-    `terminate()` method of the return value.
-
-    For example:
-    kwargs: {key1: (v1, v2), key2: (v1, v2)}
-
-    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+    `terminate()` method of the object after it yield back.
 
     Returns:
         - if "count" amount is 1, yield the return value.
@@ -366,29 +369,29 @@ def _request_param_or_config_option_or_default(request: FixtureRequest, option: 
 ####################
 # General Fixtures #
 ####################
+@pytest.fixture(scope='session', autouse=True)
+def session_tempdir() -> str:
+    """Session scoped temp dir for pytest-embedded"""
+    global _TEST_SESSION_TMPDIR
+    return _TEST_SESSION_TMPDIR
+
+
 @pytest.fixture
 def test_file_path(request: FixtureRequest) -> str:
-    """
-    Current test script file path
-    """
+    """Current test script file path"""
     return request.module.__file__
 
 
 @pytest.fixture
 def test_case_name(request: FixtureRequest) -> str:
-    """
-    Current test case function name
-    """
+    """Current test case function name"""
     return request.node.name
 
 
 @pytest.fixture
-def test_case_tempdir(test_case_name: str) -> str:
-    """
-    Temp dir for each test case.
-    The pexpect process log and the generated junit report (if possible) would be placed under this folder.
-    """
-    return os.path.join(_TEST_SESSION_TMPDIR, test_case_name)
+def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
+    """Function scoped temp dir for pytest-embedded"""
+    return os.path.join(session_tempdir, test_case_name)
 
 
 @pytest.fixture
@@ -425,11 +428,9 @@ def with_timestamp(request: FixtureRequest) -> bool:
 @pytest.fixture
 @apply_count_generator
 def pexpect_proc(
-    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs
-) -> PexpectProcess:  # kwargs passed by `apply_count_generator()`
-    """
-    Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
-    """
+    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `apply_count_generator()`
+) -> PexpectProcess:
+    """Pexpect process that run the expect functions on"""
     kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
     return PexpectProcess(**_drop_none_kwargs(kwargs))
 
@@ -438,7 +439,7 @@ def pexpect_proc(
 @apply_count_generator
 def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     """
-    Provided a context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
+    A context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
     with redirect():
@@ -861,9 +862,7 @@ def _fixture_classes_and_options(
 @pytest.fixture
 @apply_count
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:
-    """
-    A pytest fixture to gather information from the specified built binary folder
-    """
+    """A pytest fixture to gather information from the specified built binary folder"""
     cls = _fixture_classes_and_options.classes['app']
     kwargs = _fixture_classes_and_options.kwargs['app']
     return cls(**_drop_none_kwargs(kwargs))
@@ -872,9 +871,7 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
 @pytest.fixture
 @apply_count_generator
 def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
-    """
-    A serial subprocess that could read/redirect/write
-    """
+    """A serial subprocess that could read/redirect/write"""
     if 'serial' not in _fixture_classes_and_options.classes:
         return None
 
@@ -888,9 +885,7 @@ def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
 @pytest.fixture
 @apply_count_generator
 def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd']:
-    """
-    A openocd subprocess that could read/redirect/write
-    """
+    """An openocd subprocess that could read/redirect/write"""
     if 'openocd' not in _fixture_classes_and_options.classes:
         return None
 
@@ -902,9 +897,7 @@ def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd'
 @pytest.fixture
 @apply_count_generator
 def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
-    """
-    A gdb subprocess that could read/redirect/write
-    """
+    """A gdb subprocess that could read/redirect/write"""
     if 'gdb' not in _fixture_classes_and_options.classes:
         return None
 
@@ -916,9 +909,7 @@ def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
 @pytest.fixture
 @apply_count_generator
 def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
-    """
-    A qemu subprocess that could read/redirect/write
-    """
+    """A qemu subprocess that could read/redirect/write"""
     if 'qemu' not in _fixture_classes_and_options.classes:
         return None
 
@@ -1007,7 +998,7 @@ class PytestEmbedded:
         self._port_app_path_cache = port_app_cache
 
     @staticmethod
-    def _raise_dut_failed_cases_if_exists(duts: List[Dut]) -> None:
+    def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
         failed_cases = []
         for _dut in duts:
             if _dut.testsuite.failed_cases:
