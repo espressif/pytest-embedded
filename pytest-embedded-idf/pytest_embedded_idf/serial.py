@@ -138,7 +138,16 @@ class IdfSerial(EspSerial):
         partition: Optional[str] = None,
         address: Optional[str] = None,
         size: Optional[str] = None,
-    ):
+    ) -> None:
+        """
+        Dump the flash bytes into the output file by partition name or by start address and size.
+
+        Args:
+            output_filepath: output file path
+            partition: partition name
+            address: address that start reading from
+            size: read size
+        """
         os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
         if partition:
             partition = self.app.partition_table[partition]
@@ -156,6 +165,12 @@ class IdfSerial(EspSerial):
 
     @EspSerial.use_esptool
     def read_flash_elf_sha256(self) -> bytes:
+        """
+        Read the sha256 digest of the flashed elf file
+
+        Returns:
+            bytes of sha256
+        """
         bin_offset = None
         for offset, fn in self.app.flash_files:
             if self.app.bin_file == fn:
@@ -168,6 +183,12 @@ class IdfSerial(EspSerial):
         return self.stub.read_flash(bin_offset + self.DEFAULT_SHA256_OFFSET, 32)
 
     def is_target_flashed_same_elf(self) -> bool:
+        """
+        Check if the sha256 values are matched between the flashed target and the `self.app.elf_file`
+
+        Returns:
+            True if the sha256 values are matched
+        """
         flash_elf_sha256 = self.read_flash_elf_sha256()
         elf_sha256 = hashlib.sha256()
         with open(self.app.elf_file, 'rb') as fr:
