@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import tempfile
@@ -18,6 +19,7 @@ class IdfSerial(EspSerial):
     """
 
     SUGGEST_FLASH_BAUDRATE = 921600
+    DEFAULT_SHA256_OFFSET = 0xB0
 
     def __init__(
         self,
@@ -151,3 +153,24 @@ class IdfSerial(EspSerial):
         content = self.stub.read_flash(_addr, _size)
         with open(output_filepath, 'wb') as f:
             f.write(content)
+
+    @EspSerial.use_esptool
+    def read_flash_elf_sha256(self) -> bytes:
+        bin_offset = None
+        for offset, fn in self.app.flash_files:
+            if self.app.bin_file == fn:
+                bin_offset = offset
+                break
+
+        if not bin_offset:
+            raise ValueError('.bin file not found in flash files')
+
+        return self.stub.read_flash(bin_offset + self.DEFAULT_SHA256_OFFSET, 32)
+
+    def is_target_flashed_same_elf(self) -> bool:
+        flash_elf_sha256 = self.read_flash_elf_sha256()
+        elf_sha256 = hashlib.sha256()
+        with open(self.app.elf_file, 'rb') as fr:
+            elf_sha256.update(fr.read())
+
+        return flash_elf_sha256 == elf_sha256.digest()

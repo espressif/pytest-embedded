@@ -73,3 +73,9 @@ Available services:
 
 - Documentation is hosted at [https://docs.espressif.com/projects/pytest-embedded/en/latest](https://docs.espressif.com/projects/pytest-embedded/en/latest)
 - More examples under [examples](https://github.com/espressif/pytest-embedded/tree/main/examples)
+
+## Notice
+
+These packages are still under development, there will be breaking changes between minor version updates.
+
+After the packages released (1.0.0), the versions would follow the semantic versioning rules.

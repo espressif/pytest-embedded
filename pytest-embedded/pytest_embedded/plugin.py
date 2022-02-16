@@ -14,9 +14,11 @@ from typing import (
     Callable,
     Dict,
     Generator,
+    Iterable,
     List,
     Optional,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -24,7 +26,6 @@ import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
 from _pytest.main import Session
-from _pytest.nodes import Item
 from _pytest.python import Function
 
 from .app import App
@@ -38,6 +39,8 @@ if TYPE_CHECKING:
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
+
+_T = TypeVar('_T')
 
 
 def pytest_addoption(parser):
@@ -91,6 +94,11 @@ def pytest_addoption(parser):
         '--with-timestamp',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to enable print with timestamp. (Default: True)',
+    )
+    base_group.addoption(
+        '--reorder-by-app-path',
+        action='store_true',
+        help='Reorder the test sequence according to the [app_path] and [build_dir]. (Default: False)',
     )
 
     serial_group = parser.getgroup('embedded-serial')
@@ -172,7 +180,7 @@ def _gte_one_int(v) -> int:
     sys.exit(1)
 
 
-def _str_bool(v) -> Optional[bool]:
+def _str_bool(v: str) -> Union[bool, str, None]:
     if v is None:
         return None
 
@@ -182,6 +190,13 @@ def _str_bool(v) -> Optional[bool]:
         return False
     else:
         return v
+
+
+def _to_iterable(s: _T) -> Optional[Iterable[_T]]:
+    if s and not (isinstance(s, list) or isinstance(s, tuple)):
+        return [s]
+
+    return s
 
 
 def _drop_none_kwargs(kwargs: Dict[Any, Any]):
@@ -202,9 +217,13 @@ def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Option
     Used for parse the configuration value with the "count" amount.
 
     Parsed by the following rules:
+
     - When the return value is a string, split the string by `|`.
+
     - If the configuration value item amount is different from "count" amount, raise ValueError
+
     - If the configuration value only has one item, duplicate this item by the "count" amount
+
     - If the configuration value item amount is the same as the "count" amount, return it directly.
 
     Returns:
@@ -244,9 +263,10 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`
 
     For example:
-    kwargs: {key1: (v1, v2), key2: (v1, v2)}
 
-    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+    - input: `{key1: (v1, v2), key2: (v1, v2)}`
+
+    - output: `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
 
     Returns:
         - if "count" amount is 1, return the return value.
@@ -274,12 +294,7 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
 def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
     """
     Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
-    `terminate()` method of the return value.
-
-    For example:
-    kwargs: {key1: (v1, v2), key2: (v1, v2)}
-
-    The result would be `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+    `terminate()` method of the object after it yield back.
 
     Returns:
         - if "count" amount is 1, yield the return value.
@@ -333,32 +348,50 @@ def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]
     return wrapper
 
 
+def _request_param_or_config_option_or_default(request: FixtureRequest, option: str, default: Any = None):
+    """
+    Return as the following sequence:
+    1. Function parametrized value
+    2. CLI option value
+    3. default value
+
+    Args:
+        request: fixture request
+        option: cli option name
+        default: default value
+
+    Returns:
+        Any
+    """
+    return getattr(request, 'param', None) or request.config.getoption(option, None) or default
+
+
 ####################
 # General Fixtures #
 ####################
+@pytest.fixture(scope='session', autouse=True)
+def session_tempdir() -> str:
+    """Session scoped temp dir for pytest-embedded"""
+    global _TEST_SESSION_TMPDIR
+    return _TEST_SESSION_TMPDIR
+
+
 @pytest.fixture
 def test_file_path(request: FixtureRequest) -> str:
-    """
-    Current test script file path
-    """
+    """Current test script file path"""
     return request.module.__file__
 
 
 @pytest.fixture
 def test_case_name(request: FixtureRequest) -> str:
-    """
-    Current test case function name
-    """
+    """Current test case function name"""
     return request.node.name
 
 
 @pytest.fixture
-def test_case_tempdir(test_case_name: str) -> str:
-    """
-    Temp dir for each test case.
-    The pexpect process log and the generated junit report (if possible) would be placed under this folder.
-    """
-    return os.path.join(_TEST_SESSION_TMPDIR, test_case_name)
+def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
+    """Function scoped temp dir for pytest-embedded"""
+    return os.path.join(session_tempdir, test_case_name)
 
 
 @pytest.fixture
@@ -388,20 +421,16 @@ def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
 @pytest.fixture()
 @parse_configuration
 def with_timestamp(request: FixtureRequest) -> bool:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('with_timestamp', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'with_timestamp', None)
 
 
 @pytest.fixture
 @apply_count_generator
 def pexpect_proc(
-    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs
-) -> PexpectProcess:  # kwargs passed by `apply_count_generator()`
-    """
-    Pre-initialized pexpect process, used for initializing all fixtures who would redirect output
-    """
+    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `apply_count_generator()`
+) -> PexpectProcess:
+    """Pexpect process that run the expect functions on"""
     kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
     return PexpectProcess(**_drop_none_kwargs(kwargs))
 
@@ -410,7 +439,7 @@ def pexpect_proc(
 @apply_count_generator
 def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     """
-    Provided a context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
+    A context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
 
     ```python
     with redirect():
@@ -448,7 +477,7 @@ FIXTURES_SERVICES = {
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
-    'dut': ['base', 'serial', 'jtag', 'qemu'],
+    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf'],
 }
 
 
@@ -461,30 +490,22 @@ FIXTURES_SERVICES = {
 @pytest.fixture
 @parse_configuration
 def embedded_services(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('embedded_services', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'embedded_services', None)
 
 
 @pytest.fixture
 @parse_configuration
 def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return (
-        getattr(request, 'param', None) or request.config.getoption('app_path', None) or os.path.dirname(test_file_path)
-    )
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
 
 
 @pytest.fixture
 @parse_configuration
 def build_dir(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('build_dir', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'build_dir', 'build')
 
 
 ##########
@@ -493,10 +514,8 @@ def build_dir(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def port(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('port', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'port', None)
 
 
 #######
@@ -505,28 +524,22 @@ def port(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def target(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('target', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'target', None)
 
 
 @pytest.fixture
 @parse_configuration
 def baud(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('baud', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
 @pytest.fixture
 @parse_configuration
 def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('skip_autoflash', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
 
 
 #######
@@ -535,10 +548,8 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
 @pytest.fixture
 @parse_configuration
 def part_tool(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('part_tool', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
 ########
@@ -547,37 +558,29 @@ def part_tool(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def gdb_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('gdb_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'gdb_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def gdb_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('gdb_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'gdb_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def openocd_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('openocd_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'openocd_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('openocd_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'openocd_cli_args', None)
 
 
 ########
@@ -586,46 +589,36 @@ def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
 @pytest.fixture
 @parse_configuration
 def qemu_image_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_image_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_image_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_prog_path(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_prog_path', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_prog_path', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_cli_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_cli_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_cli_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('qemu_extra_args', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_extra_args', None)
 
 
 @pytest.fixture
 @parse_configuration
 def skip_regenerate_image(request: FixtureRequest) -> Optional[str]:
-    """
-    Enable parametrization for the same cli option
-    """
-    return getattr(request, 'param', None) or request.config.getoption('skip_regenerate_image', None)
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
 
 
 ####################
@@ -735,7 +728,6 @@ def _fixture_classes_and_options(
                 kwargs[fixture].update(
                     {
                         'pexpect_proc': pexpect_proc,
-                        'app_path': app_path,
                     }
                 )
             else:
@@ -870,9 +862,7 @@ def _fixture_classes_and_options(
 @pytest.fixture
 @apply_count
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:
-    """
-    A pytest fixture to gather information from the specified built binary folder
-    """
+    """A pytest fixture to gather information from the specified built binary folder"""
     cls = _fixture_classes_and_options.classes['app']
     kwargs = _fixture_classes_and_options.kwargs['app']
     return cls(**_drop_none_kwargs(kwargs))
@@ -881,9 +871,7 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
 @pytest.fixture
 @apply_count_generator
 def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
-    """
-    A serial subprocess that could read/redirect/write
-    """
+    """A serial subprocess that could read/redirect/write"""
     if 'serial' not in _fixture_classes_and_options.classes:
         return None
 
@@ -897,9 +885,7 @@ def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
 @pytest.fixture
 @apply_count_generator
 def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd']:
-    """
-    A openocd subprocess that could read/redirect/write
-    """
+    """An openocd subprocess that could read/redirect/write"""
     if 'openocd' not in _fixture_classes_and_options.classes:
         return None
 
@@ -911,9 +897,7 @@ def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd'
 @pytest.fixture
 @apply_count_generator
 def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
-    """
-    A gdb subprocess that could read/redirect/write
-    """
+    """A gdb subprocess that could read/redirect/write"""
     if 'gdb' not in _fixture_classes_and_options.classes:
         return None
 
@@ -925,9 +909,7 @@ def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
 @pytest.fixture
 @apply_count_generator
 def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
-    """
-    A qemu subprocess that could read/redirect/write
-    """
+    """A qemu subprocess that could read/redirect/write"""
     if 'qemu' not in _fixture_classes_and_options.classes:
         return None
 
@@ -971,60 +953,118 @@ def dut(
 ##################
 # Hook Functions #
 ##################
+_junit_merger_key = pytest.StashKey['JunitMerger']()
+_pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
+_port_target_cache_key = pytest.StashKey[str]()
+_port_app_cache_key = pytest.StashKey[str]()
+
+
 def pytest_configure(config: Config) -> None:
-    config._store['junit_merger'] = JunitMerger(config.option.xmlpath)
+    port_target_cache: Dict[str, str] = {}
+    port_app_cache: Dict[str, str] = {}
 
+    config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
+    config.stash[_port_target_cache_key] = port_target_cache
+    config.stash[_port_app_cache_key] = port_app_cache
 
-@pytest.hookimpl(trylast=True)  # raise Exception if unity test cases failed
-def pytest_runtest_call(item: Function):
-    if 'dut' not in item.funcargs:
-        return
-
-    dut: Dut = item.funcargs['dut']
-    if isinstance(dut, tuple) or isinstance(dut, list):
-        duts = list(dut)
-    else:
-        duts = [dut]
-
-    failed_cases = []
-    for _dut in duts:
-        if _dut.testsuite.failed_cases:
-            failed_cases.extend(_dut.testsuite.failed_cases)
-
-    if failed_cases:
-        logging.error('Failed Cases:')
-        for case in failed_cases:
-            logging.error(f'  - {case.name}')
-        raise AssertionError('Unity test failed')
-
-
-@pytest.hookimpl(trylast=True)  # the parallel filter should be the last step
-def pytest_collection_modifyitems(config: Config, items: List[Item]):
-    if config.option.parallel_index == 1 and config.option.parallel_count == 1:
-        return
-
-    current_job_index = config.option.parallel_index - 1  # convert to 0-based index
-    max_cases_num_per_job = (len(items) + config.option.parallel_count - 1) // config.option.parallel_count
-
-    run_case_start_index = max_cases_num_per_job * current_job_index
-    if run_case_start_index >= len(items):
-        logging.warning(
-            f'Nothing to do for job {current_job_index + 1} '
-            f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
-        )
-        items.clear()
-        return
-
-    run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
-    logging.info(
-        f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
-        f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+    config.stash[_pytest_embedded_key] = PytestEmbedded(
+        parallel_count=config.getoption('parallel_count'),
+        parallel_index=config.getoption('parallel_index'),
+        port_target_cache=port_target_cache,
+        port_app_cache=port_app_cache,
     )
-    items[:] = items[run_case_start_index : run_case_end_index + 1]
+    config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
 
-@pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
-def pytest_sessionfinish(session: Session, exitstatus: int):  # noqa
-    modifier: JunitMerger = session.config._store['junit_merger']
-    modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
-    exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
+def pytest_unconfigure(config: Config) -> None:
+    _pytest_embedded = config.stash.get(_pytest_embedded_key, None)
+    if _pytest_embedded:
+        del config.stash[_pytest_embedded_key]
+        config.pluginmanager.unregister(_pytest_embedded)
+
+
+class PytestEmbedded:
+    def __init__(
+        self,
+        parallel_count: int = 1,
+        parallel_index: int = 1,
+        port_target_cache: Dict[str, str] = None,
+        port_app_cache: Dict[str, str] = None,
+    ):
+        self.parallel_count = parallel_count
+        self.parallel_index = parallel_index
+
+        self._port_target_cache = port_target_cache
+        self._port_app_path_cache = port_app_cache
+
+    @staticmethod
+    def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
+        failed_cases = []
+        for _dut in duts:
+            if _dut.testsuite.failed_cases:
+                failed_cases.extend(_dut.testsuite.failed_cases)
+
+        if failed_cases:
+            logging.error('Failed Cases:')
+            for case in failed_cases:
+                logging.error(f'  - {case.name}')
+            raise AssertionError('Unity test failed')
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_runtest_call(self, item: Function):
+        # cache target port, and target app
+        if 'serial' in item.funcargs:
+            serial = item.funcargs['serial']
+            port = getattr(serial, 'port', None)
+            target = getattr(serial, 'target', None)
+            app = getattr(serial, 'app', None)
+
+            port = _to_iterable(port)
+            target = _to_iterable(target)
+            app = _to_iterable(app)
+
+            if port and target:
+                for p, t in zip(port, target):
+                    self._port_target_cache[p] = t
+
+            if port and app:
+                for p, a in zip(port, app):
+                    self._port_app_path_cache[p] = a.binary_path
+
+        # raise dut failed cases
+        if 'dut' in item.funcargs:
+            duts = _to_iterable(item.funcargs['dut'])
+            self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
+
+        logging.debug(self._port_target_cache)
+        logging.debug(self._port_app_path_cache)
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_collection_modifyitems(self, items: List[Function]):
+        if self.parallel_index == 1 and self.parallel_count == 1:
+            return
+
+        current_job_index = self.parallel_index - 1  # convert to 0-based index
+        max_cases_num_per_job = (len(items) + self.parallel_count - 1) // self.parallel_count
+
+        run_case_start_index = max_cases_num_per_job * current_job_index
+        if run_case_start_index >= len(items):
+            logging.warning(
+                f'Nothing to do for job {current_job_index + 1} '
+                f'(case total: {len(items)}, per job: {max_cases_num_per_job})'
+            )
+            items.clear()
+            return
+
+        run_case_end_index = min(max_cases_num_per_job * (current_job_index + 1) - 1, len(items) - 1)
+        logging.info(
+            f'Total {len(items)} cases, max {max_cases_num_per_job} cases per job, '
+            f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
+        )
+        items[:] = items[run_case_start_index : run_case_end_index + 1]
+
+    @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
+    def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
+        modifier: JunitMerger = session.config.stash[_junit_merger_key]
+        modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
+        exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
