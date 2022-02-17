@@ -195,12 +195,12 @@ def test_expect(testdir):
             def write_bytes():
                 for _ in range(5):
                     dut.write('1')
-                    time.sleep(2)
+                    time.sleep(3)
 
             write_thread = threading.Thread(target=write_bytes, daemon=True)
             write_thread.start()
 
-            res = dut.expect(pexpect.TIMEOUT, timeout=3)
+            res = dut.expect(pexpect.TIMEOUT, timeout=5)
             assert res == b'11'
 
 

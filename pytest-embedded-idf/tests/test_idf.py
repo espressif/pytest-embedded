@@ -92,7 +92,7 @@ def test_multi_count_autoflash(testdir):
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
                       f'|'
                       f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
-        '--skip-autoflash', 'true|false',
+        '--skip-autoflash', 'y|false',
         '--embedded-services', 'esp,idf',
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )

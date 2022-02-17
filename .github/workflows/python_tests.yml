@@ -1,0 +1,39 @@
+name: Python Packages Tests
+
+on:
+  pull_request:
+    paths:
+      - '**.py'
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on:
+      - self-hosted
+      - ESP32
+      - ESP32-S2
+      - ESP32-C3
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
+      fail-fast: false
+    container:
+      image: python:${{ matrix.python-version }}-bullseye
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          apt update && apt install -y socat
+          pip install -U pip
+          pip install -r requirements.txt
+          bash foreach.sh install
+      - name: Run Tests
+        run: |
+          pytest
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test_logs
+          path: /tmp/pytest-embedded/
