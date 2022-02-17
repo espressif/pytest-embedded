@@ -2,8 +2,6 @@ name: pre-commit check
 
 on:
   pull_request:
-  push:
-    branches: [ main ]
 
 jobs:
   pre-commit:
