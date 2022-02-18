@@ -54,7 +54,12 @@ class Serial(DuplicateStdoutMixin):
         self.occupied_ports[self.port] = None
         logging.debug(f'occupied {self.port}')
 
+        self._post_init()
+
         self._start()
+
+    def _post_init(self):
+        pass
 
     def _start(self):
         pass
