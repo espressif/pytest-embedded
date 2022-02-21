@@ -125,6 +125,12 @@ def pytest_addoption(parser):
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
     )
+    idf_group.addoption(
+        '--confirm-target-elf-sha256',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to read the elf sha256 from target flash and compare to the local elf under '
+        'app.binary_path when session target-app cache decide to skip the autoflash. (Default: False)',
+    )
 
     jtag_group = parser.getgroup('embedded-jtag')
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
@@ -559,6 +565,13 @@ def part_tool(request: FixtureRequest) -> Optional[str]:
     return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
+@pytest.fixture
+@parse_configuration
+def confirm_target_elf_sha256(request: FixtureRequest) -> Optional[bool]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'confirm_target_elf_sha256', None)
+
+
 ########
 # jtag #
 ########
@@ -666,6 +679,7 @@ def _fixture_classes_and_options(
     target,
     baud,
     skip_autoflash,
+    confirm_target_elf_sha256,
     part_tool,
     openocd_prog_path,
     openocd_cli_args,
@@ -759,6 +773,7 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
+                            'confirm_target_elf_sha256': confirm_target_elf_sha256,
                         }
                     )
                 elif 'arduino' in _services:

@@ -30,12 +30,12 @@ class IdfSerial(EspSerial):
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         port_app_cache: Dict[str, str] = None,
-        double_check_flashed_app: bool = False,
+        confirm_target_elf_sha256: bool = False,
         **kwargs,
     ) -> None:
         self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
         self.app = app
-        self.double_check_flashed_app = double_check_flashed_app
+        self.confirm_target_elf_sha256 = confirm_target_elf_sha256
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -47,30 +47,31 @@ class IdfSerial(EspSerial):
 
     def _post_init(self):
         if self.esp.serial_port in self._port_app_cache:
-            if self.app.binary_path == self._port_app_cache[self.esp.serial_port]:
-                logging.info(
-                    'App is the same according to the session cache. '
-                    'you can use flag "--double-check-flashed-app" to check the sha256 of the flashed elf '
-                    'to make sure it\'s correct'
-                )
-                self.skip_autoflash = True
+            if self.app.binary_path == self._port_app_cache[self.esp.serial_port]:  # hit the cache
+                logging.debug('hit port-app cache: %s - %s', self.port, self.app.binary_path)
+                if self.confirm_target_elf_sha256:
+                    if self.is_target_flashed_same_elf():
+                        logging.info('Confirmed target elf file sha256 the same as your local one.')
+                        self.skip_autoflash = True
+                    else:
+                        logging.info('target elf file is different from your local one. Flash the binary again.')
+                        self.skip_autoflash = False
+                else:
+                    logging.info(
+                        'App is the same according to the session cache. '
+                        'you can use flag "--confirm-target-elf-sha256" to make sure '
+                        'that the target elf file is the same as your local one.'
+                    )
+                    self.skip_autoflash = True
 
-        logging.debug('port_app_cache: %s - %s', self.port, self.app.binary_path)
+        logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
         self._port_app_cache[self.port] = self.app.binary_path
         super()._post_init()
 
     def _start(self):
         if self.skip_autoflash:
-            is_same = True  # default set to True to avoid double check
-            if self.double_check_flashed_app:
-                is_same = self.is_target_flashed_same_elf()
-
-            if is_same:
-                logging.info('Skipping auto flash...')
-                super()._start()
-            else:
-                logging.info('Flashed elf sha256 different')
-                self.flash()
+            logging.info('Skipping auto flash...')
+            super()._start()
         else:
             self.flash()
 
@@ -198,8 +199,8 @@ class IdfSerial(EspSerial):
             bytes of sha256
         """
         bin_offset = None
-        for offset, fn in self.app.flash_files:
-            if self.app.bin_file == fn:
+        for offset, filepath, _ in self.app.flash_files:
+            if self.app.bin_file == filepath:
                 bin_offset = offset
                 break
 

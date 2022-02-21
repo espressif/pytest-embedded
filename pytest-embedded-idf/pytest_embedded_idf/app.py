@@ -155,7 +155,7 @@ class IdfApp(App):
                 break
         else:
             traceback_msg = '\n'.join([f'{self.parttool_path} {p}:{os.linesep}{msg}' for p, msg in errors])
-            raise ValueError(f'No partition table found under {self.binary_path}\n' f'{traceback_msg}')
+            raise ValueError(f'No partition table found under {self.binary_path}\n{traceback_msg}')
 
         partition_table = {}
         for line in raw_data.splitlines():
