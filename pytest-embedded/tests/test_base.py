@@ -248,7 +248,17 @@ def test_expect(testdir):
 
             for _ in range(2):
                 dut.expect_exact(pattern_list)
+    """)
 
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=8)
+
+
+def test_expect_unity_test_ouput(testdir, capsys):
+    testdir.makepyfile(r"""
+        import pytest
+        import inspect
 
         def test_expect_unity_test_output_basic(dut):
             dut.write(
@@ -256,61 +266,48 @@ def test_expect(testdir):
                     '''
                 foo.c:100:test_case:FAIL:Expected 2 was 1
                 foo.c:101:test_case_2:FAIL:Expected 1 was 2
+                foo bar.c:102:test case 3:PASS
+                foo bar.c:103:test case 4:FAIL:Expected 3 was 4
                 -------------------
-                2 Tests 2 Failures 0 Ignored
+                4 Tests 3 Failures 0 Ignored
                 FAIL
             '''
                 )
             )
             dut.expect_unity_test_output()
 
-            assert len(dut.testsuite.testcases) == 2
-            assert dut.testsuite.attrs['failures'] == 2
+            assert len(dut.testsuite.testcases) == 4
+            assert dut.testsuite.attrs['failures'] == 3
             assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
             assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
+            assert dut.testsuite.testcases[3].attrs['message'] == 'Expected 3 was 4'
 
 
         def test_expect_unity_test_output_fixture(dut):
             dut.write(
                 inspect.cleandoc(
                     '''
-                TEST(group, test_case):foo.c:100::FAIL:Expected 2 was 1
-                TEST(group, test_case_2):foo.c:101::FAIL:Expected 1 was 2
+                TEST(group, test_case)foo.c:100::FAIL:Expected 2 was 1
+                TEST(group, test_case_2)foo.c:101::FAIL:Expected 1 was 2
+                TEST(group, test case 3)foo bar.c:102::PASS
+                TEST(group, test case 4)foo bar.c:103::FAIL:Expected 3 was 4
                 -------------------
-                2 Tests 2 Failures 0 Ignored
+                4 Tests 3 Failures 0 Ignored
                 FAIL
             '''
                 )
             )
             dut.expect_unity_test_output()
 
-            assert len(dut.testsuite.testcases) == 2
-            assert dut.testsuite.attrs['failures'] == 2
+            assert len(dut.testsuite.testcases) == 4
+            assert dut.testsuite.attrs['failures'] == 3
             assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
             assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
-
-
-        def test_expect_unity_test_output_fail_at_last(dut):
-            dut.write(
-                inspect.cleandoc(
-                    '''
-                TEST(group, test_case):foo.c:100::FAIL:Expected 2 was 1
-                TEST(group, test_case_2):foo.c:101::FAIL:Expected 1 was 2
-                TEST(group, test_case_3):foo.c:102::PASS
-                -------------------
-                3 Tests 2 Failures 0 Ignored
-                FAIL
-            '''
-                )
-            )
-            dut.expect_unity_test_output()
-
-            assert len(dut.testsuite.testcases) == 3
-            assert dut.testsuite.attrs['failures'] == 2
-            assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
-            assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
-       """)
+            assert dut.testsuite.testcases[3].attrs['message'] == 'Expected 3 was 4'
+    """)
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=8, failed=3)
+    result.assert_outcomes(failed=2)
+
+    assert capsys.readouterr().out.count("raise AssertionError('Unity test failed')") == 2
