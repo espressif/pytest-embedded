@@ -1,4 +1,5 @@
 import os
+import re
 
 
 def test_idf_serial_flash(testdir):
@@ -98,6 +99,80 @@ def test_multi_count_autoflash(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
+    testdir.makepyfile("""
+        import pytest
+        import pexpect
+
+        def test_autoflash(app, dut):
+            dut.expect('Hash of data verified.', timeout=5)
+
+        def test_autoflash_again(app, dut):
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('Hash of data verified.', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--embedded-services', 'esp,idf',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--log-cli-level', 'DEBUG',
+    )
+
+    result.assert_outcomes(passed=2)
+
+    set_app_cache_i = first_index_of_messages(
+        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        caplog.messages,
+    )
+    first_index_of_messages(
+        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        caplog.messages,
+        set_app_cache_i + 1
+    )
+
+
+def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messages):
+    testdir.makepyfile("""
+        import pytest
+        import pexpect
+
+        def test_autoflash(app, dut):
+            dut.expect('Hash of data verified.', timeout=5)
+
+        def test_autoflash_again(app, dut):
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('Hash of data verified.', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--embedded-services', 'esp,idf',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--log-cli-level', 'DEBUG',
+        '--confirm-target-elf-sha256', 'y',
+    )
+
+    result.assert_outcomes(passed=2)
+
+    set_app_cache_i = first_index_of_messages(
+        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        caplog.messages,
+    )
+    hit_app_cache_i = first_index_of_messages(
+        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        caplog.messages,
+        set_app_cache_i + 1
+    )
+    first_index_of_messages(
+        re.compile(r'Confirmed target elf file sha256 the same as your local one\.$', re.MULTILINE),
+        caplog.messages,
+        hit_app_cache_i + 1,
+    )
 
 
 def test_different_build_dir(testdir):
