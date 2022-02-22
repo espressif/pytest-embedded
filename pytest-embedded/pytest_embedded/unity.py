@@ -12,12 +12,12 @@ from .utils import to_str
 
 UNITY_BASIC_REGEX = re.compile(
     #        foo.c:          100:        test_case:                FAIL           :Expected 2 was 1
-    r'(?P<file>.+):(?P<line>\d+):(?P<name>[^\s:]+):(?P<result>PASS|FAIL|IGNORE)(?::(?P<message>.+))?'
+    r'(?P<file>.+):(?P<line>\d+):(?P<name>[^\r\n:]+):(?P<result>PASS|FAIL|IGNORE)(?::(?P<message>.+))?'
 )
 
 UNITY_FIXTURE_REGEX = re.compile(
     # TEST (        group_name,         case_name )             stdout
-    r'TEST\((?P<group>[^\s,]+), (?P<name>[^\s)]+)\)(?P<stdout>[\S\s]*?)'
+    r'TEST\((?P<group>[^\s,]+), (?P<name>[^\r\n)]+)\)(?P<stdout>[\S\s]*?)'
     #           foo.c:          100::                  FAIL           : Expected 2 was 1
     r'(?:(?P<file>.+):(?P<line>\d+)::)?(?P<result>PASS|FAIL|IGNORE)(?::(?P<message>.+))?'
 )
