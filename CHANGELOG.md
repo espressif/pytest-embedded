@@ -1,3 +1,29 @@
+## v0.6.0rc0 (2022-02-22)
+
+### Fix
+
+- **jtag**: -gdb-set could pass multiple args
+- **log**: flush to sys.stdout instantly
+- **log**: multi-dut now would print source prefix
+- unity case name now could include spaces
+- would raise correctly when `expect` a list pattern failed
+
+### Feat
+
+- **esp**: add use_esptool decorator to auto connect before and hard reset after
+- **esp**: cache port and target
+- **idf**: add --confirm-target-elf-sha256 cli option
+- **idf**: add `dump_flash` method in `IdfSerial`
+- **idf**: add attr `bin_file` in IdfApp
+- **idf**: add flashed elf related methods in `IdfSerial`
+- **idf**: add IdfDut class
+- **idf**: cache port and app
+- cache port/target, port/app_path_build_dir if possible. use pytest 7.0 feature stash
+- extract the binary_path to the `App` class
+- log the log folders while setup for test case
+- the logging.error would turn to be derived error
+- use pytest>=7.0
+
 ## v0.5.1 (2022-01-21)
 
 ### Fix
