@@ -1,6 +1,6 @@
 import functools
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import esptool
 from pytest_embedded.log import DuplicateStdout, PexpectProcess
@@ -24,11 +24,22 @@ class EspSerial(Serial):
         port: Optional[str] = None,
         baud: int = DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
+        port_target_cache: Dict[str, str] = None,
         **kwargs,
     ) -> None:
+        self._port_target_cache: Dict[str, str] = port_target_cache if port_target_cache is not None else {}
+
         if port is None:
             available_ports = esptool.get_port_list()
             ports = list(set(available_ports) - set(self.occupied_ports.keys()))
+
+            # prioritize the cache recorded target port
+            if target:
+                for _port, _target in self._port_target_cache.items():
+                    if _target == target and _port in ports:
+                        ports.sort(key=lambda x: x == _port)
+                        logging.debug('hit port-target cache: %s - %s', _port, _target)
+
             logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
             ports = [port]
@@ -49,11 +60,17 @@ class EspSerial(Serial):
                 self.esp.change_baud(baud)  # change back to the users settings
 
         target = self.esp.CHIP_NAME.lower().replace('-', '')
-        logging.info(f'Target: {target}, Port: {self.esp.serial_port}')
+        logging.info(f'Target: %s, Port: %s', target, self.esp.serial_port)
 
         self.target = target
+
         self.skip_autoflash = skip_autoflash
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
+
+    def _post_init(self):
+        logging.debug('set port-target cache: %s - %s', self.port, self.target)
+        self._port_target_cache[self.port] = self.target
+        super()._post_init()
 
     def use_esptool(func):
         """

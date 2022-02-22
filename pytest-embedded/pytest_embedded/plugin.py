@@ -24,8 +24,15 @@ from typing import (
 
 import pytest
 from _pytest.config import Config
-from _pytest.fixtures import FixtureRequest
+from _pytest.fixtures import (
+    FixtureDef,
+    FixtureRequest,
+    SubRequest,
+    call_fixture_func,
+    resolve_fixture_function,
+)
 from _pytest.main import Session
+from _pytest.outcomes import TEST_OUTCOME
 from _pytest.python import Function
 
 from .app import App
@@ -117,6 +124,12 @@ def pytest_addoption(parser):
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
+    )
+    idf_group.addoption(
+        '--confirm-target-elf-sha256',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to read the elf sha256 from target flash and compare to the local elf under '
+        'app.binary_path when session target-app cache decide to skip the autoflash. (Default: False)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -552,6 +565,13 @@ def part_tool(request: FixtureRequest) -> Optional[str]:
     return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
+@pytest.fixture
+@parse_configuration
+def confirm_target_elf_sha256(request: FixtureRequest) -> Optional[bool]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'confirm_target_elf_sha256', None)
+
+
 ########
 # jtag #
 ########
@@ -659,6 +679,7 @@ def _fixture_classes_and_options(
     target,
     baud,
     skip_autoflash,
+    confirm_target_elf_sha256,
     part_tool,
     openocd_prog_path,
     openocd_cli_args,
@@ -752,6 +773,7 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'app': None,
+                            'confirm_target_elf_sha256': confirm_target_elf_sha256,
                         }
                     )
                 elif 'arduino' in _services:
@@ -995,7 +1017,7 @@ class PytestEmbedded:
         self.parallel_index = parallel_index
 
         self._port_target_cache = port_target_cache
-        self._port_app_path_cache = port_app_cache
+        self._port_app_cache = port_app_cache
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1010,34 +1032,61 @@ class PytestEmbedded:
                 logging.error(f'  - {case.name}')
             raise AssertionError('Unity test failed')
 
-    @pytest.hookimpl(trylast=True)
-    def pytest_runtest_call(self, item: Function):
-        # cache target port, and target app
-        if 'serial' in item.funcargs:
-            serial = item.funcargs['serial']
-            port = getattr(serial, 'port', None)
-            target = getattr(serial, 'target', None)
-            app = getattr(serial, 'app', None)
+    @staticmethod
+    def _pytest_fixturedef_get_kwargs(fixturedef: FixtureDef[Any], request: SubRequest) -> Dict[str, Any]:
+        kwargs = {}
+        for argname in fixturedef.argnames:
+            fixdef = request._get_active_fixturedef(argname)
+            assert fixdef.cached_result is not None
+            result, arg_cache_key, exc = fixdef.cached_result
+            request._check_scope(argname, request._scope, fixdef._scope)
+            kwargs[argname] = result
 
-            port = _to_iterable(port)
-            target = _to_iterable(target)
-            app = _to_iterable(app)
+        return kwargs
 
-            if port and target:
-                for p, t in zip(port, target):
-                    self._port_target_cache[p] = t
+    @staticmethod
+    def _pytest_fixturedef_exec(fixturedef: FixtureDef[Any], request: SubRequest, kwargs: Dict[str, Any]):
+        fixturefunc = resolve_fixture_function(fixturedef, request)
+        my_cache_key = fixturedef.cache_key(request)
+        try:
+            result = call_fixture_func(fixturefunc, request, kwargs)
+        except TEST_OUTCOME:
+            exc_info = sys.exc_info()
+            assert exc_info[0] is not None
+            fixturedef.cached_result = (None, my_cache_key, exc_info)
+            raise
+        fixturedef.cached_result = (result, my_cache_key, None)
+        return result
 
-            if port and app:
-                for p, a in zip(port, app):
-                    self._port_app_path_cache[p] = a.binary_path
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_fixture_setup(self, fixturedef: FixtureDef[Any], request: SubRequest):
+        if fixturedef.argname != 'serial':
+            return
 
-        # raise dut failed cases
-        if 'dut' in item.funcargs:
-            duts = _to_iterable(item.funcargs['dut'])
-            self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
+        # inject the cache into the serial kwargs
+        kwargs = self._pytest_fixturedef_get_kwargs(fixturedef, request)
+        _class_cli_options = kwargs['_fixture_classes_and_options']
 
-        logging.debug(self._port_target_cache)
-        logging.debug(self._port_app_path_cache)
+        # compatible to multi-dut
+        if isinstance(_class_cli_options, ClassCliOptions):
+            iterable_class_cli_options = [_class_cli_options]
+        else:
+            iterable_class_cli_options = _class_cli_options
+
+        for _item in iterable_class_cli_options:
+            _item_cls = _item.classes.get('serial')
+            _item_kwargs = _item.kwargs.get('serial')
+
+            if _item_cls is None or _item_kwargs is None:
+                continue
+
+            if _item_cls.__name__ == 'IdfSerial':  # use str to avoid ImportError
+                _item_kwargs['port_target_cache'] = self._port_target_cache
+                _item_kwargs['port_app_cache'] = self._port_app_cache
+            elif _item_cls.__name__ == 'EspSerial':  # use str to avoid ImportError
+                _item_kwargs['port_target_cache'] = self._port_target_cache
+
+        return self._pytest_fixturedef_exec(fixturedef, request, kwargs)
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, items: List[Function]):
@@ -1062,6 +1111,13 @@ class PytestEmbedded:
             f'running test cases {run_case_start_index + 1}-{run_case_end_index + 1}'
         )
         items[:] = items[run_case_start_index : run_case_end_index + 1]
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_runtest_call(self, item: Function):
+        # raise dut failed cases
+        if 'dut' in item.funcargs:
+            duts = _to_iterable(item.funcargs['dut'])
+            self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
