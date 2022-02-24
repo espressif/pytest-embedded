@@ -196,8 +196,8 @@ It also supports [unity fixtures](https://github.com/ThrowTheSwitch/Unity/tree/m
     
     def test_expect_unity_test_output_fixture(dut):
         dut.write(inspect.cleandoc('''
-            TEST(group, test_case):foo.c:100::FAIL:Expected 2 was 1
-            TEST(group, test_case_2):foo.c:101::FAIL:Expected 1 was 2
+            TEST(group, test_case)foo.c:100::FAIL:Expected 2 was 1
+            TEST(group, test_case_2)foo.c:101::FAIL:Expected 1 was 2
             -------------------
             2 Tests 2 Failures 0 Ignored
             FAIL
