@@ -1,3 +1,13 @@
+## v0.6.0rc1 (2022-03-04)
+
+### Fix
+
+- `apply_count` for non-iterable items
+
+### Feat
+
+- **esp**: add `hard_reset` method
+
 ## v0.6.0rc0 (2022-02-22)
 
 ### Fix
