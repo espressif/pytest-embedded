@@ -102,6 +102,10 @@ class EspSerial(Serial):
 
         return wrapper
 
-    @use_esptool
     def _start(self):
+        self.hard_reset()
+
+    @use_esptool
+    def hard_reset(self):
+        """Hard reset your espressif device"""
         pass

@@ -296,7 +296,10 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
             getter = itemgetter(i)
             current_kwargs = {}
             for k, v in kwargs.items():
-                current_kwargs[k] = getter(v)
+                if isinstance(v, list) or isinstance(v, tuple):
+                    current_kwargs[k] = getter(v)
+                else:
+                    current_kwargs[k] = v
             res = tuple(list(res) + [func(*args, **current_kwargs)])
 
         return res
