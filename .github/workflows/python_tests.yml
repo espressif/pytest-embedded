@@ -2,8 +2,9 @@ name: Python Packages Tests
 
 on:
   pull_request:
-    paths:
-      - '**.py'
+# FIXME
+#    paths:
+#      - '**.py'
   push:
     branches: [ main ]
 
@@ -16,7 +17,7 @@ jobs:
       - ESP32-C3
     strategy:
       matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.6', '3.10']
       fail-fast: false
     container:
       image: python:${{ matrix.python-version }}-bullseye
@@ -27,8 +28,10 @@ jobs:
         run: |
           apt update && apt install -y socat
           pip install -U pip
-          pip install -r requirements.txt
-          bash foreach.sh install
+# FIXME
+#          pip install -r requirements.txt
+#          bash foreach.sh install
+          pip install pytest-embedded-serial-esp pytest-embedded-idf pytest-embedded-arduino pytest-embedded-jtag pytest-embedded-qemu
       - name: Run Tests
         run: |
           pytest
