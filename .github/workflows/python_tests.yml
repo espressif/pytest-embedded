@@ -2,9 +2,6 @@ name: Python Packages Tests
 
 on:
   pull_request:
-# FIXME
-#    paths:
-#      - '**.py'
   push:
     branches: [ main ]
 
@@ -28,9 +25,7 @@ jobs:
         run: |
           apt update && apt install -y socat
           pip install -U pip
-# FIXME
-#          pip install -r requirements.txt
-#          bash foreach.sh install
+          pip install -r requirements.txt
           pip install pytest-embedded-serial-esp pytest-embedded-idf pytest-embedded-arduino pytest-embedded-jtag pytest-embedded-qemu
       - name: Run Tests
         run: |
