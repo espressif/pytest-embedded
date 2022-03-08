@@ -22,15 +22,15 @@ NAME = 'pytest-embedded-jtag'
 SHORT_DESCRIPTION = 'pytest embedded plugin for testing with jtag'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
+VERSION = get_version()
 REQUIRES = [
-    'pytest-embedded',
-    'pytest-embedded-serial',
+    f'pytest-embedded-serial~={VERSION}',
 ]
 ENTRY_POINTS = {}
 
 setup(
     name=NAME,
-    version=get_version(),
+    version=VERSION,
     author=AUTHOR,
     author_email=EMAIL,
     license=LICENSE,

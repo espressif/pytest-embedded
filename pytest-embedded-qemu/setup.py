@@ -22,17 +22,18 @@ NAME = 'pytest-embedded-qemu'
 SHORT_DESCRIPTION = 'pytest embedded plugin for qemu, not target chip'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
+VERSION = get_version()
 REQUIRES = [
-    'pytest-embedded',
+    f'pytest-embedded~={VERSION}',
 ]
 EXTRAS_REQUIRE = {
-    'idf': 'pytest-embedded-idf',
+    'idf': f'pytest-embedded-idf~={VERSION}',
 }
 ENTRY_POINTS = {}
 
 setup(
     name=NAME,
-    version=get_version(),
+    version=VERSION,
     author=AUTHOR,
     author_email=EMAIL,
     license=LICENSE,

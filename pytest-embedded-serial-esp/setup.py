@@ -22,9 +22,10 @@ NAME = 'pytest-embedded-serial-esp'
 SHORT_DESCRIPTION = 'pytest embedded plugin for testing espressif boards via serial ports'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
+VERSION = get_version()
 REQUIRES = [
-    'pytest-embedded-serial',
-    'esptool>=3.1',
+    f'pytest-embedded-serial~={VERSION}',
+    'esptool~=3.1',
 ]
 ENTRY_POINTS = {}
 

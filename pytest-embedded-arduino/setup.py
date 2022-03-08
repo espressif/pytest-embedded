@@ -22,17 +22,18 @@ NAME = 'pytest-embedded-arduino'
 SHORT_DESCRIPTION = 'pytest embedded plugin for Arduino projects'
 LICENSE = 'MIT'
 URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
+VERSION = get_version()
 REQUIRES = [
-    'pytest-embedded',
+    f'pytest-embedded~={VERSION}',
 ]
 EXTRAS_REQUIRE = {
-    'serial': 'pytest-embedded-serial-esp',
+    'serial': f'pytest-embedded-serial-esp~={VERSION}',
 }
 ENTRY_POINTS = {}
 
 setup(
     name=NAME,
-    version=get_version(),
+    version=VERSION,
     author=AUTHOR,
     author_email=EMAIL,
     license=LICENSE,
