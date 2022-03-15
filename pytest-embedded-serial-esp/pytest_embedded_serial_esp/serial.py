@@ -33,6 +33,10 @@ class EspSerial(Serial):
             available_ports = esptool.get_port_list()
             ports = list(set(available_ports) - set(self.occupied_ports.keys()))
 
+            # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
+            # esptool will reverse the list
+            ports.sort()
+
             # prioritize the cache recorded target port
             if target:
                 for _port, _target in self._port_target_cache.items():
