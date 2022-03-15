@@ -1,6 +1,5 @@
 import os
-import re
-from typing import List
+from typing import List, Pattern
 
 import pytest
 
@@ -17,7 +16,7 @@ def copy_fixtures(testdir):
 
 @pytest.fixture
 def first_index_of_messages():
-    def _fake(_pattern: re.Pattern, _messages: List[str], _start: int = 0) -> int:
+    def _fake(_pattern: Pattern, _messages: List[str], _start: int = 0) -> int:
         for i, _message in enumerate(_messages):
             if _pattern.match(_message) and i >= _start:
                 return i
