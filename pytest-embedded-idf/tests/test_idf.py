@@ -52,10 +52,10 @@ def test_multi_count_app(testdir):
 
         def test_multi_count_app(app, dut):
             assert len(app[0].flash_files) == 3
-            assert app[0].target == 'esp32'
+            assert app[0].target == 'esp32c3'
 
             assert len(app[1].flash_files) == 3
-            assert app[1].target == 'esp32c3'
+            assert app[1].target == 'esp32'
 
             assert getattr(dut[0], 'serial')
             with pytest.raises(AttributeError):
@@ -65,9 +65,9 @@ def test_multi_count_app(testdir):
     result = testdir.runpytest(
         '-s',
         '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}'
                       f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
         '--embedded-services', 'esp,idf|idf',
     )
 
@@ -90,9 +90,9 @@ def test_multi_count_autoflash(testdir):
     result = testdir.runpytest(
         '-s',
         '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}'
                       f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
         '--skip-autoflash', 'y|false',
         '--embedded-services', 'esp,idf',
         '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
