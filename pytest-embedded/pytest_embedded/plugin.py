@@ -18,7 +18,6 @@ from typing import (
     List,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
@@ -39,15 +38,13 @@ from .app import App
 from .dut import Dut
 from .log import DuplicateStdout, PexpectProcess
 from .unity import JunitMerger
-from .utils import find_by_suffix
+from .utils import find_by_suffix, to_list
 
 if TYPE_CHECKING:
     from pytest_embedded_jtag.gdb import Gdb
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
-
-_T = TypeVar('_T')
 
 
 def pytest_addoption(parser):
@@ -203,13 +200,6 @@ def _str_bool(v: str) -> Union[bool, str, None]:
         return False
     else:
         return v
-
-
-def _to_iterable(s: _T) -> Optional[Iterable[_T]]:
-    if s and not (isinstance(s, list) or isinstance(s, tuple)):
-        return [s]
-
-    return s
 
 
 def _drop_none_kwargs(kwargs: Dict[Any, Any]):
@@ -1119,7 +1109,7 @@ class PytestEmbedded:
     def pytest_runtest_call(self, item: Function):
         # raise dut failed cases
         if 'dut' in item.funcargs:
-            duts = _to_iterable(item.funcargs['dut'])
+            duts = to_list(item.funcargs['dut'])
             self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step

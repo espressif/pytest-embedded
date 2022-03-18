@@ -248,11 +248,43 @@ def test_expect(testdir):
 
             for _ in range(2):
                 dut.expect_exact(pattern_list)
+
+        def test_expect_exact_all(dut):
+            dut.write('this would be redirected')
+
+            pattern_list = [b'be redirected', 'this would']  # reverse it
+
+            res = dut.expect_exact(pattern_list, expect_all=True)
+            assert res == [b'this would', b'be redirected']
+
+        def test_expect_all(dut):
+            dut.write('this would be redirected')
+
+            pattern_list = [pexpect.TIMEOUT, 'redirect', '[be]{2}', 'would', 'this']  # reverse it
+
+            res = dut.expect(pattern_list, expect_all=True, timeout=1)
+            assert (res[0].group(), res[1].group(), res[2].group(), res[3].group(), res[4]) == (
+                b'this',
+                b'would',
+                b'be',
+                b'redirect',
+                b'ed',
+            )
+
+        def test_expect_all_failed(dut):
+            dut.write('this would be redirected')
+
+            pattern_list = ['foobar', 'redirect', '[be]{2}', 'would', 'this']  # reverse it
+
+            with pytest.raises(pexpect.TIMEOUT) as e:
+                dut.expect(pattern_list, expect_all=True, timeout=1)
+
+            assert e.value.value.startswith('Not found "[\'foobar\']" with arguments {\'timeout\': 1}\n')
     """)
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=8)
+    result.assert_outcomes(passed=11)
 
 
 def test_expect_unity_test_ouput(testdir, capsys):
