@@ -1,3 +1,10 @@
+## v0.6.1 (2022-03-18)
+
+### Fix
+
+- **esp**: esptool wrong boot mode issue
+- **esp**: sort ports before auto detect port target
+
 ## v0.6.0 (2022-03-08)
 
 ## v0.6.0rc1 (2022-03-04)
