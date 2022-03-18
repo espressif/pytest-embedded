@@ -79,21 +79,33 @@ class EspSerial(Serial):
 
     def use_esptool(func):
         """
-        1. call to the decorated function, could use `self.stub` as the stubbed loader
-        2. call `hard_reset()`
-        3. create the `self.forward_io` thread again.
+        1. close the port and open the port to kill the `self._forward_io` thread
+        2. call `run_stub()`
+        3. call to the decorated function, could use `self.stub` as the stubbed loader
+        4. call `hard_reset()`
+        5. create the `self.forward_io` thread again.
         """
 
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            settings = self.proc.get_settings()
+            killed = False
+            if self._forward_io_thread and self._forward_io_thread.is_alive():
+                self.proc.close()
+                self.proc.open()  # to kill the redirect stdout thread
+                killed = True
 
+            settings = self.proc.get_settings()
             try:
                 with DuplicateStdout(self.pexpect_proc):
+                    if killed:
+                        self.esp.connect('hard_reset')
+                        self.stub = self.esp.run_stub()
                     ret = func(self, *args, **kwargs)
                     self.stub.hard_reset()
             finally:
                 self.proc.apply_settings(settings)
+                if killed:
+                    self.create_forward_io_thread(self.pexpect_proc)
 
             return ret
 
