@@ -2,14 +2,14 @@ import functools
 import logging
 import os.path
 import re
-from typing import AnyStr, Callable, Match, Optional, Union
+from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
 
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import to_bytes
+from .utils import to_bytes, to_list
 
 
 class Dut:
@@ -56,27 +56,41 @@ class Dut:
 
     def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:  # noqa
         @functools.wraps(func)  # noqa
-        def wrapper(self, *args, **kwargs) -> Union[Match, AnyStr]:
-            try:
-                func(self, *args, **kwargs)  # noqa
-            except (pexpect.EOF, pexpect.TIMEOUT) as e:
-                args = [args] if isinstance(args, str) else args
-                debug_str = (
-                    f'Not found "{str(args)}" with arguments {str(kwargs)}\n'
-                    f'Bytes in current buffer: {self.pexpect_proc.buffer}\n'
-                    f'Full pexpect process log file: {self.logfile}'
-                )
-                raise e.__class__(debug_str) from e
-            else:
-                if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                    return self.pexpect_proc.before.rstrip()
+        def wrapper(
+            self, pattern, *args, expect_all: bool = False, **kwargs
+        ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
+            patterns = to_list(pattern)
+            res = []
+            while patterns:
+                try:
+                    index = func(self, pattern, *args, **kwargs)  # noqa
+                except (pexpect.EOF, pexpect.TIMEOUT) as e:
+                    debug_str = (
+                        f'Not found "{str(pattern)}" with arguments {str(kwargs)}\n'
+                        f'Bytes in current buffer: {self.pexpect_proc.buffer}\n'
+                        f'Full pexpect process log file: {self.logfile}'
+                    )
+                    raise e.__class__(debug_str) from e
+                else:
+                    if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                        res.append(self.pexpect_proc.before.rstrip())
+                    else:
+                        res.append(self.pexpect_proc.match)
 
-                return self.pexpect_proc.match
+                if expect_all:
+                    patterns.pop(index)
+                else:
+                    break  # one succeeded. leave the loop
+
+            if len(res) == 1:
+                return res[0]
+
+            return res
 
         return wrapper
 
     @_pexpect_func  # noqa
-    def expect(self, *args, **kwargs) -> Match:  # noqa
+    def expect(self, pattern, **kwargs) -> Match:  # noqa
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect()`.
 
@@ -86,10 +100,10 @@ class Dut:
         Returns:
             re.Match: if matched given string.
         """
-        self.pexpect_proc.expect(*args, **kwargs)
+        return self.pexpect_proc.expect(pattern, **kwargs)
 
     @_pexpect_func  # noqa
-    def expect_exact(self, *args, **kwargs) -> Match:  # noqa
+    def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
         """
         Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_exact()`.
 
@@ -99,7 +113,7 @@ class Dut:
         Returns:
             re.Match: if matched given string.
         """
-        self.pexpect_proc.expect_exact(*args, **kwargs)
+        return self.pexpect_proc.expect_exact(pattern, **kwargs)
 
     ANSI_ESCAPE_RE = re.compile(
         r'''
@@ -116,7 +130,6 @@ class Dut:
         re.VERBOSE,
     )
 
-    @_pexpect_func  # noqa
     def expect_unity_test_output(
         self, remove_asci_escape_code: bool = True, timeout: int = 60, extra_before: Optional[AnyStr] = None
     ) -> None:

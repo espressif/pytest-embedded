@@ -1,5 +1,5 @@
 import os
-from typing import AnyStr, List, Optional
+from typing import AnyStr, List, Optional, TypeVar
 
 
 def to_str(bytes_str: AnyStr) -> str:
@@ -38,6 +38,30 @@ def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
             return bytes_str + ending
 
     return bytes_str
+
+
+_T = TypeVar('_T')
+
+
+def to_list(s: _T) -> Optional[List[_T]]:
+    """
+    Args:
+        s: Anything
+
+    Returns:
+        - if `s` is a tuple or a set, would return itself after change the type to string by calling `list(s)`
+        - if `s` is a list, would return itself
+        - for other types, would return a list with a single element `s`
+    """
+    if not s:
+        return s
+
+    if isinstance(s, set) or isinstance(s, tuple):
+        return list(s)
+    elif isinstance(s, list):
+        return s
+    else:
+        return [s]
 
 
 def find_by_suffix(suffix: str, path: str) -> List[str]:
