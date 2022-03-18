@@ -46,11 +46,11 @@ def test_idf_app(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_multi_count_app(testdir):
+def test_multi_dut_app(testdir):
     testdir.makepyfile("""
         import pytest
 
-        def test_multi_count_app(app, dut):
+        def test_multi_dut_app(app, dut):
             assert len(app[0].flash_files) == 3
             assert app[0].target == 'esp32'
 
@@ -74,12 +74,12 @@ def test_multi_count_app(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_multi_count_autoflash(testdir):
+def test_multi_dut_autoflash(testdir):
     testdir.makepyfile("""
         import pytest
         import pexpect
 
-        def test_multi_count_autoflash(app, dut):
+        def test_multi_dut_autoflash(app, dut):
             skip_dut = dut[0]
             auto_dut = dut[1]
             with pytest.raises(pexpect.TIMEOUT):
@@ -182,7 +182,7 @@ def test_different_build_dir(testdir):
     testdir.makepyfile("""
         import pytest
 
-        def test_multi_count_app(app, dut):
+        def test_multi_dut_app(app, dut):
             assert app.target == 'esp32'
             assert app.binary_path.endswith('test_new_name')
     """)
@@ -201,6 +201,38 @@ def test_different_build_dir(testdir):
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--build-dir', os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
         '--embedded-services', 'idf',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_multi_dut_read_flash(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+        import pexpect
+
+        def test_multi_dut_read_flash(app, serial, dut):
+            dut[0].expect('Hash of data verified.', timeout=5)
+            dut[0].expect_exact('Hello world!', timeout=5)
+
+            dut[1].expect('Hash of data verified.', timeout=5)
+            dut[1].expect_exact('Hello world!', timeout=5)
+
+            serial[0].dump_flash('./test.bin', partition='phy_init')
+            serial[1].dump_flash('./test.bin', partition='phy_init')
+
+            dut[0].expect_exact('Hello world!', timeout=5)
+            dut[1].expect_exact('Hello world!', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--count', 2,
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
+                      f'|'
+                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--embedded-services', 'esp,idf',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
