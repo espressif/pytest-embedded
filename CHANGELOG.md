@@ -1,3 +1,13 @@
+## v0.6.2 (2022-03-18)
+
+### Fix
+
+- **esp**: stubbed loader can never read serial because of redirect_io_thread
+
+### Feat
+
+- add `expect_all` keyword for `expect` and `expect_exact` functions
+
 ## v0.6.1 (2022-03-18)
 
 ### Fix
