@@ -43,12 +43,10 @@ class Serial(DuplicateStdoutMixin):
             self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
             self.port_config.update(**kwargs)
             self.proc = pyserial.serial_for_url(self.port, **self.port_config)
-        elif isinstance(port, pyserial.Serial):  # pyserial instance
+        else:  # pyserial instance
             self.proc = port
             self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
             self.port = self.proc.port
-        else:
-            raise ValueError('Port should be a string or a pyserial.Serial instance')
 
         self.pexpect_proc = pexpect_proc
         self.occupied_ports[self.port] = None
