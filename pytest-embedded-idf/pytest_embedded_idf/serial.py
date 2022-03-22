@@ -31,11 +31,13 @@ class IdfSerial(EspSerial):
         skip_autoflash: bool = False,
         port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
+        erase_nvs: bool = False,
         **kwargs,
     ) -> None:
         self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
         self.app = app
         self.confirm_target_elf_sha256 = confirm_target_elf_sha256
+        self.erase_nvs = erase_nvs
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -76,17 +78,10 @@ class IdfSerial(EspSerial):
             self.flash()
 
     @EspSerial.use_esptool
-    def flash(self, erase_nvs: bool = True) -> None:
+    def flash(self) -> None:
         """
         Flash the `app.flash_files` to the dut
-
-        Args:
-            erase_nvs: erase non-volatile storage blocks
         """
-        if not self.app.partition_table:
-            logging.error('Partition table not parsed. Skipping auto flash...')
-            return
-
         if not self.app.flash_files:
             logging.error('No flash files detected. Skipping auto flash...')
             return
@@ -95,34 +90,11 @@ class IdfSerial(EspSerial):
             logging.error('No flash settings detected. Skipping auto flash...')
             return
 
-        flash_files = [
-            (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
-        ]
-        encrypt_files = [(offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if encrypted]
-
-        # fake flasher args object, this is a hack until
-        # esptool Python API is improved
-        class FlashArgs(object):
-            def __init__(self, attributes):
-                for key, value in attributes.items():
-                    self.__setattr__(key, value)
-
-        # write_flash expects the parameter encrypt_files to be None and not
-        # an empty list, so perform the check here
-        default_kwargs = {
-            'addr_filename': flash_files,
-            'encrypt_files': encrypt_files or None,
-            'no_stub': False,
-            'compress': True,
-            'verify': False,
-            'ignore_flash_encryption_efuse_setting': False,
-            'erase_all': False,
-        }
-        default_kwargs.update(self.app.flash_settings)
-        flash_args = FlashArgs(default_kwargs)
+        flash_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if not file.encrypted]
+        encrypt_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if file.encrypted]
 
         nvs_file = None
-        if erase_nvs:
+        if self.erase_nvs:
             address = self.app.partition_table['nvs']['offset']
             size = self.app.partition_table['nvs']['size']
             nvs_file = tempfile.NamedTemporaryFile(delete=False)
@@ -135,12 +107,34 @@ class IdfSerial(EspSerial):
             else:
                 flash_files.append((address, open(nvs_file.name, 'rb')))
 
+        # fake flasher args object, this is a hack until
+        # esptool Python API is improved
+        class FlashArgs(object):
+            def __init__(self, attributes):
+                for key, value in attributes.items():
+                    self.__setattr__(key, value)
+
+        # write_flash expects the parameter encrypt_files to be None and not
+        # an empty list, so perform the check here
+        default_kwargs = {
+            'addr_filename': flash_files or None,
+            'encrypt_files': encrypt_files or None,
+            'no_stub': False,
+            'compress': True,
+            'verify': False,
+            'ignore_flash_encryption_efuse_setting': False,
+            'erase_all': False,
+        }
+        default_kwargs.update(self.app.flash_settings)
+        default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
+        args = FlashArgs(default_kwargs)
+
         try:
             if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
                 self.stub.change_baud(self.SUGGEST_FLASH_BAUDRATE)
 
-            esptool.detect_flash_size(self.stub, flash_args)
-            esptool.write_flash(self.stub, flash_args)
+            esptool.detect_flash_size(self.stub, args)
+            esptool.write_flash(self.stub, args)
 
             if self.proc.baudrate > self.DEFAULT_BAUDRATE:
                 self.stub.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output

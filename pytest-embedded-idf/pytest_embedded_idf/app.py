@@ -3,9 +3,15 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from pytest_embedded.app import App
+
+
+class FlashFile(NamedTuple):
+    offset: int
+    file_path: str
+    encrypted: bool = False
 
 
 class IdfApp(App):
@@ -43,83 +49,23 @@ class IdfApp(App):
             logging.debug('Binary path not specified, skipping parsing app...')
             return
 
+        # Required if binary path exists
         self.elf_file = self._get_elf_file()
         self.bin_file = self._get_bin_file()
-        self.parttool_path = self._get_parttool_file(part_tool)
 
-        self.flash_files, self.flash_settings = self._parse_flash_args()
-        self.partition_table = self._parse_partition_table()
+        self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args()
 
-        self.sdkconfig = self._parse_sdkconfig()
-        if not self.sdkconfig:
-            return
+        # Optional info
+        self._sdkconfig = None
+        self._target = None
 
-        self.target = self._get_target_from_sdkconfig()
+        # the partition table is used for nvs
+        self._parttool = part_tool
+        self._partition_table = None
 
-    def _get_elf_file(self) -> Optional[str]:
-        for fn in os.listdir(self.binary_path):
-            if os.path.splitext(fn)[-1] == '.elf':
-                return os.path.realpath(os.path.join(self.binary_path, fn))
-        return None
-
-    def _get_bin_file(self) -> Optional[str]:
-        for fn in os.listdir(self.binary_path):
-            if os.path.splitext(fn)[-1] == '.bin':
-                return os.path.realpath(os.path.join(self.binary_path, fn))
-        return None
-
-    def _parse_sdkconfig(self) -> Optional[Dict[str, Any]]:
-        sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
-        if not os.path.isfile(sdkconfig_json_path):
-            logging.warning(f'{sdkconfig_json_path} doesn\'t exist. Skipping...')
-            return None
-
-        return json.load(open(sdkconfig_json_path))
-
-    def _get_flash_args_file(self) -> Optional[str]:
-        for fn in os.listdir(self.binary_path):
-            if fn == self.FLASH_ARGS_FILENAME:
-                return os.path.realpath(os.path.join(self.binary_path, fn))
-        return None
-
-    @staticmethod
-    def _is_encrypted(flash_args: Dict[str, Any], offset: int, file_path: str):
-        for entry in flash_args.values():
-            try:
-                if (entry['offset'], entry['file']) == (offset, file_path):
-                    return entry['encrypted'] == 'true'
-            except (TypeError, KeyError):
-                continue
-
-        return False
-
-    def _parse_flash_args(
-        self,
-    ) -> Tuple[Optional[List[Tuple[int, str, bool]]], Optional[Dict[str, Any]]]:
-        """
-        Returns:
-            (flash_files: [(offset, file_path, encrypted), ...], flash_settings: dict[str, str])
-        """
-        flash_args_filepath = self._get_flash_args_file()
-        if not flash_args_filepath:
-            return None, None
-
-        with open(flash_args_filepath) as fr:
-            flash_args = json.load(fr)
-
-        res = []
-        for (offset, file_path) in flash_args['flash_files'].items():
-            encrypted = self._is_encrypted(flash_args, offset, file_path)
-            res.append((int(offset, 0), os.path.join(self.binary_path, file_path), encrypted))
-
-        flash_files = sorted(res)
-        flash_settings = flash_args['flash_settings']
-        flash_settings['encrypt'] = any([file[2] for file in res])
-
-        return flash_files, flash_settings
-
-    def _get_parttool_file(self, parttool: Optional[str]) -> Optional[str]:
-        parttool_filepath = parttool or os.path.join(
+    @property
+    def parttool_path(self) -> str:
+        parttool_filepath = self._parttool or os.path.join(
             os.getenv('IDF_PATH', ''),
             'components',
             'partition_table',
@@ -127,35 +73,44 @@ class IdfApp(App):
         )
         if os.path.isfile(parttool_filepath):
             return os.path.realpath(parttool_filepath)
-        logging.warning('Partition Tool not found. (Default: $IDF_PATH/components/partition_table/gen_esp32part.py)')
-        return None
+        raise ValueError('Partition Tool not found. (Default: $IDF_PATH/components/partition_table/gen_esp32part.py)')
 
-    def _parse_partition_table(self) -> Optional[Dict[str, Any]]:
-        if not (self.parttool_path and self.flash_files):
-            return None
+    @property
+    def sdkconfig(self) -> Dict[str, Any]:
+        if self._sdkconfig is not None:
+            return self._sdkconfig
 
-        errors = []
-        for _, file, _ in self.flash_files:
-            if 'partition' in os.path.split(file)[1]:
-                partition_file = os.path.join(self.binary_path, file)
-                process = subprocess.Popen(
-                    [sys.executable, self.parttool_path, partition_file],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                stdout, stderr = process.communicate()
-                raw_data = stdout.decode() if isinstance(stdout, bytes) else stdout
-                raw_error = stderr.decode() if isinstance(stderr, bytes) else stderr
-
-                if 'Traceback' in raw_error:
-                    # Some exception occurred. It is possible that we've tried the wrong binary file.
-                    errors.append((file, raw_error))
-                    continue
-
-                break
+        sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
+        if not os.path.isfile(sdkconfig_json_path):
+            logging.warning(f'{sdkconfig_json_path} doesn\'t exist. Skipping...')
+            self._sdkconfig = {}
         else:
-            traceback_msg = '\n'.join([f'{self.parttool_path} {p}:{os.linesep}{msg}' for p, msg in errors])
-            raise ValueError(f'No partition table found under {self.binary_path}\n{traceback_msg}')
+            self._sdkconfig = json.load(open(sdkconfig_json_path))
+        return self._sdkconfig
+
+    @property
+    def target(self) -> str:
+        if self.sdkconfig:
+            return self.sdkconfig.get('IDF_TARGET', 'esp32')
+        else:
+            return self.flash_args.get('extra_esptool_args', {}).get('chip', 'esp32')
+
+    @property
+    def partition_table(self) -> Dict[str, Any]:
+        if self._partition_table is not None:
+            return self._partition_table
+
+        partition_file = os.path.join(
+            self.binary_path,
+            self.flash_args.get('partition_table', self.flash_args.get('partition-table', {})).get('file', ''),
+        )
+        process = subprocess.Popen(
+            [sys.executable, self.parttool_path, partition_file],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = process.communicate()
+        raw_data = stdout.decode() if isinstance(stdout, bytes) else stdout
 
         partition_table = {}
         for line in raw_data.splitlines():
@@ -178,7 +133,58 @@ class IdfApp(App):
                     'size': _size,
                     'flags': _flags,
                 }
-        return partition_table
+        self._partition_table = partition_table
+        return self._partition_table
 
-    def _get_target_from_sdkconfig(self):
-        return self.sdkconfig.get('IDF_TARGET', 'esp32')
+    def _get_elf_file(self) -> str:
+        for fn in os.listdir(self.binary_path):
+            if os.path.splitext(fn)[-1] == '.elf':
+                return os.path.realpath(os.path.join(self.binary_path, fn))
+        raise ValueError('Elf file not found')
+
+    def _get_bin_file(self) -> str:
+        for fn in os.listdir(self.binary_path):
+            if os.path.splitext(fn)[-1] == '.bin':
+                return os.path.realpath(os.path.join(self.binary_path, fn))
+        raise ValueError('Bin file not found')
+
+    def _parse_flash_args(
+        self,
+    ) -> Tuple[Dict[str, Any], List[FlashFile], Dict[str, str]]:
+        flash_args_filepath = None
+        for fn in os.listdir(self.binary_path):
+            if fn == self.FLASH_ARGS_FILENAME:
+                flash_args_filepath = os.path.realpath(os.path.join(self.binary_path, fn))
+                break
+
+        if not flash_args_filepath:
+            raise ValueError(f'{self.FLASH_ARGS_FILENAME} not found')
+
+        with open(flash_args_filepath) as fr:
+            flash_args = json.load(fr)
+
+        def _is_encrypted(_flash_args: Dict[str, Any], _offset: int, _file_path: str):
+            for entry in _flash_args.values():
+                try:
+                    if (entry['offset'], entry['file']) == (_offset, _file_path):
+                        return entry['encrypted'] == 'true'
+                except (TypeError, KeyError):
+                    continue
+
+            return False
+
+        flash_files = []
+        for (offset, file_path) in flash_args['flash_files'].items():
+            flash_files.append(
+                FlashFile(
+                    int(offset, 0),
+                    os.path.join(self.binary_path, file_path),
+                    _is_encrypted(flash_args, offset, file_path),
+                )
+            )
+
+        flash_files.sort()
+        flash_settings = flash_args['flash_settings']
+        flash_settings['encrypt'] = any([file.encrypted for file in flash_files])
+
+        return flash_args, flash_files, flash_settings
