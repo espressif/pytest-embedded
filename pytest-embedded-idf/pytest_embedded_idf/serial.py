@@ -31,11 +31,13 @@ class IdfSerial(EspSerial):
         skip_autoflash: bool = False,
         port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
+        erase_nvs: bool = False,
         **kwargs,
     ) -> None:
         self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
         self.app = app
         self.confirm_target_elf_sha256 = confirm_target_elf_sha256
+        self.erase_nvs = erase_nvs
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -76,12 +78,9 @@ class IdfSerial(EspSerial):
             self.flash()
 
     @EspSerial.use_esptool
-    def flash(self, erase_nvs: bool = False) -> None:
+    def flash(self) -> None:
         """
         Flash the `app.flash_files` to the dut
-
-        Args:
-            erase_nvs: erase non-volatile storage blocks
         """
         if not self.app.flash_files:
             logging.error('No flash files detected. Skipping auto flash...')
@@ -95,7 +94,7 @@ class IdfSerial(EspSerial):
         encrypt_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if file.encrypted]
 
         nvs_file = None
-        if erase_nvs:
+        if self.erase_nvs:
             address = self.app.partition_table['nvs']['offset']
             size = self.app.partition_table['nvs']['size']
             nvs_file = tempfile.NamedTemporaryFile(delete=False)
