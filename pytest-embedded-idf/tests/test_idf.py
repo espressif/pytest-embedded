@@ -19,10 +19,57 @@ def test_idf_serial_flash(testdir):
         '-s',
         '--embedded-services', 'esp,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_idf_serial_flash_with_erase_nvs(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_idf_serial_flash(dut):
+            dut.expect('Hash of data verified.')  # from flash
+            dut.expect('Hello world!')
+            dut.expect('Restarting')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--erase-nvs', 'y',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_idf_serial_flash(dut):
+            dut.expect('Hash of data verified.')  # from flash
+            dut.expect('Hello world!')
+            dut.expect('Restarting')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--erase-nvs', 'y',
+    )
+
+    result.assert_outcomes(errors=1)
+    assert 'Partition Tool not found' in capsys.readouterr().out
 
 
 def test_idf_app(testdir):
