@@ -188,3 +188,17 @@ class IdfApp(App):
         flash_settings['encrypt'] = any([file.encrypted for file in flash_files])
 
         return flash_args, flash_files, flash_settings
+
+    def get_sha256(self, path_to_file):
+        """
+        get sha256 of app
+
+        :param: path: path to file
+        :return: sha256 appended to app
+        """
+        from esptool import LoadFirmwareImage, hexify
+
+        image = LoadFirmwareImage(self.target, path_to_file)
+        if image.append_digest:
+            return hexify(image.stored_digest).lower()
+        return None
