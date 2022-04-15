@@ -8,7 +8,7 @@ mkdocs:
   configuration: mkdocs.yml
 
 python:
-  version: "3.6"
+  version: "3.7"
   install:
     - requirements: docs/requirements.txt
     - requirements: all_local_packages.txt
