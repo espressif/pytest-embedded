@@ -3,7 +3,7 @@ profile = 'black'
 
 [tool.black]
 line-length = 120
-target-version = ['py36']
+target-version = ['py37']
 force-exclude = '/tests/'
 skip-string-normalization = 'True'
 
