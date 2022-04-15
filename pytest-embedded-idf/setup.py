@@ -27,7 +27,7 @@ REQUIRES = [
     f'pytest-embedded~={VERSION}',
 ]
 EXTRAS_REQUIRE = {
-    'serial': f'pytest-embedded-serial-esp~={VERSION}',
+    'serial': [f'pytest-embedded-serial-esp~={VERSION}', 'esp-coredump~=1.0.0'],
 }
 ENTRY_POINTS = {}
 
