@@ -48,7 +48,7 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys):
+def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys, monkeypatch):
     testdir.makepyfile("""
         import pexpect
         import pytest
@@ -60,7 +60,6 @@ def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys):
             with pytest.raises(pexpect.TIMEOUT):
                 dut.expect('foo bar not found', timeout=1)
     """)
-
     result = testdir.runpytest(
         '-s',
         '--embedded-services', 'esp,idf',
@@ -265,8 +264,8 @@ def test_multi_dut_read_flash(testdir):
             dut[1].expect('Hash of data verified.', timeout=5)
             dut[1].expect_exact('Hello world!', timeout=5)
 
-            serial[0].dump_flash('./test.bin', partition='phy_init')
-            serial[1].dump_flash('./test.bin', partition='phy_init')
+            serial[0].dump_flash(partition='phy_init', output='./test.bin')
+            serial[1].dump_flash(partition='phy_init', output='./test.bin')
 
             dut[0].expect_exact('Hello world!', timeout=5)
             dut[1].expect_exact('Hello world!', timeout=5)

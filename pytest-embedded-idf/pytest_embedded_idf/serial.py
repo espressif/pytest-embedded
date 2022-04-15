@@ -2,7 +2,7 @@ import hashlib
 import logging
 import os
 import tempfile
-from typing import Dict, Optional
+from typing import Dict, Optional, TextIO, Union
 
 import esptool
 from pytest_embedded.log import PexpectProcess
@@ -155,21 +155,24 @@ class IdfSerial(EspSerial):
     @EspSerial.use_esptool
     def dump_flash(
         self,
-        output_filepath: str,
         partition: Optional[str] = None,
         address: Optional[str] = None,
         size: Optional[str] = None,
-    ) -> None:
+        output: Union[str, TextIO, None] = None,
+    ) -> Optional[bytes]:
         """
         Dump the flash bytes into the output file by partition name or by start address and size.
 
         Args:
-            output_filepath: output file path
+            output: file path or file stream to write to. File stream should be opened with bytes mode.
             partition: partition name
             address: address that start reading from
             size: read size
+
+        Returns:
+            None if `output` is `str` or file stream.
+            bytes if `output` is None.
         """
-        os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
         if partition:
             partition = self.app.partition_table[partition]
             _addr = partition['offset']
@@ -181,8 +184,15 @@ class IdfSerial(EspSerial):
             raise ValueError('You must specify "partition" or ("address" and "size") to dump flash')
 
         content = self.stub.read_flash(_addr, _size)
-        with open(output_filepath, 'wb') as f:
-            f.write(content)
+        if output:
+            if isinstance(output, str):
+                os.makedirs(os.path.dirname(output), exist_ok=True)
+                with open(output, 'wb') as f:
+                    f.write(content)
+            else:
+                output.write(content)
+        else:
+            return content
 
     @EspSerial.use_esptool
     def read_flash_elf_sha256(self) -> bytes:

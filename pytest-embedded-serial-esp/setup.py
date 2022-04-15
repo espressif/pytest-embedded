@@ -26,6 +26,7 @@ VERSION = get_version()
 REQUIRES = [
     f'pytest-embedded-serial~={VERSION}',
     'esptool~=3.1',
+    'cryptography<3.4; platform_machine == "armv7l"',
 ]
 ENTRY_POINTS = {}
 
@@ -39,7 +40,7 @@ setup(
     description=SHORT_DESCRIPTION,
     long_description=read('README.md'),
     packages=setuptools.find_packages(exclude='tests'),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=REQUIRES,
     classifiers=[
         'Framework :: Pytest',
@@ -47,7 +48,6 @@ setup(
         'Topic :: Software Development :: Testing',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
