@@ -1,5 +1,7 @@
+import contextlib
 import copy
 import logging
+import time
 from typing import Dict, Union
 
 import serial as pyserial
@@ -69,3 +71,28 @@ class Serial(DuplicateStdoutMixin):
                 pexpect_proc.write(s)
             except:  # noqa daemon thread may run at any case
                 break
+
+    def stop_redirect_thread(self) -> bool:
+        """
+        Close the serial port and reopen it to kill the redirect daemon thread.
+
+        Returns:
+            Killed the redirect thread or not
+        """
+        killed = False
+        if self._forward_io_thread and self._forward_io_thread.is_alive():
+            self.proc.close()
+            time.sleep(0.1)
+            self.proc.open()  # to kill the redirect stdout thread
+            killed = True
+
+        return killed
+
+    @contextlib.contextmanager
+    def disable_redirect_thread(self):
+        killed = self.stop_redirect_thread()
+
+        yield killed
+
+        if killed:
+            self.create_forward_io_thread(self.pexpect_proc)

@@ -88,24 +88,17 @@ class EspSerial(Serial):
 
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            killed = False
-            if self._forward_io_thread and self._forward_io_thread.is_alive():
-                self.proc.close()
-                self.proc.open()  # to kill the redirect stdout thread
-                killed = True
-
-            settings = self.proc.get_settings()
-            try:
-                with DuplicateStdout(self.pexpect_proc):
-                    if killed:
-                        self.esp.connect('hard_reset')
-                        self.stub = self.esp.run_stub()
-                    ret = func(self, *args, **kwargs)
-                    self.stub.hard_reset()
-            finally:
-                self.proc.apply_settings(settings)
-                if killed:
-                    self.create_forward_io_thread(self.pexpect_proc)
+            with self.disable_redirect_thread() as killed:
+                settings = self.proc.get_settings()
+                try:
+                    with DuplicateStdout(self.pexpect_proc):
+                        if killed:
+                            self.esp.connect('hard_reset')
+                            self.stub = self.esp.run_stub()
+                        ret = func(self, *args, **kwargs)
+                        self.stub.hard_reset()
+                finally:
+                    self.proc.apply_settings(settings)
 
             return ret
 
