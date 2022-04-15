@@ -17,7 +17,11 @@ for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
   if [ "$action" = "install" ]; then
     rm -rf ./build
-    pip install -e .
+    if [ "$pkg" = "pytest-embedded-idf" ]; then
+      pip install -e ".[serial]"
+    else
+      pip install -e .
+    fi
   elif [ "$action" = "uninstall" ]; then
     pip uninstall -y $pkg
   elif [ "$action" = "build" ]; then

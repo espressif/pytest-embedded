@@ -1,15 +1,6 @@
-pytest>=7.0
-pexpect>=4.4
-
-# plugin pytest-embedded-serial
-pyserial>=3.0
-
-# plugin pytest-embedded-serial-esp
-esptool>=3.1
+# This is an requirements.txt for extra dependencies.
+# To install all packages, please run `bash foreach.sh install`
 
 # testing
 pytest-cov
 pytest-rerunfailures
-
-# for rpi
-cryptography<3.4; platform_machine == "armv7l"
