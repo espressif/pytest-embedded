@@ -1,3 +1,18 @@
+## v0.7.0rc0 (2022-04-15)
+
+### Feat
+
+- support 3.7+ python
+- **idf**: add cli option "--erase-nvs"
+- **idf**: parse coredump when teardown dut
+- **idf**: use flasher_args.json to flash files. Require less files
+- **serial**: add stop_redirect_thread method and disable_redirect_thread context manager
+
+### Fix
+
+- **esp**: fix requirements for rpi
+- **serial**: use other serial type as well
+
 ## v0.6.2 (2022-03-18)
 
 ### Fix
