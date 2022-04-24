@@ -221,65 +221,69 @@ def count(request):
     _COUNT = _gte_one_int(getattr(request, 'param', request.config.option.count))
 
 
-def parse_configuration(func) -> Callable[..., Union[Optional[str], Tuple[Optional[str]]]]:
+def parse_multi_dut_args(count: int, s: str) -> Union[Any, Tuple[Any]]:
     """
-    Used for parse the configuration value with the "count" amount.
-
-    Parsed by the following rules:
+    Parse multi-dut argument by the following rules:
 
     - When the return value is a string, split the string by `|`.
-
-    - If the configuration value item amount is different from "count" amount, raise ValueError
-
-    - If the configuration value only has one item, duplicate this item by the "count" amount
-
+    - If the configuration value only has one item, duplicate it by the "count" amount.
     - If the configuration value item amount is the same as the "count" amount, return it directly.
 
+    Args:
+        count: Multi-Dut count
+        s: argument string
+
     Returns:
-        - if "count" amount is 1, return the configuration value.
-        - if "count" amount is greater than 1, return the tuple of parsed configuration values.
+        The argument itself. if `count` is 1.
+        The tuple of the parsed argument. if `count` is greater than 1.
 
     Raises:
-        ValueError: when a configuration has multi values but the amount is different from the "count" amount.
+        ValueError: when a configuration has multi values but the amount is different from the `count` amount.
+    """
+    if isinstance(s, str):
+        res = s.split('|')
+    else:
+        res = [s]
+
+    if len(res) == 1:
+        if count == 1:
+            return _str_bool(res[0])
+        else:
+            return tuple([_str_bool(res[0])] * count)
+    else:  # len(res) > 1
+        if len(res) != count:
+            raise ValueError('The configuration has multi values but the amount is different from the "count" amount.')
+        else:
+            return tuple(_str_bool(item) for item in res)
+
+
+def multi_dut_argument(func) -> Callable[..., Union[Optional[str], Tuple[Optional[str]]]]:
+    """
+    Used for parse the multi-dut argument according to the `count` amount.
     """
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        option = func(*args, **kwargs)
-        if isinstance(option, str):
-            res = option.split('|')
-        else:
-            res = [option]
-
-        if len(res) == 1:
-            if _COUNT == 1:
-                return _str_bool(res[0])
-            else:
-                return tuple([_str_bool(res[0])] * _COUNT)
-        else:  # len(res) > 1
-            if len(res) != _COUNT:
-                raise ValueError(
-                    'The configuration has multi values but the amount is different from the "count" amount.'
-                )
-            else:
-                return tuple(_str_bool(item) for item in res)
+        return parse_multi_dut_args(_COUNT, func(*args, **kwargs))
 
     return wrapper
 
 
-def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
+def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     """
-    Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`
+    Apply the multi-dut arguments to each fixture.
 
-    For example:
+    Notes:
+        Run the `func(*args, **kwargs)` for multiple times by iterating all `kwargs` via `itemgetter`
 
-    - input: `{key1: (v1, v2), key2: (v1, v2)}`
+        For example:
 
-    - output: `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
+        - input: `{key1: (v1, v2), key2: (v1, v2)}`
+        - output: `(func(**{key1: v1, key2: v1}), func(**{key1: v2, key2: v2}))`
 
     Returns:
-        - if "count" amount is 1, return the return value.
-        - if "count" amount is greater than 1, return the tuple of the return values.
+        The return value, if `count` is 1.
+        The tuple of return values, if `count` is greater than 1.
     """
 
     @functools.wraps(func)
@@ -303,14 +307,17 @@ def apply_count(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     return wrapper
 
 
-def apply_count_generator(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
+def multi_dut_generator_fixture(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
     """
-    Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
-    `terminate()` method of the object after it yield back.
+    Apply the multi-dut arguments to each fixture.
 
-    Returns:
-        - if "count" amount is 1, yield the return value.
-        - if "count" amount is greater than 1, yield the tuple of the return values.
+    Notes:
+        Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
+        `terminate()` method of the object after it yield back.
+
+    Yields:
+        The return value, if `count` is 1.
+        The tuple of return values, if `count` is greater than 1.
     """
 
     @functools.wraps(func)
@@ -406,7 +413,7 @@ def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
     if 'count' in kwargs:
         name = f'dut-{kwargs["count"]}'
@@ -417,29 +424,29 @@ def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def _pexpect_fw(_pexpect_logfile) -> BinaryIO:
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
     return open(_pexpect_logfile, 'wb')
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
     return open(_pexpect_logfile, 'rb')
 
 
 @pytest.fixture()
-@parse_configuration
+@multi_dut_argument
 def with_timestamp(request: FixtureRequest) -> bool:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'with_timestamp', None)
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def pexpect_proc(
-    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `apply_count_generator()`
+    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `multi_dut_generator_fixture()`
 ) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
     kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
@@ -447,7 +454,7 @@ def pexpect_proc(
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
     """
     A context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
@@ -499,21 +506,21 @@ FIXTURES_SERVICES = {
 # base #
 ########
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def embedded_services(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'embedded_services', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def app_path(request: FixtureRequest, test_file_path: str) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def build_dir(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'build_dir', 'build')
@@ -523,7 +530,7 @@ def build_dir(request: FixtureRequest) -> Optional[str]:
 # serial #
 ##########
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def port(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'port', None)
@@ -533,21 +540,21 @@ def port(request: FixtureRequest) -> Optional[str]:
 # esp #
 #######
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def target(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'target', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def baud(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
@@ -557,21 +564,21 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
 # idf #
 #######
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def part_tool(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def confirm_target_elf_sha256(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'confirm_target_elf_sha256', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def erase_nvs(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'erase_nvs', None)
@@ -581,28 +588,28 @@ def erase_nvs(request: FixtureRequest) -> Optional[bool]:
 # jtag #
 ########
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def gdb_prog_path(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'gdb_prog_path', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def gdb_cli_args(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'gdb_cli_args', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def openocd_prog_path(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'openocd_prog_path', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'openocd_cli_args', None)
@@ -612,35 +619,35 @@ def openocd_cli_args(request: FixtureRequest) -> Optional[str]:
 # qemu #
 ########
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def qemu_image_path(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_image_path', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def qemu_prog_path(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_prog_path', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def qemu_cli_args(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_cli_args', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def qemu_extra_args(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_extra_args', None)
 
 
 @pytest.fixture
-@parse_configuration
+@multi_dut_argument
 def skip_regenerate_image(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
@@ -650,7 +657,7 @@ def skip_regenerate_image(request: FixtureRequest) -> Optional[str]:
 # Private Fixtures #
 ####################
 @pytest.fixture
-@apply_count
+@multi_dut_fixture
 def _services(embedded_services: Optional[str]) -> List[str]:
     if not embedded_services:
         return ['base']
@@ -674,7 +681,7 @@ ClassCliOptions = namedtuple('ClassCliOptions', ['classes', 'kwargs'])  # Tuple[
 
 
 @pytest.fixture
-@apply_count
+@multi_dut_fixture
 def _fixture_classes_and_options(
     _services,
     # parametrize fixtures
@@ -889,7 +896,7 @@ def _fixture_classes_and_options(
 # Derived Fixtures #
 ####################
 @pytest.fixture
-@apply_count
+@multi_dut_fixture
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:
     """A pytest fixture to gather information from the specified built binary folder"""
     cls = _fixture_classes_and_options.classes['app']
@@ -898,7 +905,7 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
     """A serial subprocess that could read/redirect/write"""
     if 'serial' not in _fixture_classes_and_options.classes:
@@ -912,7 +919,7 @@ def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd']:
     """An openocd subprocess that could read/redirect/write"""
     if 'openocd' not in _fixture_classes_and_options.classes:
@@ -924,7 +931,7 @@ def openocd(_fixture_classes_and_options: ClassCliOptions) -> Optional['OpenOcd'
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
     """A gdb subprocess that could read/redirect/write"""
     if 'gdb' not in _fixture_classes_and_options.classes:
@@ -936,7 +943,7 @@ def gdb(_fixture_classes_and_options: ClassCliOptions) -> Optional['Gdb']:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
     """A qemu subprocess that could read/redirect/write"""
     if 'qemu' not in _fixture_classes_and_options.classes:
@@ -948,7 +955,7 @@ def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
 
 
 @pytest.fixture
-@apply_count_generator
+@multi_dut_generator_fixture
 def dut(
     _fixture_classes_and_options: ClassCliOptions,
     app: App,
