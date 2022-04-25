@@ -1,3 +1,15 @@
+## v0.7.0rc1 (2022-04-25)
+
+### Feat
+
+- add method `parse_multi_dut_args`
+
+### Breaking Changes
+
+- rename `apply_count_generator` to `multi_dut_generator_fixture`
+- rename `apply_count` to `multi_dut_fixture`
+- rename `parse_configuration` to `multi_dut_argument`
+
 ## v0.7.0rc0 (2022-04-15)
 
 ### Feat
