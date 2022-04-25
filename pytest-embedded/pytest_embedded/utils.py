@@ -43,15 +43,17 @@ def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
 _T = TypeVar('_T')
 
 
-def to_list(s: _T) -> Optional[List[_T]]:
+def to_list(s: _T) -> List[_T]:
     """
     Args:
         s: Anything
 
     Returns:
-        - if `s` is a tuple or a set, would return itself after change the type to string by calling `list(s)`
-        - if `s` is a list, would return itself
-        - for other types, would return a list with a single element `s`
+        `list(s)`. If `s` is a tuple or a set.
+
+        itself. If `s` is a list
+
+        `[s]`. If `s` is other types.
     """
     if not s:
         return s
