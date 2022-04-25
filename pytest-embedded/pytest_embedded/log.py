@@ -218,10 +218,10 @@ class DuplicateStdout(TextIOWrapper):
 
 
 def live_print_call(*args, **kwargs):
-    """`
+    """
     live print the `subprocess.Popen` process.
 
-    Note:
+    Notes:
         This function behaves the same as `subprocess.call()`, it would block your current process.
     """
     default_kwargs = {
@@ -239,7 +239,7 @@ class DuplicateStdoutMixin:
     """
     A mixin class which provides function `create_forward_io_thread` to create a forward io thread.
 
-    Note:
+    Notes:
         `_forward_io()` should be implemented in subclasses, the function should be something like:
 
         ```python

@@ -13,15 +13,27 @@ theme:
         name: Switch to light mode
 
 markdown_extensions:
+  # admonitions
   - admonition
-  - codehilite
-  - plantuml_markdown:
-      server: http://www.plantuml.com/plantuml
+  - pymdownx.details
   - pymdownx.superfences
-  - pymdownx.tabbed
-  - abbr
+  # highlight:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
   - pymdownx.snippets:
       check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  # tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
+  # abbreviations
+  - abbr
+  - pymdownx.snippets
 
 plugins:
   - autorefs
@@ -32,6 +44,14 @@ plugins:
           rendering:
             members_order: 'source'
             show_root_heading: True
+      watch:
+        - pytest-embedded
+        - pytest-embedded-arduino
+        - pytest-embedded-idf
+        - pytest-embedded-jtag
+        - pytest-embedded-qemu
+        - pytest-embedded-serial
+        - pytest-embedded-serial-esp
 
 nav:
   - pytest-embedded: index.md

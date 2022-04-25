@@ -141,16 +141,15 @@ Activate a service would enable a set of fixtures or add some extra functionalit
 
 ## Dependency Graph
 
-```plantuml
-@startmindmap
-* pytest_embedded
-** pytest_embedded_serial
-*** pytest_embedded_serial_esp
-*** pytest_embedded_jtag
-** pytest_embedded_idf (serial_esp dependency is optional)
-** pytest_embedded_qemu (idf dependency is optional)
-** pytest_embedded_arduino (serial dependency is optional)
-@endmindmap
+```mermaid
+graph LR
+    pytest_embedded --> pytest_embedded_serial
+    pytest_embedded -->|pytest_embedded_serial_esp is an optional dependency| pytest_embedded_idf
+    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_qemu
+    pytest_embedded -->|pytest_embedded_serial is an optional dependency| pytest_embedded_arduino
+
+    pytest_embedded_serial --> pytest_embedded_serial_esp
+    pytest_embedded_serial --> pytest_embedded_jtag
 ```
 
 --8<-- "docs/abbr.md"
