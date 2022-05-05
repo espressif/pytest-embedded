@@ -117,7 +117,7 @@ class IdfSerial(EspSerial):
         # write_flash expects the parameter encrypt_files to be None and not
         # an empty list, so perform the check here
         default_kwargs = {
-            'addr_filename': flash_files or None,
+            'addr_filename': flash_files,
             'encrypt_files': encrypt_files or None,
             'no_stub': False,
             'compress': True,
@@ -138,8 +138,6 @@ class IdfSerial(EspSerial):
 
             if self.proc.baudrate > self.DEFAULT_BAUDRATE:
                 self.stub.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
-        except Exception:  # noqa
-            raise
         finally:
             if nvs_file:
                 nvs_file.close()
