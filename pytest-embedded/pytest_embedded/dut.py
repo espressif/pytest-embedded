@@ -2,6 +2,7 @@ import functools
 import logging
 import os.path
 import re
+import textwrap
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
@@ -9,7 +10,7 @@ import pexpect
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import to_bytes, to_list
+from .utils import to_bytes, to_list, to_str
 
 
 class Dut:
@@ -65,10 +66,15 @@ class Dut:
                 try:
                     index = func(self, pattern, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
+                    wrapped_buffer_bytes = textwrap.shorten(
+                        to_str(self.pexpect_proc.buffer),
+                        width=200,
+                        placeholder=f'... (total {len(self.pexpect_proc.buffer)} bytes)',
+                    )
                     debug_str = (
-                        f'Not found "{str(pattern)}" with arguments {str(kwargs)}\n'
-                        f'Bytes in current buffer: {self.pexpect_proc.buffer}\n'
-                        f'Full pexpect process log file: {self.logfile}'
+                        f'Not found "{str(pattern)}"\n'
+                        f'Bytes in current buffer: {wrapped_buffer_bytes}\n'
+                        f'Please check the full log here: {self.logfile}'
                     )
                     raise e.__class__(debug_str) from e
                 else:
