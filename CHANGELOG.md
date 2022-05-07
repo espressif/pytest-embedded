@@ -1,3 +1,10 @@
+## v0.7.0rc2 (2022-05-07)
+
+### Fix
+
+- improve debug string
+- **idf**: non-iterable error when flash with encrypted mode
+
 ## v0.7.0rc1 (2022-04-25)
 
 ### Feat
