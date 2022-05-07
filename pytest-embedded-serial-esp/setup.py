@@ -26,7 +26,6 @@ VERSION = get_version()
 REQUIRES = [
     f'pytest-embedded-serial~={VERSION}',
     'esptool~=3.1',
-    'cryptography<3.4; platform_machine == "armv7l"',
 ]
 ENTRY_POINTS = {}
 
