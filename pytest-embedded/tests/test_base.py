@@ -279,7 +279,7 @@ def test_expect(testdir):
             with pytest.raises(pexpect.TIMEOUT) as e:
                 dut.expect(pattern_list, expect_all=True, timeout=1)
 
-            assert e.value.value.startswith('Not found "[\'foobar\']" with arguments {\'timeout\': 1}\n')
+            assert e.value.value.startswith('Not found "[\'foobar\']"')
     """)
 
     result = testdir.runpytest()

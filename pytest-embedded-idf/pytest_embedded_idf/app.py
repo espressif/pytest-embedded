@@ -154,13 +154,13 @@ class IdfApp(App):
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.elf':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
-        raise ValueError('Elf file not found')
+        raise ValueError(f'Elf file under {self.binary_path} not found')
 
     def _get_bin_file(self) -> str:
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.bin':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
-        raise ValueError('Bin file not found')
+        raise ValueError(f'Bin file under {self.binary_path} not found')
 
     def _parse_flash_args(
         self,
