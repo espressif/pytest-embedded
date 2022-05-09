@@ -61,9 +61,9 @@ class IdfDut(SerialDut):
         Returns:
             None
         """
-        if self.app.sdkconfig['ESP_COREDUMP_ENABLE_TO_UART']:
+        if self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_UART', False):
             self._dump_b64_coredumps()
-        elif self.app.sdkconfig['ESP_COREDUMP_ENABLE_TO_FLASH']:
+        elif self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_FLASH', False):
             self._dump_flash_coredump()
         else:
             logging.debug('core dump disabled')
