@@ -1,3 +1,13 @@
+## v0.7.0 (2022-05-09)
+
+### Feat
+
+- **idf**: added erase_flash and erase_partition functionality
+
+### Fix
+
+- **idf**: KeyError when not enabled coredump related configs
+
 ## v0.7.0rc3 (2022-05-07)
 
 ### Fix
