@@ -193,6 +193,33 @@ class IdfSerial(EspSerial):
             return content
 
     @EspSerial.use_esptool
+    def erase_partition(self, partition_name: str) -> None:
+        """
+        Erase the partition provided
+
+        Args:
+            partition_name: partition name
+        """
+        if not self.app.partition_table:
+            raise ValueError('Partition table not parsed.')
+
+        if partition_name in self.app.partition_table:
+            address = self.app.partition_table[partition_name]['offset']
+            size = self.app.partition_table[partition_name]['size']
+            logging.info(f'Erasing the partition "{partition_name}" of size {size} at {address}')
+            self.stub.erase_region(address, size)
+        else:
+            raise ValueError(f'partition name "{partition_name}" not found in app partition table')
+
+    @EspSerial.use_esptool
+    def erase_flash(self) -> None:
+        """
+        Erase the complete flash
+        """
+        logging.info('Erasing the flash')
+        self.stub.erase_flash()
+
+    @EspSerial.use_esptool
     def read_flash_elf_sha256(self) -> bytes:
         """
         Read the sha256 digest of the flashed elf file
