@@ -245,6 +245,10 @@ class IdfSerial(EspSerial):
         Returns:
             True if the sha256 values are matched
         """
+        if not self.app.elf_file:
+            logging.info('no elf file. Can\'t tell if the target flashed the same elf file or not. Assume as False')
+            return False
+
         flash_elf_sha256 = self.read_flash_elf_sha256()
         elf_sha256 = hashlib.sha256()
         with open(self.app.elf_file, 'rb') as fr:

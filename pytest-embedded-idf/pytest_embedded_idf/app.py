@@ -150,11 +150,12 @@ class IdfApp(App):
         self._partition_table = partition_table
         return self._partition_table
 
-    def _get_elf_file(self) -> str:
+    def _get_elf_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.elf':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
-        raise ValueError(f'Elf file under {self.binary_path} not found')
+
+        return None
 
     def _get_bin_file(self) -> str:
         for fn in os.listdir(self.binary_path):

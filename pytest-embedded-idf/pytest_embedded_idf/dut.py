@@ -69,6 +69,10 @@ class IdfDut(SerialDut):
             logging.debug('core dump disabled')
 
     def _dump_b64_coredumps(self) -> None:
+        if not self.app.elf_file:
+            logging.debug('no elf file. skipping dumping core dumps')
+            return
+
         from esp_coredump import CoreDump  # need IDF_PATH
 
         with open(self.pexpect_proc._fr.name, 'rb') as fr:
@@ -92,6 +96,10 @@ class IdfDut(SerialDut):
                         os.remove(coredump_file.name)
 
     def _dump_flash_coredump(self) -> None:
+        if not self.app.elf_file:
+            logging.debug('no elf file. skipping dumping core dumps')
+            return
+
         from esp_coredump import CoreDump  # need IDF_PATH
 
         if self.app.sdkconfig['ESP_COREDUMP_DATA_FORMAT_ELF']:
