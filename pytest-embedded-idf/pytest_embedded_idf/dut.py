@@ -22,7 +22,9 @@ class IdfDut(SerialDut):
     app: IdfApp
     serial: IdfSerial
 
-    def __init__(self, pexpect_proc: PexpectProcess, app: IdfApp, serial: IdfSerial, **kwargs) -> None:
+    def __init__(
+        self, pexpect_proc: PexpectProcess, app: IdfApp, serial: IdfSerial, skip_check_coredump: bool = False, **kwargs
+    ) -> None:
         """
         Args:
             pexpect_proc: `PexpectProcess` instance
@@ -32,6 +34,7 @@ class IdfDut(SerialDut):
         super().__init__(pexpect_proc, app, serial, **kwargs)
 
         self.target = serial.target
+        self.skip_check_coredump = skip_check_coredump
 
     @property
     def toolchain_prefix(self) -> str:
@@ -121,5 +124,6 @@ class IdfDut(SerialDut):
                     coredump.info_corefile()
 
     def close(self) -> None:
-        self._check_coredump()
+        if not self.skip_check_coredump:
+            self._check_coredump()
         super().close()
