@@ -1,3 +1,13 @@
+## v0.7.1 (2022-05-25)
+
+### Feat
+
+- **idf**: add cli option "--skip-check-coredump"
+
+### Fix
+
+- **idf**: make elf file detection optional
+
 ## v0.7.0 (2022-05-09)
 
 ### Feat
