@@ -134,6 +134,12 @@ def pytest_addoption(parser):
         'Set to True to erase the non-volatile storage blocks when flash files to the target chip. '
         'Requires valid partition tool. (Default: False)',
     )
+    idf_group.addoption(
+        '--skip-check-coredump',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to skip auto check core dump in UART/flash while teardown the failing test case. '
+        'Requires valid partition tool, project_description.json under the build dir. (Default: False)',
+    )
 
     jtag_group = parser.getgroup('embedded-jtag')
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
@@ -584,6 +590,13 @@ def erase_nvs(request: FixtureRequest) -> Optional[bool]:
     return _request_param_or_config_option_or_default(request, 'erase_nvs', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def skip_check_coredump(request: FixtureRequest) -> Optional[bool]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_check_coredump', None)
+
+
 ########
 # jtag #
 ########
@@ -694,6 +707,7 @@ def _fixture_classes_and_options(
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
+    skip_check_coredump,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -874,6 +888,11 @@ def _fixture_classes_and_options(
                     from pytest_embedded_idf.dut import IdfDut
 
                     classes[fixture] = IdfDut
+                    kwargs[fixture].update(
+                        {
+                            'skip_check_coredump': skip_check_coredump,
+                        }
+                    )
                 else:
                     from pytest_embedded_serial.dut import SerialDut
 
