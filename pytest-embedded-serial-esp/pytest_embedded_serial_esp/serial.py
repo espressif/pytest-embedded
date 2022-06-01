@@ -1,10 +1,16 @@
 import functools
 import logging
+from enum import Enum
 from typing import Dict, Optional
 
 import esptool
 from pytest_embedded.log import DuplicateStdout, PexpectProcess
 from pytest_embedded_serial.dut import Serial
+
+
+class EsptoolVersion(Enum):
+    V3 = 3
+    V4 = 4
 
 
 class EspSerial(Serial):
@@ -17,6 +23,17 @@ class EspSerial(Serial):
     """
 
     DEFAULT_BAUDRATE = 115200
+
+    try:
+        # esptool>=4.0
+        from esptool.loader import ESPLoader
+
+        ESPTOOL_VERSION = EsptoolVersion.V4
+    except (AttributeError, ModuleNotFoundError):
+        # esptool<4.0
+        from esptool import ESPLoader
+
+        ESPTOOL_VERSION = EsptoolVersion.V3
 
     def __init__(
         self,
