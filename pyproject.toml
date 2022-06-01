@@ -13,5 +13,5 @@ addopts = "-s"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.7.1"
+version = "0.7.2"
 tag_format = "v$version"

@@ -1,3 +1,9 @@
+## v0.7.2 (2022-06-01)
+
+### Fix
+
+- **esp**: loose esptool version dependency. remove the upper limit
+
 ## v0.7.1 (2022-05-25)
 
 ### Feat
