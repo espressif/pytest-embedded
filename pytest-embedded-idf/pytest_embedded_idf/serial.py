@@ -6,7 +6,7 @@ from typing import Dict, Optional, TextIO, Union
 
 import esptool
 from pytest_embedded.log import PexpectProcess
-from pytest_embedded_serial_esp.serial import EspSerial
+from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
 
 from .app import IdfApp
 
@@ -125,6 +125,10 @@ class IdfSerial(EspSerial):
             'ignore_flash_encryption_efuse_setting': False,
             'erase_all': False,
         }
+
+        if self.ESPTOOL_VERSION == EsptoolVersion.V4:
+            default_kwargs['force'] = False
+
         default_kwargs.update(self.app.flash_settings)
         default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
         args = FlashArgs(default_kwargs)

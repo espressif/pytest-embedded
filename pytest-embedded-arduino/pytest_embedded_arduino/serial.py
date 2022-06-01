@@ -3,7 +3,7 @@ from typing import Optional
 
 import esptool
 from pytest_embedded.log import PexpectProcess
-from pytest_embedded_serial_esp.serial import EspSerial
+from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
 
 from .app import ArduinoApp
 
@@ -63,6 +63,11 @@ class ArduinoSerial(EspSerial):
             'erase_all': False,
             'encrypt': False,
         }
+
+        if self.ESPTOOL_VERSION == EsptoolVersion.V4:
+            default_kwargs['force'] = False
+            default_kwargs['chip'] = self.app.target
+
         default_kwargs.update(self.app.flash_settings)
         flash_args = FlashArgs(default_kwargs)
 
