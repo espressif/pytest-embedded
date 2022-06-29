@@ -42,6 +42,7 @@ class EspSerial(Serial):
         port: Optional[str] = None,
         baud: int = DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
+        erase_flash: bool = False,
         port_target_cache: Dict[str, str] = None,
         **kwargs,
     ) -> None:
@@ -87,6 +88,7 @@ class EspSerial(Serial):
         self.target = target
 
         self.skip_autoflash = skip_autoflash
+        self.erase_flash = erase_flash
         super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
 
     def _post_init(self):

@@ -115,6 +115,11 @@ def pytest_addoption(parser):
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
+    esp_group.addoption(
+        '--erase-flash',
+        help='y/yes/true for True and n/no/false for False. Set to True to erase flash before programming. '
+        '(Default: False)',
+    )
 
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
@@ -566,6 +571,13 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
     return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def erase_flash(request: FixtureRequest) -> Optional[bool]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'erase_flash', None)
+
+
 #######
 # idf #
 #######
@@ -704,6 +716,7 @@ def _fixture_classes_and_options(
     target,
     baud,
     skip_autoflash,
+    erase_flash,
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
@@ -792,6 +805,7 @@ def _fixture_classes_and_options(
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
+                    'erase_flash': erase_flash,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial

@@ -25,10 +25,11 @@ class ArduinoSerial(EspSerial):
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         target: Optional[str] = None,
         skip_autoflash: bool = False,
+        erase_flash: bool = False,
         **kwargs,
     ) -> None:
         self.app = app
-        super().__init__(pexpect_proc, target or self.app.target, port, baud, skip_autoflash, **kwargs)
+        super().__init__(pexpect_proc, target or self.app.target, port, baud, skip_autoflash, erase_flash, **kwargs)
 
     def _start(self):
         if self.skip_autoflash:
@@ -67,6 +68,9 @@ class ArduinoSerial(EspSerial):
         if self.ESPTOOL_VERSION == EsptoolVersion.V4:
             default_kwargs['force'] = False
             default_kwargs['chip'] = self.app.target
+
+        if self.erase_flash:
+            default_kwargs['erase_all'] = True
 
         default_kwargs.update(self.app.flash_settings)
         flash_args = FlashArgs(default_kwargs)
