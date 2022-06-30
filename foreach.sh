@@ -1,4 +1,6 @@
-set -eo
+#!/bin/bash
+
+set -euo pipefail
 
 DEFAULT_PACKAGES=" \
   pytest-embedded \
