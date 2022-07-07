@@ -29,6 +29,7 @@ class IdfSerial(EspSerial):
         port: Optional[str] = None,
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
+        erase_flash: bool = False,
         port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
         erase_nvs: bool = False,
@@ -45,7 +46,7 @@ class IdfSerial(EspSerial):
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
-        super().__init__(pexpect_proc, target or app.target, port, baud, skip_autoflash, **kwargs)
+        super().__init__(pexpect_proc, target or app.target, port, baud, skip_autoflash, erase_flash, **kwargs)
 
     def _post_init(self):
         if self.esp.serial_port in self._port_app_cache:
@@ -128,6 +129,9 @@ class IdfSerial(EspSerial):
 
         if self.ESPTOOL_VERSION == EsptoolVersion.V4:
             default_kwargs['force'] = False
+
+        if self.erase_flash:
+            default_kwargs['erase_all'] = True
 
         default_kwargs.update(self.app.flash_settings)
         default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
