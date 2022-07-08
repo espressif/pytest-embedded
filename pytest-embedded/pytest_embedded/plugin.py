@@ -336,13 +336,18 @@ def multi_dut_generator_fixture(func) -> Callable[..., Generator[Union[Any, Tupl
         def _close_or_terminate(obj):
             try:
                 obj.close()
-            except OSError:
+            except OSError as e:
+                logging.debug(str(e))
                 pass
             except AttributeError:
                 try:
                     obj.terminate()
-                except AttributeError:
+                except AttributeError as e:
+                    logging.debug(str(e))
                     pass
+            except Exception as e:
+                logging.debug(str(e))
+                pass  # swallow up all error
             finally:
                 del obj
 
