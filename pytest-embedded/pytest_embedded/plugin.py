@@ -116,8 +116,8 @@ def pytest_addoption(parser):
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
     esp_group.addoption(
-        '--erase-flash',
-        help='y/yes/true for True and n/no/false for False. Set to True to erase flash before programming. '
+        '--erase-all',
+        help='y/yes/true for True and n/no/false for False. Set to True to erase all flash before programming. '
         '(Default: False)',
     )
 
@@ -578,9 +578,9 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
 
 @pytest.fixture
 @multi_dut_argument
-def erase_flash(request: FixtureRequest) -> Optional[bool]:
+def erase_all(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'erase_flash', None)
+    return _request_param_or_config_option_or_default(request, 'erase_all', None)
 
 
 #######
@@ -721,7 +721,7 @@ def _fixture_classes_and_options(
     target,
     baud,
     skip_autoflash,
-    erase_flash,
+    erase_all,
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
@@ -810,7 +810,7 @@ def _fixture_classes_and_options(
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
-                    'erase_flash': erase_flash,
+                    'erase_all': erase_all,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial
