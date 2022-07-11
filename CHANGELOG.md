@@ -1,3 +1,9 @@
+## v0.7.5 (2022-07-11)
+
+### Fix
+
+- cli option "--erase-flash" conflict with function `erase_flash()`
+
 ## v0.7.4 (2022-07-11)
 
 ### Fix
