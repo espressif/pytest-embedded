@@ -1,3 +1,14 @@
+## v0.7.4 (2022-07-11)
+
+### Fix
+
+- **idf**: use fixed major version instead of major.minor for esp-coredump
+- **serial**: port occupied before init finished
+
+### Feat
+
+- **esp**: Add `--erase-flash` option to erase the flash before programming
+
 ## v0.7.3 (2022-06-06)
 
 ### Fix
