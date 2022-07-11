@@ -51,18 +51,22 @@ class Serial(DuplicateStdoutMixin):
             self.port = self.proc.port
 
         self.pexpect_proc = pexpect_proc
-        self.occupied_ports[self.port] = None
-        logging.debug(f'occupied {self.port}')
 
         self._post_init()
 
         self._start()
+
+        self._finalize_init()
 
     def _post_init(self):
         pass
 
     def _start(self):
         pass
+
+    def _finalize_init(self):
+        self.occupied_ports[self.port] = None
+        logging.debug(f'occupied {self.port}')
 
     def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
         while self.proc.is_open:
