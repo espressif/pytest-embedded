@@ -304,3 +304,41 @@ def test_no_elf_file(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_erase_all(testdir):
+    testdir.makepyfile(r"""
+        def test_detect_port(dut):
+            dut.expect(r'Chip erase completed successfully in [\d.]+s', timeout=5)
+            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect_exact('Hello world!', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target', 'esp32',
+        '--erase-all', 'y',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_erase_flash(testdir):
+    testdir.makepyfile(r"""
+        def test_detect_port(dut):
+            dut.serial.erase_flash()
+            dut.serial.flash()
+            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect_exact('Hello world!', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target', 'esp32',
+    )
+
+    result.assert_outcomes(passed=1)
