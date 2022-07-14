@@ -1,6 +1,5 @@
 # This is a requirements.txt for extra dependencies.
 # To install all packages, please run `bash foreach.sh install`
-cryptography==37.0.2
 
 # testing
 pytest-cov
