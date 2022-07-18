@@ -28,6 +28,7 @@ class IdfSerial(EspSerial):
         target: Optional[str] = None,
         port: Optional[str] = None,
         baud: int = EspSerial.DEFAULT_BAUDRATE,
+        esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         port_app_cache: Dict[str, str] = None,
@@ -46,7 +47,9 @@ class IdfSerial(EspSerial):
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
-        super().__init__(pexpect_proc, target or app.target, port, baud, skip_autoflash, erase_all, **kwargs)
+        super().__init__(
+            pexpect_proc, target or app.target, port, baud, esptool_baud, skip_autoflash, erase_all, **kwargs
+        )
 
     def _post_init(self):
         if self.esp.serial_port in self._port_app_cache:
@@ -138,14 +141,10 @@ class IdfSerial(EspSerial):
         args = FlashArgs(default_kwargs)
 
         try:
-            if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                self.stub.change_baud(self.SUGGEST_FLASH_BAUDRATE)
-
+            self.stub.change_baud(self.esptool_baud)
             esptool.detect_flash_size(self.stub, args)
             esptool.write_flash(self.stub, args)
-
-            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.stub.change_baud(self.DEFAULT_BAUDRATE)  # set to the default one to get the serial output
+            self.stub.change_baud(self.baud)
         finally:
             if nvs_file:
                 nvs_file.close()
