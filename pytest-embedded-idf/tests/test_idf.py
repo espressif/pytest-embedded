@@ -1,6 +1,8 @@
 import os
 import re
 
+from pytest_embedded_idf.dut import IdfDut
+
 
 def test_idf_serial_flash(testdir):
     testdir.makepyfile("""
@@ -342,3 +344,35 @@ def test_erase_flash(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_idf_parse_test_menu():
+    s = '''(1)\t"adc1 and i2s work with wifi" [adc][ignore]
+(2)\t"I2C master write slave test" [i2c][test_env=UT_T2_I2C][timeout=150][multi_device]
+\t(1)\t"i2c_master_write_test"
+\t(2)\t"i2c_slave_read_test"
+(3)\t"LEDC continue work after software reset" [ledc][multi_stage]
+\t(1)\t"ledc_cpu_reset_test_first_stage"
+\t(2)\t"ledc_cpu_reset_test_second_stage"
+'''
+    test_menu = IdfDut.parse_unity_menu_from_str(s)
+
+    assert len(test_menu) == 3
+
+    assert test_menu[0].name == 'adc1 and i2s work with wifi'
+    assert test_menu[0].groups[0] == 'adc'
+    assert test_menu[0].keywords[0] == 'ignore'
+
+    assert test_menu[1].name == 'I2C master write slave test'
+    assert test_menu[1].groups[0] == 'i2c'
+    assert test_menu[1].type == 'multi_device'
+    assert test_menu[1].attributes['test_env'] == 'UT_T2_I2C'
+    assert test_menu[1].attributes['timeout'] == '150'
+    assert test_menu[1].subcases[0]['name'] == 'i2c_master_write_test'
+    assert test_menu[1].subcases[1]['name'] == 'i2c_slave_read_test'
+
+    assert test_menu[2].name == 'LEDC continue work after software reset'
+    assert test_menu[2].groups[0] == 'ledc'
+    assert test_menu[2].type == 'multi_stage'
+    assert test_menu[2].subcases[0]['name'] == 'ledc_cpu_reset_test_first_stage'
+    assert test_menu[2].subcases[1]['name'] == 'ledc_cpu_reset_test_second_stage'

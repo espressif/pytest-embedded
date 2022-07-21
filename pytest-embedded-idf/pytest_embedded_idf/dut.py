@@ -3,12 +3,38 @@ import os
 import re
 import tempfile
 from contextlib import redirect_stdout
+from dataclasses import dataclass
+from typing import List
 
 from pytest_embedded import PexpectProcess
 from pytest_embedded_serial.dut import SerialDut
 
 from .app import IdfApp
 from .serial import IdfSerial
+
+
+@dataclass
+class UnittestMenuCase:
+    """
+    Dataclass of esp-idf unit test cases parsed from test menu. This datachass has following fields:
+
+        - index: The index of the case, which can be used to run this case.
+        - name: The name of the case.
+        - type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
+        - keywords: List of additonal keywords of this case. For now, we have `disable` and `ignored`.
+        - groups: List of groups of this case, this is usually the component which this case belongs to.
+        - attributes: List of attributes of this case, which is used to describe timeout duration,
+            test environment, etc.
+        - subcases: List of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
+    """
+
+    index: int
+    name: str
+    type: str
+    keywords: List
+    groups: List
+    attributes: List
+    subcases: List
 
 
 class IdfDut(SerialDut):
@@ -127,3 +153,100 @@ class IdfDut(SerialDut):
         if not self.skip_check_coredump:
             self._check_coredump()
         super().close()
+
+    def parse_test_menu(
+        self,
+        ready_line: str = 'Press ENTER to see the list of tests',
+        pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
+        trigger: str = '',
+    ) -> List[UnittestMenuCase]:
+        """
+        Get test case list from test menu via UART print.
+
+        Args:
+            ready_line: Prompt to indicate that device is ready to print test menu.
+            pattern: Pattern to match the output from device, menu block should be in the first group.
+                     This will be directly passed to `pexpect.expect()`.
+            trigger: Keys to trigger device to print test menu by UART.
+
+        Returns:
+            A `list` of `UnittestMenuCase`, which includes info for each test case.
+        """
+        self.expect_exact(ready_line)
+        self.write(trigger)
+        menu_block = self.expect(pattern).group(1)
+        s = str(menu_block, encoding='UTF-8')
+        return self.parse_unity_menu_from_str(s)
+
+    @staticmethod
+    def parse_unity_menu_from_str(s: str) -> List[UnittestMenuCase]:
+        """
+        Parse test case mcnu from string to list of `UnittestMenuCase`.
+
+        Args:
+            s: string include test case menu.
+
+        Returns:
+            A `list` of `UnittestMenuCase`, which includes info for each test case.
+        """
+        print(s)
+        cases = s.splitlines()
+
+        case_regex = re.compile(r'\((\d+)\)\s\"(.+)\"\s(\[.+\])+')
+        subcase_regex = re.compile(r'\t\((\d+)\)\s\"(.+)\"')
+
+        test_menu = []
+        for case in cases:
+            case_match = case_regex.match(case)
+            if case_match is not None:
+                index, name, tag_block = case_match.groups()
+                tags = re.findall(r'\[(.+?)\]', tag_block)
+
+                if 'multi_stage' in tags:
+                    type = 'multi_stage'
+                    tags.remove('multi_stage')
+                elif 'multi_device' in tags:
+                    type = 'multi_device'
+                    tags.remove('multi_device')
+                else:
+                    type = 'normal'
+
+                keyword = []
+                if 'ignore' in tags:
+                    keyword.append('ignore')
+                    tags.remove('ignore')
+                elif 'disable' in tags:
+                    keyword = 'disable'
+                    tags.remove('disable')
+
+                attribute = {}
+                group = []
+                for tag in tags:
+                    if '=' in tag:
+                        k, v = tag.replace(' ', '').split('=')
+                        attribute[k] = v
+                    else:
+                        group.append(tag)
+
+                test_menu.append(
+                    UnittestMenuCase(
+                        index=int(index),
+                        name=name,
+                        type=type,
+                        keywords=keyword,
+                        groups=group,
+                        attributes=attribute,
+                        subcases=[],
+                    )
+                )
+                continue
+            subcase_match = subcase_regex.match(case)
+            if subcase_match is not None:
+                index, name = subcase_match.groups()
+                test_menu[-1].subcases.append({'index': index, 'name': name})
+                continue
+
+            if case != '':
+                raise NotImplementedError('Unrecognized test case:', case)
+
+        return test_menu
