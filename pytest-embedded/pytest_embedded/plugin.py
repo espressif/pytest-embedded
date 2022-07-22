@@ -107,10 +107,13 @@ def pytest_addoption(parser):
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
+    serial_group.addoption(
+        '--baud',
+        help='serial port communication baud rate. (Default: 115200)',
+    )
 
     esp_group = parser.getgroup('embedded-esp')
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
-    esp_group.addoption('--baud', help='serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)')
     esp_group.addoption(
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
@@ -119,6 +122,10 @@ def pytest_addoption(parser):
         '--erase-all',
         help='y/yes/true for True and n/no/false for False. Set to True to erase all flash before programming. '
         '(Default: False)',
+    )
+    esp_group.addoption(
+        '--esptool-baud',
+        help='esptool flashing baud rate. (Env: "ESPBAUD" if service "esp" specified, Default: 921600)',
     )
 
     idf_group = parser.getgroup('embedded-idf')
@@ -552,6 +559,13 @@ def port(request: FixtureRequest) -> Optional[str]:
     return _request_param_or_config_option_or_default(request, 'port', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def baud(request: FixtureRequest) -> Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'baud', None)
+
+
 #######
 # esp #
 #######
@@ -560,13 +574,6 @@ def port(request: FixtureRequest) -> Optional[str]:
 def target(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'target', None)
-
-
-@pytest.fixture
-@multi_dut_argument
-def baud(request: FixtureRequest) -> Optional[str]:
-    """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
 @pytest.fixture
@@ -581,6 +588,13 @@ def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
 def erase_all(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'erase_all', None)
+
+
+@pytest.fixture
+@multi_dut_argument
+def esptool_baud(request: FixtureRequest) -> Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'esptool_baud', None)
 
 
 #######
@@ -722,6 +736,7 @@ def _fixture_classes_and_options(
     baud,
     skip_autoflash,
     erase_all,
+    esptool_baud,
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
@@ -808,7 +823,8 @@ def _fixture_classes_and_options(
                     'pexpect_proc': pexpect_proc,
                     'target': target,
                     'port': os.getenv('ESPPORT') or port,
-                    'baud': int(os.getenv('ESPBAUD') or baud or EspSerial.DEFAULT_BAUDRATE),
+                    'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
+                    'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
                 }
@@ -843,6 +859,7 @@ def _fixture_classes_and_options(
                 kwargs[fixture] = {
                     'pexpect_proc': pexpect_proc,
                     'port': port,
+                    'baud': int(baud or Serial.DEFAULT_BAUDRATE),
                 }
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:

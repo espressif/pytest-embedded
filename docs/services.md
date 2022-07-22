@@ -67,8 +67,8 @@ embedded:
                         "--app-path=test_path1|test_path2" when two DUTs are using different built binary files.
                         "--part-tool=part_tool_path|" when only the first DUT needs this option, the second should keep as empty.
                         "--embedded-services=idf --count=2" when both of these DUTs are using the same services.
-                        The configuration would be duplicated when it has only one value but the "count" amount is greater than 1. It would raise an
-                        exception when the configuration has multi values but the amount is different from the "count" amount.
+                        The configuration would be duplicated when it has only one value but the "count" amount is greater than 1. It would raise an exception when the
+                        configuration has multi values but the amount is different from the "count" amount.
                         For example:
                         "--embedded-services=idf|esp-idf --count=3" would raise an exception.
   --parallel-count=PARALLEL_COUNT
@@ -88,19 +88,36 @@ embedded:
   --app-path=APP_PATH   App path
   --build-dir=BUILD_DIR
                         build directory under the app_path. (Default: "build")
+  --with-timestamp=WITH_TIMESTAMP
+                        y/yes/true for True and n/no/false for False. Set to True to enable print with timestamp. (Default: True)
+  --reorder-by-app-path
+                        Reorder the test sequence according to the [app_path] and [build_dir]. (Default: False)
 
 embedded-serial:
   --port=PORT           serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")
+  --baud=BAUD           serial port communication baud rate. (Default: 115200)
 
 embedded-esp:
   --target=TARGET       serial target chip type. (Default: "auto")
-  --baud=BAUD           serial port baud rate used when flashing. (Env: "ESPBAUD", Default: 115200)
   --skip-autoflash=SKIP_AUTOFLASH
                         y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)
+  --erase-all=ERASE_ALL
+                        y/yes/true for True and n/no/false for False. Set to True to erase all flash before programming. (Default: False)
+  --esptool-baud=ESPTOOL_BAUD
+                        esptool flashing baud rate. (Env: "ESPBAUD" if service "esp" specified, Default: 921600)
 
 embedded-idf:
   --part-tool=PART_TOOL
                         Partition tool path, used for parsing partition table. (Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"
+  --confirm-target-elf-sha256=CONFIRM_TARGET_ELF_SHA256
+                        y/yes/true for True and n/no/false for False. Set to True to read the elf sha256 from target flash and compare to the local elf under
+                        app.binary_path when session target-app cache decide to skip the autoflash. (Default: False)
+  --erase-nvs=ERASE_NVS
+                        y/yes/true for True and n/no/false for False. Set to True to erase the non-volatile storage blocks when flash files to the target chip. Requires
+                        valid partition tool. (Default: False)
+  --skip-check-coredump=SKIP_CHECK_COREDUMP
+                        y/yes/true for True and n/no/false for False. Set to True to skip auto check core dump in UART/flash while teardown the failing test case. Requires
+                        valid partition tool, project_description.json under the build dir. (Default: False)
 
 embedded-jtag:
   --gdb-prog-path=GDB_PROG_PATH
@@ -121,6 +138,8 @@ embedded-qemu:
                         QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")
   --qemu-extra-args=QEMU_EXTRA_ARGS
                         QEMU cli extra arguments, will append to the argument list. (Default: None)
+  --skip-regenerate-image=SKIP_REGENERATE_IMAGE
+                        y/yes/true for True and n/no/false for False. Set to True to disable auto regenerate image. (Default: False)
 ```
 
 ## Services

@@ -17,8 +17,10 @@ class Serial(DuplicateStdoutMixin):
         proc (serial.Serial): process created by `serial.serial_for_url()`
     """
 
+    DEFAULT_BAUDRATE = 115200
+
     DEFAULT_PORT_CONFIG = {
-        'baudrate': 115200,
+        'baudrate': DEFAULT_BAUDRATE,
         'bytesize': pyserial.EIGHTBITS,
         'parity': pyserial.PARITY_NONE,
         'stopbits': pyserial.STOPBITS_ONE,
@@ -29,7 +31,9 @@ class Serial(DuplicateStdoutMixin):
 
     occupied_ports: Dict[str, None] = dict()
 
-    def __init__(self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], **kwargs):
+    def __init__(
+        self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], baud: int = DEFAULT_BAUDRATE, **kwargs
+    ):
         """
         Args:
             pexpect_proc: `PexpectProcess` instance
@@ -43,6 +47,7 @@ class Serial(DuplicateStdoutMixin):
         if isinstance(port, str):
             self.port = port
             self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
+            self.port_config['baudrate'] = baud
             self.port_config.update(**kwargs)
             self.proc = pyserial.serial_for_url(self.port, **self.port_config)
         else:  # pyserial instance
@@ -51,6 +56,7 @@ class Serial(DuplicateStdoutMixin):
             self.port = self.proc.port
 
         self.pexpect_proc = pexpect_proc
+        self.baud = baud
 
         self._post_init()
 
