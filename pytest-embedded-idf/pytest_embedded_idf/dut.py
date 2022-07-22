@@ -3,6 +3,8 @@ import os
 import re
 import tempfile
 from contextlib import redirect_stdout
+from dataclasses import dataclass
+from typing import List
 
 from pytest_embedded import PexpectProcess
 from pytest_embedded_serial.dut import SerialDut
@@ -127,3 +129,101 @@ class IdfDut(SerialDut):
         if not self.skip_check_coredump:
             self._check_coredump()
         super().close()
+
+    @dataclass
+    class Case:
+        index: int
+        name: str
+        type: str
+        keywords: List
+        groups: List
+        attributes: List
+        subcase: List
+
+    def parse_test_menu(
+        self, pattern="Here's the test menu, pick your combo:(.+)Enter test for running.", trigger: str = ''
+    ) -> List[Case]:
+        """
+        Get test case list from test menu via UART print.
+
+        This function should be called after `Press ENTER to see the list of tests` prompt is shown.
+
+        Args:
+            pattern: Pattern to match the output from chip, menu block should be in the first group.
+                     This will be directly passed to `pexpect.expect()`.
+            trigger: Keys to trigger chip to print test menu by UART.
+
+        Returns:
+            A `list` of avaliable test cases, in `Case`. `Case` has following fields:
+                - index: The index of the case, which can be used to run this case.
+                - name: The name of the case.
+                - type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
+                - keyword: List of additonal keywords of this case. For now, we have `disable` and `ignored`.
+                - group: List of groups of this case, this is usually the component which this case belongs to.
+                - attribute: List of attributes of this case, which is used to describe timeout duration,
+                    test environment, etc.
+                - subcase: List of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
+        """
+        self.write(trigger)
+        menu_block = self.expect(pattern).group(1)
+        cases = str(menu_block, encoding='UTF-8').splitlines()
+
+        case_regex = re.compile(r'\((\d+)\)\s\"(.+)\"\s(\[.+\])+')
+        subcase_regex = re.compile(r'\t\((\d+)\)\s\"(.+)\"')
+
+        test_menu = []
+        for case in cases:
+            case_match = case_regex.match(case)
+            if case_match is not None:
+                index, name, tag_block = case_match.groups()
+                tags = re.findall(r'\[(.+?)\]', tag_block)
+
+                if 'multi_stage' in tags:
+                    type = 'multi_stage'
+                    tags.remove('multi_stage')
+                elif 'multi_device' in tags:
+                    type = 'multi_device'
+                    tags.remove('multi_device')
+                else:
+                    type = 'normal'
+
+                keyword = []
+                if 'ignore' in tags:
+                    keyword.append('ignore')
+                    tags.remove('ignore')
+                elif 'disable' in tags:
+                    keyword = 'disable'
+                    tags.remove('disable')
+
+                attribute = {}
+                group = []
+                for tag in tags:
+                    if '=' in tag:
+                        k, v = tag.replace(' ', '').split('=')
+                        attribute[k] = v
+                    else:
+                        group.append(tag)
+
+                test_menu.append(
+                    self.Case(
+                        index=int(index),
+                        name=name,
+                        type=type,
+                        keywords=keyword,
+                        groups=group,
+                        attributes=attribute,
+                        subcase=[],
+                    )
+                )
+                continue
+
+            subcase_match = subcase_regex.match(case)
+            if subcase_match is not None:
+                index, name = subcase_match.groups()
+                test_menu[-1].subcase.append({'index': index, 'name': name})
+                continue
+
+            if case != '':
+                raise NotImplementedError('Unrecognized test case')
+
+        return test_menu
