@@ -1149,7 +1149,7 @@ class PytestEmbedded:
     def pytest_runtest_call(self, item: Function):
         # raise dut failed cases
         if 'dut' in item.funcargs:
-            duts = to_list(item.funcargs['dut'])
+            duts = [dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut)]
             self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
