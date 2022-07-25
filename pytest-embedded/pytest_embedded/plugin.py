@@ -186,12 +186,6 @@ def pytest_addoption(parser):
 # helpers #
 ###########
 _COUNT = 1
-_TEST_SESSION_TMPDIR = os.path.join(
-    tempfile.gettempdir(),
-    'pytest-embedded',
-    datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
-)
-os.makedirs(_TEST_SESSION_TMPDIR, exist_ok=True)
 
 
 def _gte_one_int(v) -> int:
@@ -407,7 +401,13 @@ def _request_param_or_config_option_or_default(request: FixtureRequest, option: 
 @pytest.fixture(scope='session', autouse=True)
 def session_tempdir() -> str:
     """Session scoped temp dir for pytest-embedded"""
-    return _TEST_SESSION_TMPDIR
+    _tmpdir = os.path.join(
+        tempfile.gettempdir(),
+        'pytest-embedded',
+        datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+    )
+    os.makedirs(_tmpdir, exist_ok=True)
+    return _tmpdir
 
 
 @pytest.fixture
@@ -1029,6 +1029,7 @@ def dut(
 ##################
 _junit_merger_key = pytest.StashKey['JunitMerger']()
 _pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
+_session_tempdir_key = pytest.StashKey['session_tempdir']()
 _port_target_cache_key = pytest.StashKey[str]()
 _port_app_cache_key = pytest.StashKey[str]()
 
@@ -1112,6 +1113,13 @@ class PytestEmbedded:
 
     @pytest.hookimpl(tryfirst=True)
     def pytest_fixture_setup(self, fixturedef: FixtureDef[Any], request: SubRequest):
+        # record session_tempdir in session stash
+        if fixturedef.argname == 'session_tempdir':
+            kwargs = self._pytest_fixturedef_get_kwargs(fixturedef, request)
+            val = self._pytest_fixturedef_exec(fixturedef, request, kwargs)
+            request.config.stash[_session_tempdir_key] = val
+            return val
+
         if fixturedef.argname != 'serial':
             return
 
@@ -1174,5 +1182,6 @@ class PytestEmbedded:
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
-        modifier.merge(find_by_suffix('.xml', _TEST_SESSION_TMPDIR))
+        _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, '.')
+        modifier.merge(find_by_suffix('.xml', _stash_session_tempdir))
         exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
