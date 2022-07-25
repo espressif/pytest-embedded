@@ -22,7 +22,7 @@ class EspSerial(Serial):
         stub: esptool.ESPStubLoader, stubbed loader.
     """
 
-    DEFAULT_BAUDRATE = 115200
+    ESPTOOL_DEFAULT_BAUDRATE = 921600
 
     try:
         # esptool>=4.0
@@ -40,7 +40,8 @@ class EspSerial(Serial):
         pexpect_proc: PexpectProcess,
         target: Optional[str] = None,
         port: Optional[str] = None,
-        baud: int = DEFAULT_BAUDRATE,
+        baud: int = Serial.DEFAULT_BAUDRATE,
+        esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         port_target_cache: Dict[str, str] = None,
@@ -68,19 +69,15 @@ class EspSerial(Serial):
             ports = [port]
 
         with DuplicateStdout(pexpect_proc):
-            initial_baud = min(self.DEFAULT_BAUDRATE, baud)  # don't sync faster than the default baud rate
             # normal loader
             self.esp: esptool.ESPLoader = esptool.get_default_connected_device(
-                ports, port=port, connect_attempts=3, initial_baud=initial_baud, chip=target
+                ports, port=port, connect_attempts=3, initial_baud=baud, chip=target
             )
             if not self.esp:
                 raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
 
             # stub loader has more functionalities, need to run after calling `run_stub()`
             self.stub: esptool.ESPLoader = self.esp.run_stub()
-
-            if baud > initial_baud:
-                self.esp.change_baud(baud)  # change back to the users settings
 
         target = self.esp.CHIP_NAME.lower().replace('-', '')
         logging.info(f'Target: %s, Port: %s', target, self.esp.serial_port)
@@ -89,7 +86,8 @@ class EspSerial(Serial):
 
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
-        super().__init__(pexpect_proc, port=self.esp._port, **kwargs)
+        self.esptool_baud = esptool_baud
+        super().__init__(pexpect_proc, port=self.esp._port, baud=baud, **kwargs)
 
     def _post_init(self):
         logging.debug('set port-target cache: %s - %s', self.port, self.target)

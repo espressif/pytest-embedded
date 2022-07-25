@@ -23,13 +23,16 @@ class ArduinoSerial(EspSerial):
         app: ArduinoApp,
         port: Optional[str] = None,
         baud: int = EspSerial.DEFAULT_BAUDRATE,
+        esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
         target: Optional[str] = None,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         **kwargs,
     ) -> None:
         self.app = app
-        super().__init__(pexpect_proc, target or self.app.target, port, baud, skip_autoflash, erase_all, **kwargs)
+        super().__init__(
+            pexpect_proc, target or self.app.target, port, baud, esptool_baud, skip_autoflash, erase_all, **kwargs
+        )
 
     def _start(self):
         if self.skip_autoflash:
@@ -76,14 +79,10 @@ class ArduinoSerial(EspSerial):
         flash_args = FlashArgs(default_kwargs)
 
         try:
-            if self.proc.baudrate < self.SUGGEST_FLASH_BAUDRATE:
-                self.stub.change_baud(self.SUGGEST_FLASH_BAUDRATE)
-
+            self.stub.change_baud(self.esptool_baud)
             esptool.detect_flash_size(self.stub, flash_args)
             esptool.write_flash(self.stub, flash_args)
-
-            if self.proc.baudrate > self.DEFAULT_BAUDRATE:
-                self.stub.change_baud(self.DEFAULT_BAUDRATE)
+            self.stub.change_baud(self.baud)
         except Exception:
             raise
         finally:
