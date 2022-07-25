@@ -212,9 +212,9 @@ def _str_bool(v: str) -> Union[bool, str, None]:
     if v is None:
         return None
 
-    if v.lower() in ['y', 'yes', 'true']:
+    if isinstance(v, str) and v.lower() in ['y', 'yes', 'true']:
         return True
-    elif v.lower() in ['n', 'no', 'false']:
+    elif isinstance(v, str) and v.lower() in ['n', 'no', 'false']:
         return False
     else:
         return v
