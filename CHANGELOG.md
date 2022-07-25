@@ -1,3 +1,15 @@
+## v0.7.6 (2022-07-25)
+
+### Fix
+
+- raise exception only if dut `isinstance` `Dut` with failure cases
+- record session_tempdir into `config.stash`
+
+### Feat
+
+- **esp**: add fixture `esptool_baud`
+- **serial**: move fixture `baud` to service `serial`
+
 ## v0.7.5 (2022-07-11)
 
 ### Fix
