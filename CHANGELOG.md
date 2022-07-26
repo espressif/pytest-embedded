@@ -1,3 +1,10 @@
+## v0.7.7 (2022-07-26)
+
+### Fix
+
+- wrong xml detected when `_session_tempdir` stash is not initialized
+- issue when fixture value is not str
+
 ## v0.7.6 (2022-07-25)
 
 ### Fix
