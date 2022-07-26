@@ -1199,6 +1199,7 @@ class PytestEmbedded:
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
-        _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, '.')
-        modifier.merge(find_by_suffix('.xml', _stash_session_tempdir))
+        _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, None)
+        if _stash_session_tempdir is not None:
+            modifier.merge(find_by_suffix('.xml', _stash_session_tempdir))
         exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
