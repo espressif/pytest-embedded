@@ -1,7 +1,6 @@
 import functools
 import logging
 import os.path
-import re
 import textwrap
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
@@ -10,7 +9,7 @@ import pexpect
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import to_bytes, to_list, to_str
+from .utils import remove_asci_color_code, to_bytes, to_list, to_str
 
 
 class Dut:
@@ -67,13 +66,13 @@ class Dut:
                     index = func(self, pattern, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
                     wrapped_buffer_bytes = textwrap.shorten(
-                        to_str(self.pexpect_proc.buffer),
+                        remove_asci_color_code(to_str(self.pexpect_proc.buffer)),
                         width=200,
                         placeholder=f'... (total {len(self.pexpect_proc.buffer)} bytes)',
                     )
                     debug_str = (
                         f'Not found "{str(pattern)}"\n'
-                        f'Bytes in current buffer: {wrapped_buffer_bytes}\n'
+                        f'Bytes in current buffer (color code eliminated): {wrapped_buffer_bytes}\n'
                         f'Please check the full log here: {self.logfile}'
                     )
                     raise e.__class__(debug_str) from e
@@ -121,21 +120,6 @@ class Dut:
         """
         return self.pexpect_proc.expect_exact(pattern, **kwargs)
 
-    ANSI_ESCAPE_RE = re.compile(
-        r'''
-        \x1B  # ESC
-        (?:   # 7-bit C1 Fe (except CSI)
-            [@-Z\\-_]
-        |     # or [ for CSI, followed by a control sequence
-            \[
-            [0-?]*  # Parameter bytes
-            [ -/]*  # Intermediate bytes
-            [@-~]   # Final byte
-        )
-    ''',
-        re.VERBOSE,
-    )
-
     def expect_unity_test_output(
         self, remove_asci_escape_code: bool = True, timeout: int = 60, extra_before: Optional[AnyStr] = None
     ) -> None:
@@ -161,6 +145,6 @@ class Dut:
             log = self.pexpect_proc.before
 
         if remove_asci_escape_code:
-            log = self.ANSI_ESCAPE_RE.sub('', log.decode('utf-8', errors='ignore'))
+            log = remove_asci_color_code(log)
 
         self.testsuite.add_unity_test_cases(log)

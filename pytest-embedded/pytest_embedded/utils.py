@@ -1,4 +1,5 @@
 import os
+import re
 from typing import AnyStr, List, Optional, TypeVar
 
 
@@ -74,3 +75,25 @@ def find_by_suffix(suffix: str, path: str) -> List[str]:
                 res.append(os.path.join(root, file))
 
     return res
+
+
+_ANSI_COLOR_CODE_RE = re.compile(
+    r'''
+    \x1B  # ESC
+    (?:   # 7-bit C1 Fe (except CSI)
+        [@-Z\\-_]
+    |     # or [ for CSI, followed by a control sequence
+        \[
+        [0-?]*  # Parameter bytes
+        [ -/]*  # Intermediate bytes
+        [@-~]   # Final byte
+    )
+''',
+    re.VERBOSE,
+)
+
+
+def remove_asci_color_code(s: AnyStr) -> str:
+    if isinstance(s, bytes):
+        s = s.decode('utf-8', errors='ignore')
+    return _ANSI_COLOR_CODE_RE.sub('', s)
