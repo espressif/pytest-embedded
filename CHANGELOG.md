@@ -1,3 +1,13 @@
+## v0.7.8 (2022-07-28)
+
+### Fix
+
+- remove asci color code in expect failed exception
+
+### Feat
+
+- **idf**: add function to parse the case lists from unit test menu
+
 ## v0.7.7 (2022-07-26)
 
 ### Fix
