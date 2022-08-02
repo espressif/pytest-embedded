@@ -1,3 +1,9 @@
+## v0.7.9 (2022-08-02)
+
+### Fix
+
+- merge junit report error when multi-dut
+
 ## v0.7.8 (2022-07-28)
 
 ### Fix
