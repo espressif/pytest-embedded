@@ -168,6 +168,9 @@ class TestSuite:
 
 
 class JunitMerger:
+    SUB_JUNIT_FILENAME = 'dut.xml'
+    # multi-dut junit reports should be dut-[INDEX].xml
+
     def __init__(self, main_junit: Optional[str]) -> None:
         self.junit_path = main_junit
 
@@ -191,7 +194,50 @@ class JunitMerger:
         if not self.junit_path:
             return
 
+        # first round, merge the multi dut ones
+        test_case_dir_sub_junit_files = {}
         for file in junit_files:
+            if os.path.dirname(file) not in test_case_dir_sub_junit_files:
+                test_case_dir_sub_junit_files[os.path.dirname(file)] = [file]
+            else:
+                test_case_dir_sub_junit_files[os.path.dirname(file)].append(file)
+
+        _merged_multi_dut_junit_files = []
+        for _dir, _junit_files in test_case_dir_sub_junit_files.items():
+            merged_dut_junit_filepath = os.path.join(_dir, self.SUB_JUNIT_FILENAME)
+            if len(_junit_files) > 1:
+                _data = None
+                for _junit_file in _junit_files:
+                    logging.info(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
+                    _junit = ET.parse(_junit_file)
+                    _root = _junit.getroot()
+                    for case in _root:  # one level down
+                        case.attrib['name'] += f' [{os.path.splitext(os.path.basename(_junit_file))[0]}]'
+
+                    if _data is None:
+                        _data = _junit
+                    else:
+                        _data.getroot().extend(_root)
+                        _data.getroot().attrib['errors'] = self._int_add(
+                            _data.getroot().attrib['errors'], _root.attrib['errors']
+                        )
+                        _data.getroot().attrib['failures'] = self._int_add(
+                            _data.getroot().attrib['failures'], _root.attrib['failures']
+                        )
+                        _data.getroot().attrib['skipped'] = self._int_add(
+                            _data.getroot().attrib['skipped'], _root.attrib['skipped']
+                        )
+                        _data.getroot().attrib['tests'] = self._int_add(
+                            _data.getroot().attrib['tests'],
+                            _root.attrib['tests'],
+                        )
+
+                _data.write(merged_dut_junit_filepath)
+
+            _merged_multi_dut_junit_files.append(merged_dut_junit_filepath)
+
+        # second round, merge the test case junit report back to the main junit report
+        for file in _merged_multi_dut_junit_files:
             logging.info(f'Merging {file} to {self.junit_path}')
             merging_xml = ET.parse(file)
             merging_cases = merging_xml.findall('testcase')
@@ -205,7 +251,7 @@ class JunitMerger:
                 self.junit.write('debug.xml')
                 raise ValueError(f'Could\'t find test case {test_case_name}, dumped into "debug.xml" for debugging')
 
-            junit_case_is_fail = True if junit_case.find('failure') is not None else False
+            junit_case_is_fail = junit_case.find('failure') is not None
             junit_parent.remove(junit_case)
 
             for case in merging_cases:
