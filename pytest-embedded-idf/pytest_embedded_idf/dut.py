@@ -4,7 +4,7 @@ import re
 import tempfile
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from typing import List
+from typing import Any, Dict, List
 
 from pytest_embedded import PexpectProcess
 from pytest_embedded_serial.dut import SerialDut
@@ -16,25 +16,26 @@ from .serial import IdfSerial
 @dataclass
 class UnittestMenuCase:
     """
-    Dataclass of esp-idf unit test cases parsed from test menu. This datachass has following fields:
+    Dataclass of esp-idf unit test cases parsed from test menu
 
-        - index: The index of the case, which can be used to run this case.
-        - name: The name of the case.
-        - type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
-        - keywords: List of additonal keywords of this case. For now, we have `disable` and `ignored`.
-        - groups: List of groups of this case, this is usually the component which this case belongs to.
-        - attributes: List of attributes of this case, which is used to describe timeout duration,
+    Attributes:
+        index: The index of the case, which can be used to run this case.
+        name: The name of the case.
+        type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
+        keywords: List of additional keywords of this case. For now, we have `disable` and `ignored`.
+        groups: List of groups of this case, this is usually the component which this case belongs to.
+        attributes: Dict of attributes of this case, which is used to describe timeout duration,
             test environment, etc.
-        - subcases: List of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
+        subcases: List of dict of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
     """
 
     index: int
     name: str
     type: str
-    keywords: List
-    groups: List
-    attributes: List
-    subcases: List
+    keywords: List[str]
+    groups: List[str]
+    attributes: Dict[str, Any]
+    subcases: List[Dict[str, Any]]
 
 
 class IdfDut(SerialDut):
@@ -203,13 +204,13 @@ class IdfDut(SerialDut):
                 tags = re.findall(r'\[(.+?)\]', tag_block)
 
                 if 'multi_stage' in tags:
-                    type = 'multi_stage'
+                    _type = 'multi_stage'
                     tags.remove('multi_stage')
                 elif 'multi_device' in tags:
-                    type = 'multi_device'
+                    _type = 'multi_device'
                     tags.remove('multi_device')
                 else:
-                    type = 'normal'
+                    _type = 'normal'
 
                 keyword = []
                 if 'ignore' in tags:
@@ -219,12 +220,12 @@ class IdfDut(SerialDut):
                     keyword = 'disable'
                     tags.remove('disable')
 
-                attribute = {}
+                attributes = {}
                 group = []
                 for tag in tags:
                     if '=' in tag:
                         k, v = tag.replace(' ', '').split('=')
-                        attribute[k] = v
+                        attributes[k] = v
                     else:
                         group.append(tag)
 
@@ -232,10 +233,10 @@ class IdfDut(SerialDut):
                     UnittestMenuCase(
                         index=int(index),
                         name=name,
-                        type=type,
+                        type=_type,
                         keywords=keyword,
                         groups=group,
-                        attributes=attribute,
+                        attributes=attributes,
                         subcases=[],
                     )
                 )
@@ -243,7 +244,7 @@ class IdfDut(SerialDut):
             subcase_match = subcase_regex.match(case)
             if subcase_match is not None:
                 index, name = subcase_match.groups()
-                test_menu[-1].subcases.append({'index': index, 'name': name})
+                test_menu[-1].subcases.append({'index': int(index), 'name': name})
                 continue
 
             if case != '':

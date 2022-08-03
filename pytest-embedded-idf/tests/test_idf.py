@@ -370,11 +370,15 @@ def test_idf_parse_test_menu():
     assert test_menu[1].type == 'multi_device'
     assert test_menu[1].attributes['test_env'] == 'UT_T2_I2C'
     assert test_menu[1].attributes['timeout'] == '150'
+    assert test_menu[1].subcases[0]['index'] == 1
     assert test_menu[1].subcases[0]['name'] == 'i2c_master_write_test'
+    assert test_menu[1].subcases[1]['index'] == 2
     assert test_menu[1].subcases[1]['name'] == 'i2c_slave_read_test'
 
     assert test_menu[2].name == 'LEDC continue work after software reset'
     assert test_menu[2].groups[0] == 'ledc'
     assert test_menu[2].type == 'multi_stage'
+    assert test_menu[2].subcases[0]['index'] == 1
     assert test_menu[2].subcases[0]['name'] == 'ledc_cpu_reset_test_first_stage'
+    assert test_menu[2].subcases[1]['index'] == 2
     assert test_menu[2].subcases[1]['name'] == 'ledc_cpu_reset_test_second_stage'
