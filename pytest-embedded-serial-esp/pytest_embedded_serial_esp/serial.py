@@ -26,19 +26,26 @@ class EspSerial(Serial):
 
     try:
         # esptool>=4.0
+        from esptool import __version__
         from esptool.loader import ESPLoader
+        from esptool.targets import CHIP_LIST
 
         ESPTOOL_VERSION = EsptoolVersion.V4
+        ESPTOOL_CHIPS = CHIP_LIST
+        _ESPTOOL_RAW_VERSION = __version__
     except (AttributeError, ModuleNotFoundError):
         # esptool<4.0
-        from esptool import ESPLoader
+        from esptool import SUPPORTED_CHIPS, ESPLoader, __version__
 
         ESPTOOL_VERSION = EsptoolVersion.V3
+        ESPTOOL_CHIPS = SUPPORTED_CHIPS
+        _ESPTOOL_RAW_VERSION = __version__
 
     def __init__(
         self,
         pexpect_proc: PexpectProcess,
         target: Optional[str] = None,
+        beta_target: Optional[str] = None,
         port: Optional[str] = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
@@ -57,10 +64,12 @@ class EspSerial(Serial):
             # esptool will reverse the list
             ports.sort()
 
+            esptool_target = beta_target or target
+
             # prioritize the cache recorded target port
-            if target:
+            if esptool_target:
                 for _port, _target in self._port_target_cache.items():
-                    if _target == target and _port in ports:
+                    if _target == esptool_target and _port in ports:
                         ports.sort(key=lambda x: x == _port)
                         logging.debug('hit port-target cache: %s - %s', _port, _target)
 
@@ -70,8 +79,18 @@ class EspSerial(Serial):
 
         with DuplicateStdout(pexpect_proc):
             # normal loader
+            if esptool_target not in (['auto'] + self.ESPTOOL_CHIPS):
+                raise ValueError(
+                    f'esptool version {self._ESPTOOL_RAW_VERSION} not support target {esptool_target}\n'
+                    f'Supported targets: {self.ESPTOOL_CHIPS}'
+                )
+
             self.esp: esptool.ESPLoader = esptool.get_default_connected_device(
-                ports, port=port, connect_attempts=3, initial_baud=baud, chip=target
+                ports,
+                port=port,
+                connect_attempts=3,
+                initial_baud=baud,
+                chip=esptool_target,
             )
             if not self.esp:
                 raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')

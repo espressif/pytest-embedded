@@ -26,6 +26,7 @@ class IdfSerial(EspSerial):
         pexpect_proc: PexpectProcess,
         app: IdfApp,
         target: Optional[str] = None,
+        beta_target: Optional[str] = None,
         port: Optional[str] = None,
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
@@ -48,7 +49,15 @@ class IdfSerial(EspSerial):
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
         super().__init__(
-            pexpect_proc, target or app.target, port, baud, esptool_baud, skip_autoflash, erase_all, **kwargs
+            pexpect_proc,
+            target or app.target,
+            beta_target,
+            port,
+            baud,
+            esptool_baud,
+            skip_autoflash,
+            erase_all,
+            **kwargs,
         )
 
     def _post_init(self):
