@@ -1,3 +1,9 @@
+## v0.7.10 (2022-08-04)
+
+### Fix
+
+- multi dut with single junit report
+
 ## v0.7.9 (2022-08-02)
 
 ### Fix
