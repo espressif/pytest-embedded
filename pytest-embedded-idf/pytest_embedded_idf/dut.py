@@ -160,6 +160,7 @@ class IdfDut(SerialDut):
         ready_line: str = 'Press ENTER to see the list of tests',
         pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
         trigger: str = '',
+        include_ignored: bool = False,
     ) -> List[UnittestMenuCase]:
         """
         Get test case list from test menu via UART print.
@@ -169,6 +170,7 @@ class IdfDut(SerialDut):
             pattern: Pattern to match the output from device, menu block should be in the first group.
                      This will be directly passed to `pexpect.expect()`.
             trigger: Keys to trigger device to print test menu by UART.
+            include_ignored: Controls whether to strip ignored cases from output.
 
         Returns:
             A `list` of `UnittestMenuCase`, which includes info for each test case.
@@ -177,7 +179,11 @@ class IdfDut(SerialDut):
         self.write(trigger)
         menu_block = self.expect(pattern).group(1)
         s = str(menu_block, encoding='UTF-8')
-        return self.parse_unity_menu_from_str(s)
+        case_list = self.parse_unity_menu_from_str(s)
+        if include_ignored:
+            return case_list
+        else:
+            return [case for case in case_list if 'ignore' not in case.keywords]
 
     @staticmethod
     def parse_unity_menu_from_str(s: str) -> List[UnittestMenuCase]:
@@ -190,7 +196,6 @@ class IdfDut(SerialDut):
         Returns:
             A `list` of `UnittestMenuCase`, which includes info for each test case.
         """
-        print(s)
         cases = s.splitlines()
 
         case_regex = re.compile(r'\((\d+)\)\s\"(.+)\"\s(\[.+\])+')
@@ -212,30 +217,30 @@ class IdfDut(SerialDut):
                 else:
                     _type = 'normal'
 
-                keyword = []
+                keywords = []
                 if 'ignore' in tags:
-                    keyword.append('ignore')
+                    keywords.append('ignore')
                     tags.remove('ignore')
-                elif 'disable' in tags:
-                    keyword = 'disable'
+                if 'disable' in tags:
+                    keywords.append('disable')
                     tags.remove('disable')
 
                 attributes = {}
-                group = []
+                groups = []
                 for tag in tags:
                     if '=' in tag:
-                        k, v = tag.replace(' ', '').split('=')
-                        attributes[k] = v
+                        k, v = tag.split('=')
+                        attributes[k.strip()] = v.strip()
                     else:
-                        group.append(tag)
+                        groups.append(tag)
 
                 test_menu.append(
                     UnittestMenuCase(
                         index=int(index),
                         name=name,
                         type=_type,
-                        keywords=keyword,
-                        groups=group,
+                        keywords=keywords,
+                        groups=groups,
                         attributes=attributes,
                         subcases=[],
                     )
@@ -251,3 +256,81 @@ class IdfDut(SerialDut):
                 raise NotImplementedError('Unrecognized test case:', case)
 
         return test_menu
+
+    def run_normal_cases(
+        self,
+        case_list: List[UnittestMenuCase],
+        timeout: int = 30,
+        reset_case_done_prompt: str = 'Press ENTER to see the list of tests.',
+        case_done_prompt: str = "Enter next test, or 'enter' to see menu",
+    ):
+        """
+        Run normal cases.
+
+        Args:
+            case_list: List of normal cases.
+            timeout: Timeout for each case. Will be overrided by `timeout` tag.
+            reset_case_done_prompt: Prompt to expect after cases with `reset` tag are done.
+            case_done_prompt: Prompt to expect after normal cases are done.
+        """
+        for case in case_list:
+            if 'timeout' in case.attributes.keys():
+                case_timeout = int(case.attributes['timeout'])
+            else:
+                case_timeout = timeout
+
+            if 'reset' in case.attributes.keys():
+                reset_reasons = case.attributes['reset'].split(',')
+            else:
+                reset_reasons = []
+
+            self.write(str(case.index))
+            if len(reset_reasons):  # test case with reset
+                for reset_reason in reset_reasons:  # expect all reset reason keywords
+                    self.expect_exact(reset_reason.strip())
+                self.expect_exact(reset_case_done_prompt)
+            else:
+                self.expect_unity_test_output(timeout=case_timeout)
+                self.expect_exact(case_done_prompt)
+
+    def run_multi_stage_cases(
+        self,
+        case_list: List[UnittestMenuCase],
+        timeout: int = 30,
+        inter_case_prompt: str = 'Press ENTER to see the list of tests.',
+        case_done_prompt: str = "Enter next test, or 'enter' to see menu",
+    ):
+        """
+        Run multi-stage cases.
+
+        Args:
+            case_list: List of multi-stage cases.
+            timeout: Timeout for each case. Will be overrided by `timeout` tag.
+            inter_case_prompt: Prompt to expect between cases.
+            case_done_prompt: Prompt to expect after the last case is done.
+        """
+        for case in case_list:
+            if 'timeout' in case.attributes.keys():
+                case_timeout = int(case.attributes['timeout'])
+            else:
+                case_timeout = timeout
+
+            if 'reset' in case.attributes.keys():
+                reset_reasons = case.attributes['reset'].split(',')
+            else:
+                reset_reasons = []
+
+            for subcase_idx in range(len(case.subcases)):  # run all subcases
+                self.write(str(case.index))
+                self.expect_exact(case.subcases[-1]['name'])
+
+                self.write(str(case.subcases[subcase_idx]['index']))
+                if subcase_idx < len(case.subcases) - 1:  # check inter-case prompt when it is not the last subcase
+                    if len(reset_reasons):
+                        if reset_reasons[0] == 'abort':  # if the first reset reason is abort, expect it additionally
+                            self.expect_exact(reset_reasons.pop(0))
+                        self.expect_exact(reset_reasons[subcase_idx].strip())  # also check reset reason
+                    self.expect_exact(inter_case_prompt)
+
+            self.expect_unity_test_output(timeout=case_timeout)
+            self.expect_exact(case_done_prompt)
