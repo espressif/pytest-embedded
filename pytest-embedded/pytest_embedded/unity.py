@@ -205,6 +205,8 @@ class JunitMerger:
         _merged_multi_dut_junit_files = []
         for _dir, _junit_files in test_case_dir_sub_junit_files.items():
             merged_dut_junit_filepath = os.path.join(_dir, self.SUB_JUNIT_FILENAME)
+
+            # multi-dut, multi junit files
             if len(_junit_files) > 1:
                 _data = None
                 for _junit_file in _junit_files:
@@ -231,8 +233,16 @@ class JunitMerger:
                             _data.getroot().attrib['tests'],
                             _root.attrib['tests'],
                         )
-
                 _data.write(merged_dut_junit_filepath)
+            # multi-dut, single junit file
+            elif _junit_files[0] != merged_dut_junit_filepath:
+                _junit_file = _junit_files[0]
+                logging.info(f'Rename {_junit_file} to {merged_dut_junit_filepath}')
+                _junit = ET.parse(_junit_file)
+                _root = _junit.getroot()
+                for case in _root:  # one level down
+                    case.attrib['name'] += f' [{os.path.splitext(os.path.basename(_junit_file))[0]}]'
+                _junit.write(merged_dut_junit_filepath)
 
             _merged_multi_dut_junit_files.append(merged_dut_junit_filepath)
 

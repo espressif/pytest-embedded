@@ -375,18 +375,24 @@ def test_expect_unity_test_output_multi_dut(testdir):
             dut_1.write(output)
             dut_0.expect_unity_test_output()
             dut_1.expect_unity_test_output()
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_expect_unity_test_output_multi_dut_record_1(dut):
+            dut_1 = dut[1]
+            dut_1.write(output)
+            dut_1.expect_unity_test_output()
     """)
 
     result = testdir.runpytest('--junitxml', 'report.xml')
 
-    result.assert_outcomes(failed=2)
+    result.assert_outcomes(failed=3)
 
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '9'
+    assert junit_report.attrib['failures'] == '12'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '12'
+    assert junit_report.attrib['tests'] == '16'
 
     case_names = [
         'test_case',
@@ -395,9 +401,9 @@ def test_expect_unity_test_output_multi_dut(testdir):
         'test case 4',
     ]
     required_names = case_names[:]
-    for dut in ['dut-0', 'dut-1']:
+    for dut in ['dut-0', 'dut-1', 'dut-1']:
         required_names.extend([f'{case_name} [{dut}]' for case_name in case_names])
 
     all_case_names = [item.attrib['name'] for item in junit_report]
-    for required_name in required_names:
-        assert required_name in all_case_names
+
+    assert sorted(required_names) == sorted(all_case_names)
