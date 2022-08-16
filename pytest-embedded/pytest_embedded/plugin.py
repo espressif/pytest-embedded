@@ -150,8 +150,14 @@ def pytest_addoption(parser):
     idf_group.addoption(
         '--skip-check-coredump',
         help='y/yes/true for True and n/no/false for False. '
-        'Set to True to skip auto check core dump in UART/flash while teardown the failing test case. '
+        'Set to True to skip auto check core dump in UART/flash '
+        'and panic handler support while teardown the failing test case. '
         'Requires valid partition tool, project_description.json under the build dir. (Default: False)',
+    )
+    idf_group.addoption(
+        '--panic-output-decode-script',
+        help='Panic output decode script that is used in conjunction with the check-panic-coredump option '
+        'to parse panic output. (Default: $IDF_PATH/tools/gdb_panic_server.py)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -636,6 +642,13 @@ def skip_check_coredump(request: FixtureRequest) -> Optional[bool]:
     return _request_param_or_config_option_or_default(request, 'skip_check_coredump', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def panic_output_decode_script(request: FixtureRequest) -> Optional[bool]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'panic_output_decode_script', None)
+
+
 ########
 # jtag #
 ########
@@ -750,6 +763,7 @@ def _fixture_classes_and_options(
     confirm_target_elf_sha256,
     erase_nvs,
     skip_check_coredump,
+    panic_output_decode_script,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -937,6 +951,7 @@ def _fixture_classes_and_options(
                     kwargs[fixture].update(
                         {
                             'skip_check_coredump': skip_check_coredump,
+                            'panic_output_decode_script': panic_output_decode_script,
                         }
                     )
                 else:

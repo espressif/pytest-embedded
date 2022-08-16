@@ -1,10 +1,12 @@
 import logging
 import os
 import re
+import subprocess
+import sys
 import tempfile
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pytest_embedded import PexpectProcess
 from pytest_embedded_serial.dut import SerialDut
@@ -46,11 +48,21 @@ class IdfDut(SerialDut):
     COREDUMP_UART_END = b'================= CORE DUMP END ================='
     COREDUMP_UART_REGEX = re.compile(COREDUMP_UART_START + b'(.+?)' + COREDUMP_UART_END, re.DOTALL)
 
+    # panic handler related messages
+    PANIC_START = b'register dump:'
+    PANIC_END = b'ELF file SHA256:'
+
     app: IdfApp
     serial: IdfSerial
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, app: IdfApp, serial: IdfSerial, skip_check_coredump: bool = False, **kwargs
+        self,
+        pexpect_proc: PexpectProcess,
+        app: IdfApp,
+        serial: IdfSerial,
+        skip_check_coredump: bool = False,
+        panic_output_decode_script: str = None,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -62,6 +74,7 @@ class IdfDut(SerialDut):
 
         self.target = serial.target
         self.skip_check_coredump = skip_check_coredump
+        self._panic_output_decode_script = panic_output_decode_script
 
     @property
     def toolchain_prefix(self) -> str:
@@ -76,11 +89,76 @@ class IdfDut(SerialDut):
         else:
             raise ValueError(f'Unknown target: {self.target}')
 
+    @property
+    def panic_output_decode_script(self) -> Optional[str]:
+        """
+        Returns:
+            Panic output decode script path
+        """
+        script_filepath = self._panic_output_decode_script or os.path.join(
+            os.getenv('IDF_PATH', 'IDF_PATH'),
+            'tools',
+            'gdb_panic_server.py',
+        )
+        if not os.path.isfile(script_filepath):
+            raise ValueError(
+                'Panic output decode script not found. Please use --panic-output-decode-script flag '
+                'to provide script or set IDF_PATH (Default: $IDF_PATH/tools/gdb_panic_server.py)'
+            )
+        return os.path.realpath(script_filepath)
+
+    def _check_panic_decode_trigger(self):  # type: () -> None
+        with open(self.logfile, 'rb') as output_file:
+            output = output_file.read()
+        # get the panic output by looking for the indexes
+        # of the first occurrences of PANIC_START and PANIC_END patterns
+        panic_output_idx_start = output.find(self.PANIC_START) - 10
+        panic_output_idx_end = output.find(self.PANIC_END, output.find(self.PANIC_START) + 1) + 15
+        panic_output_res = output[panic_output_idx_start:panic_output_idx_end]
+        panic_output = panic_output_res if panic_output_res else None
+        if panic_output is None:
+            return
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as panic_output_file:
+            panic_output_file.write(panic_output)
+            panic_output_file.flush()
+        toolchain_common = self.toolchain_prefix.replace(self.target, 'esp') + 'gdb'
+        try:
+            cmd = [
+                toolchain_common,
+                '--command',
+                f'{self.app.app_path}/build/prefix_map_gdbinit',
+                '--batch',
+                '-n',
+                self.app.elf_file,
+                '-ex',
+                "target remote | \"{python}\" \"{script}\" --target {target} \"{output_file}\"".format(
+                    python=sys.executable,
+                    script=self.panic_output_decode_script,
+                    target=self.target,
+                    output_file=panic_output_file.name,
+                ),
+                '-ex',
+                'bt',
+            ]
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            logging.info('\n\nBacktrace:\n')
+            logging.info(output.decode())  # noqa: E999
+        except subprocess.CalledProcessError as e:
+            logging.debug(f'Failed to run gdb_panic_server.py script: {e}\n{e.output}\n\n')
+            logging.info(panic_output.decode())
+        finally:
+            if panic_output_file is not None:
+                try:
+                    os.unlink(panic_output_file.name)
+                except OSError as e:
+                    logging.debug(f'Couldn\'t remove temporary panic output file ({e})')
+
     def _check_coredump(self) -> None:
         """
-        Check core dumps via UART or partition table. Write the decoded or read core dumps into separated files.
+        Handle errors by panic_handler_script or check core dumps via UART or partition table.
+        Write the decoded or read core dumps into separated files.
 
-        For UART, would read the `_pexpect_logfile` file.
+        For UART and panic output, would read the `_pexpect_logfile` file.
         For partition, would read the flash according to the partition table. needs a valid `parttool_path`.
 
         Notes:
@@ -91,6 +169,8 @@ class IdfDut(SerialDut):
         Returns:
             None
         """
+        if self.target in self.RISCV32_TARGETS:
+            self._check_panic_decode_trigger()  # need IDF_PATH
         if self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_UART', False):
             self._dump_b64_coredumps()
         elif self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_FLASH', False):
@@ -152,7 +232,10 @@ class IdfDut(SerialDut):
 
     def close(self) -> None:
         if not self.skip_check_coredump:
-            self._check_coredump()
+            try:
+                self._check_coredump()
+            except ValueError as e:
+                logging.debug(e)
         super().close()
 
     def parse_test_menu(
