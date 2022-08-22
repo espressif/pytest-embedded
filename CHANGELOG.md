@@ -1,3 +1,13 @@
+## v0.8.0 (2022-08-22)
+
+### Feat
+
+- **esp**: support `beta_target`
+
+### Fix
+
+- **idf**: parse_unity_menu subcases index to int
+
 ## v0.7.10 (2022-08-04)
 
 ### Fix
