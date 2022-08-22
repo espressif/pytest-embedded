@@ -301,19 +301,22 @@ def test_expect_unity_test_ouput(testdir, capsys):
                 foo.c:101:test_case_2:FAIL:Expected 1 was 2
                 foo bar.c:102:test case 3:PASS
                 foo bar.c:103:test case 4:FAIL:Expected 3 was 4
+                foo bar.c:103:test case: 5:FAIL:Expected 3 was 4
                 -------------------
-                4 Tests 3 Failures 0 Ignored
+                5 Tests 4 Failures 0 Ignored
                 FAIL
             '''
                 )
             )
             dut.expect_unity_test_output()
 
-            assert len(dut.testsuite.testcases) == 4
-            assert dut.testsuite.attrs['failures'] == 3
+            assert len(dut.testsuite.testcases) == 5
+            assert dut.testsuite.attrs['failures'] == 4
             assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
             assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
             assert dut.testsuite.testcases[3].attrs['message'] == 'Expected 3 was 4'
+            assert dut.testsuite.testcases[4].name == 'test case: 5'
+            assert dut.testsuite.testcases[4].attrs['message'] == 'Expected 3 was 4'
 
 
         def test_expect_unity_test_output_fixture(dut):
@@ -324,19 +327,22 @@ def test_expect_unity_test_ouput(testdir, capsys):
                 TEST(group, test_case_2)foo.c:101::FAIL:Expected 1 was 2
                 TEST(group, test case 3)foo bar.c:102::PASS
                 TEST(group, test case 4)foo bar.c:103::FAIL:Expected 3 was 4
+                TEST(group, test case: 5)foo bar.c:103::FAIL:Expected 3 was 4
                 -------------------
-                4 Tests 3 Failures 0 Ignored
+                5 Tests 4 Failures 0 Ignored
                 FAIL
             '''
                 )
             )
             dut.expect_unity_test_output()
 
-            assert len(dut.testsuite.testcases) == 4
-            assert dut.testsuite.attrs['failures'] == 3
+            assert len(dut.testsuite.testcases) == 5
+            assert dut.testsuite.attrs['failures'] == 4
             assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
             assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
             assert dut.testsuite.testcases[3].attrs['message'] == 'Expected 3 was 4'
+            assert dut.testsuite.testcases[4].name == 'test case: 5'
+            assert dut.testsuite.testcases[4].attrs['message'] == 'Expected 3 was 4'
     """)
 
     result = testdir.runpytest()
