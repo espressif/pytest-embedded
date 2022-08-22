@@ -1,3 +1,9 @@
+## v0.8.1 (2022-08-22)
+
+### Fix
+
+- parse error when unity test case name with colon
+
 ## v0.8.0 (2022-08-22)
 
 ### Feat
