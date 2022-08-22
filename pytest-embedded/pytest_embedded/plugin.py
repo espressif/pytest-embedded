@@ -114,6 +114,7 @@ def pytest_addoption(parser):
 
     esp_group = parser.getgroup('embedded-esp')
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
+    esp_group.addoption('--beta-target', help='serial target beta version chip type. (Default: same as [--target])')
     esp_group.addoption(
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
@@ -578,6 +579,13 @@ def target(request: FixtureRequest) -> Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
+def beta_target(request: FixtureRequest) -> Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'beta_target', None)
+
+
+@pytest.fixture
+@multi_dut_argument
 def skip_autoflash(request: FixtureRequest) -> Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
@@ -733,6 +741,7 @@ def _fixture_classes_and_options(
     build_dir,
     port,
     target,
+    beta_target,
     baud,
     skip_autoflash,
     erase_all,
@@ -822,6 +831,7 @@ def _fixture_classes_and_options(
                 kwargs[fixture] = {
                     'pexpect_proc': pexpect_proc,
                     'target': target,
+                    'beta_target': beta_target,
                     'port': os.getenv('ESPPORT') or port,
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),

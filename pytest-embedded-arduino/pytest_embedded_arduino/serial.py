@@ -25,13 +25,22 @@ class ArduinoSerial(EspSerial):
         baud: int = EspSerial.DEFAULT_BAUDRATE,
         esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
         target: Optional[str] = None,
+        beta_target: Optional[str] = None,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         **kwargs,
     ) -> None:
         self.app = app
         super().__init__(
-            pexpect_proc, target or self.app.target, port, baud, esptool_baud, skip_autoflash, erase_all, **kwargs
+            pexpect_proc,
+            target or self.app.target,
+            beta_target,
+            port,
+            baud,
+            esptool_baud,
+            skip_autoflash,
+            erase_all,
+            **kwargs,
         )
 
     def _start(self):
