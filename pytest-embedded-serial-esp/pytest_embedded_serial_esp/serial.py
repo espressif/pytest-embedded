@@ -56,6 +56,7 @@ class EspSerial(Serial):
     ) -> None:
         self._port_target_cache: Dict[str, str] = port_target_cache if port_target_cache is not None else {}
 
+        esptool_target = beta_target or target
         if port is None:
             available_ports = esptool.get_port_list()
             ports = list(set(available_ports) - set(self.occupied_ports.keys()))
@@ -63,8 +64,6 @@ class EspSerial(Serial):
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
             # esptool will reverse the list
             ports.sort()
-
-            esptool_target = beta_target or target
 
             # prioritize the cache recorded target port
             if esptool_target:
