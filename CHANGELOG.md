@@ -1,3 +1,9 @@
+## v0.8.2 (2022-08-23)
+
+### Fix
+
+- **esp**: UnboundLocalError when specify beta_target and port together
+
 ## v0.8.1 (2022-08-22)
 
 ### Fix
