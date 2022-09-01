@@ -406,7 +406,7 @@ def _request_param_or_config_option_or_default(request: FixtureRequest, option: 
 ####################
 # General Fixtures #
 ####################
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope='session')
 def session_tempdir() -> str:
     """Session scoped temp dir for pytest-embedded"""
     _tmpdir = os.path.join(
