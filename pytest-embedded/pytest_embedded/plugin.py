@@ -104,6 +104,7 @@ def pytest_addoption(parser):
         action='store_true',
         help='Reorder the test sequence according to the [app_path] and [build_dir]. (Default: False)',
     )
+    base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
@@ -407,10 +408,15 @@ def _request_param_or_config_option_or_default(request: FixtureRequest, option: 
 # General Fixtures #
 ####################
 @pytest.fixture(scope='session')
-def session_tempdir() -> str:
+def session_root_logdir(request: FixtureRequest) -> str:
+    return _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
+
+
+@pytest.fixture(scope='session')
+def session_tempdir(session_root_logdir) -> str:
     """Session scoped temp dir for pytest-embedded"""
     _tmpdir = os.path.join(
-        tempfile.gettempdir(),
+        session_root_logdir,
         'pytest-embedded',
         datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
     )
