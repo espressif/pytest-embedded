@@ -32,7 +32,7 @@ refer to the tests under each plugin.
 
 ## Building Docs
 
-We use `mkdocs` and `mkdocstring` with theme `mkdocs-material` to build docs.
+We use `mkdocs` and `mkdocstring` with theme `readthedocs` to build docs.
 
 ### Test Docs Locally
 

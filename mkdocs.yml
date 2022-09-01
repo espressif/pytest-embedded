@@ -2,15 +2,6 @@ site_name: pytest-embedded
 
 theme:
   name: "readthedocs"
-  palette:
-    - scheme: default
-      toggle:
-        icon: material/toggle-switch-off-outline
-        name: Switch to dark mode
-    - scheme: slate
-      toggle:
-        icon: material/toggle-switch
-        name: Switch to light mode
 
 markdown_extensions:
   # admonitions
