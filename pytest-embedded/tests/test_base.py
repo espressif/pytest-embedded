@@ -50,11 +50,18 @@ def test_services(testdir):
 
 def test_fixtures(testdir):
     testdir.makepyfile("""
+        import os
         import pytest
         import pexpect
+        import tempfile
 
-        def test_fixtures_test_file_name(test_file_path):
+        def test_fixtures_root_logdir(session_root_logdir):
+            assert session_root_logdir == os.getcwd()
+            assert session_root_logdir != tempfile.gettempdir()
+
+        def test_fixtures_test_file_name(test_file_path, session_root_logdir):
             assert test_file_path.endswith('test_fixtures.py')
+            assert test_file_path.startswith(session_root_logdir)
 
         def test_fixtures_test_case_name(test_case_name):
             assert test_case_name == 'test_fixtures_test_case_name'
@@ -82,9 +89,10 @@ def test_fixtures(testdir):
     result = testdir.runpytest(
         '-s',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--root-logdir', os.getcwd(),
     )
 
-    result.assert_outcomes(passed=5)
+    result.assert_outcomes(passed=6)
 
 
 def test_multi_count_fixtures(testdir):
