@@ -1,7 +1,6 @@
 import os
 import re
 
-import pytest
 from pytest_embedded_idf.dut import IdfDut
 
 
@@ -255,7 +254,6 @@ def test_different_build_dir(testdir):
     result.assert_outcomes(passed=1)
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_multi_dut_read_flash(testdir):
     testdir.makepyfile(r"""
         import pytest

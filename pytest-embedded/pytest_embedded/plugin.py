@@ -71,7 +71,10 @@ def pytest_addoption(parser):
         '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
     )
     base_group.addoption(
-        '--parallel-count', default=1, type=_gte_one_int, help='Number of parallel build jobs. (Default: 1)'
+        '--parallel-count',
+        default=1,
+        type=_gte_one_int,
+        help='Number of parallel build jobs. (Default: 1)',
     )
     base_group.addoption(
         '--parallel-index',
@@ -321,7 +324,9 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     return wrapper
 
 
-def multi_dut_generator_fixture(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
+def multi_dut_generator_fixture(
+    func,
+) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
     """
     Apply the multi-dut arguments to each fixture.
 
@@ -476,10 +481,21 @@ def with_timestamp(request: FixtureRequest) -> bool:
 @pytest.fixture
 @multi_dut_generator_fixture
 def pexpect_proc(
-    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `multi_dut_generator_fixture()`
+    _pexpect_fr,
+    _pexpect_fw,
+    _pexpect_logfile,
+    with_timestamp,
+    **kwargs,  # kwargs passed by `multi_dut_generator_fixture()`
 ) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
+    kwargs.update(
+        {
+            'pexpect_fr': _pexpect_fr,
+            'pexpect_fw': _pexpect_fw,
+            'pexpect_logfile': _pexpect_logfile,
+            'with_timestamp': with_timestamp,
+        }
+    )
     return PexpectProcess(**_drop_none_kwargs(kwargs))
 
 

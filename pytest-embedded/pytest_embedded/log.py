@@ -1,15 +1,15 @@
 import datetime
 import errno
 import logging
+import multiprocessing
 import os
 import subprocess
 import sys
 import tempfile
-import threading
 import uuid
 from io import TextIOWrapper
 from time import sleep
-from typing import AnyStr, BinaryIO, List, Union
+from typing import AnyStr, BinaryIO, Dict, List, Union
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -23,12 +23,15 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
     Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
     """
 
-    STDOUT = sys.stdout
+    _W_LOCK = multiprocessing.Lock()
+
+    _FILE_OBJ_MAPPING: Dict[str, 'PexpectProcess'] = {}
 
     def __init__(
         self,
         pexpect_fr: BinaryIO,
         pexpect_fw: BinaryIO,
+        pexpect_logfile: str,
         with_timestamp: bool = True,
         count: int = 1,
         total: int = 1,
@@ -44,18 +47,21 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
         super().__init__(pexpect_fr, **kwargs)
 
+        self.filepath = pexpect_logfile
+        self._FILE_OBJ_MAPPING[pexpect_logfile] = self
+
         self._fr = pexpect_fr
         self._fw = pexpect_fw
         self._with_timestamp = with_timestamp
-        self._write_lock = threading.Lock()
 
         self._added_prefix = False
 
-    def send(self, s: AnyStr) -> int:
+    def send(self, fs: BinaryIO, s: AnyStr) -> int:
         """
         Write to the pexpect process and log.
 
         Args:
+            fs: binary file stream
             s: bytes or str
 
         Returns:
@@ -68,9 +74,6 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self._log(s, 'send')
 
         # for pytest logging
-        _temp = sys.stdout
-        sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
-
         _s = to_str(s)
         prefix = ''
         if self.source:
@@ -86,23 +89,36 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
             _s = _s.rsplit(prefix, maxsplit=1)[0]
             self._added_prefix = False
 
-        sys.stdout.write(_s)
-        sys.stdout.flush()
-        sys.stdout = _temp
+        # ensure the following print uses system sys.stdout
+        sys.__stdout__.write(_s)
+        sys.__stdout__.flush()
 
         # write the bytes into the pexpect process
         b = self._encoder.encode(s, final=False)
         try:
-            written = self._fw.write(b)
-            self._fw.flush()
+            # Windows multiprocess.Process won't share the file handle. Can't use `self._fw.write(b) here`.
+            written = fs.write(b)
+            fs.flush()
         except ValueError:  # write to closed file. since this function would be run in daemon thread, would happen
             return 0
 
         return written
 
     def write(self, s: AnyStr) -> None:
-        with self._write_lock:
-            self.send(s)
+        self.send(self._fw, s)
+
+    @classmethod
+    def write_to_file(cls, pexpect_logfile: str, s: AnyStr) -> None:
+        try:
+            # Windows multiprocess.Process won't share the file handle.
+            # Must use file mode 'a' to open another handle of it
+            with open(pexpect_logfile, 'ba') as fw:
+                cls._FILE_OBJ_MAPPING[pexpect_logfile].send(fw, s)
+        except KeyError:
+            raise RuntimeError(
+                'Invalid pexpect buffer file.'
+                'Please report this bug to https://github.com/espressif/pytest-embedded/issues'
+            )
 
     def read_nonblocking(self, size=1, timeout=-1) -> bytes:
         """
@@ -251,22 +267,26 @@ class DuplicateStdoutMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._forward_io_thread: threading.Thread = None  # type: ignore
+        self._forward_io_proc: multiprocessing.Process = None  # type: ignore
 
-    def create_forward_io_thread(self, pexpect_proc: PexpectProcess) -> None:
+    def create_forward_io_proc(self, pexpect_logfile: str) -> None:
         """
         Create a forward io daemon thread if it doesn't exist.
 
         Args:
-            pexpect_proc: `PexpectProcess` instance
+            pexpect_logfile: pexpect_logfile path
         """
-        if self._forward_io_thread and self._forward_io_thread.is_alive():
+        if self._forward_io_proc and self._forward_io_proc.is_alive():
             return
 
-        self._forward_io_thread = threading.Thread(target=self._forward_io, args=(pexpect_proc,), daemon=True)
-        self._forward_io_thread.start()
+        # Since multiprocessing.Process would Pickle all the arguments,
+        # here we only pass the filename of it.
+        # The `PexpectProcess` would cache the mapping dict of the filepath and the real object.
+        # The redirect function would be called from the real object.
+        self._forward_io_proc = multiprocessing.Process(target=self._forward_io, args=(pexpect_logfile,), daemon=True)
+        self._forward_io_proc.start()
 
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+    def _forward_io(self, pexpect_logfile: str) -> None:
         raise NotImplementedError('should be implemented by subclasses')
 
 
@@ -317,7 +337,7 @@ class DuplicateStdoutPopen(DuplicateStdoutMixin, subprocess.Popen):
         """
         self.stdin.write(to_bytes(s, '\n'))
 
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+    def _forward_io(self, pexpect_logfile: str) -> None:
         while self.poll() is None:
-            pexpect_proc.write(self._fr.read())
+            PexpectProcess.write_to_file(pexpect_logfile, self._fr.read())
             sleep(0.1)  # set interval

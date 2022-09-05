@@ -1,7 +1,6 @@
 import contextlib
 import copy
 import logging
-import time
 from typing import Dict, Union
 
 import serial as pyserial
@@ -32,7 +31,11 @@ class Serial(DuplicateStdoutMixin):
     occupied_ports: Dict[str, None] = dict()
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], baud: int = DEFAULT_BAUDRATE, **kwargs
+        self,
+        pexpect_proc: PexpectProcess,
+        port: Union[str, pyserial.Serial],
+        baud: int = DEFAULT_BAUDRATE,
+        **kwargs,
     ):
         """
         Args:
@@ -74,35 +77,26 @@ class Serial(DuplicateStdoutMixin):
         self.occupied_ports[self.port] = None
         logging.debug(f'occupied {self.port}')
 
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+    def _forward_io(self, pexpect_logfile: str) -> None:
         while self.proc.is_open:
             try:
                 s = self.proc.read_all()
-                pexpect_proc.write(s)
+                PexpectProcess.write_to_file(pexpect_logfile, s)
             except:  # noqa daemon thread may run at any case
                 break
 
-    def stop_redirect_thread(self) -> bool:
-        """
-        Close the serial port and reopen it to kill the redirect daemon thread.
-
-        Returns:
-            Killed the redirect thread or not
-        """
-        killed = False
-        if self._forward_io_thread and self._forward_io_thread.is_alive():
-            self.proc.close()
-            time.sleep(0.1)
-            self.proc.open()  # to kill the redirect stdout thread
-            killed = True
-
-        return killed
+    def close(self):
+        self.proc.close()
+        self._forward_io_proc.terminate()
 
     @contextlib.contextmanager
     def disable_redirect_thread(self):
-        killed = self.stop_redirect_thread()
+        killed = False
+        if self._forward_io_proc and self._forward_io_proc.is_alive():
+            self._forward_io_proc.terminate()
+            killed = True
 
         yield killed
 
         if killed:
-            self.create_forward_io_thread(self.pexpect_proc)
+            self.create_forward_io_proc(self.pexpect_proc.filepath)

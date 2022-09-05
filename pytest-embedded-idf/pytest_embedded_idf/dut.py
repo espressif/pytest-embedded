@@ -50,7 +50,12 @@ class IdfDut(SerialDut):
     serial: IdfSerial
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, app: IdfApp, serial: IdfSerial, skip_check_coredump: bool = False, **kwargs
+        self,
+        pexpect_proc: PexpectProcess,
+        app: IdfApp,
+        serial: IdfSerial,
+        skip_check_coredump: bool = False,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -116,7 +121,10 @@ class IdfDut(SerialDut):
                         coredump_file.flush()
 
                     coredump = CoreDump(
-                        chip=self.target, core=coredump_file.name, core_format='b64', prog=self.app.elf_file
+                        chip=self.target,
+                        core=coredump_file.name,
+                        core_format='b64',
+                        prog=self.app.elf_file,
                     )
                     with open(os.path.join(self.logdir, f'coredump_output_{i}'), 'w') as fw:
                         with redirect_stdout(fw):

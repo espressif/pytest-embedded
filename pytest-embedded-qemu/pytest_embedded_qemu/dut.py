@@ -28,7 +28,7 @@ class QemuDut(Dut):
         super().__init__(pexpect_proc, app, **kwargs)
         self.qemu = qemu
 
-        self.qemu.create_forward_io_thread(self.pexpect_proc)
+        self.qemu.create_forward_io_proc(self.pexpect_proc.filepath)
 
     def write(self, s: AnyStr) -> None:
         """

@@ -24,13 +24,13 @@ class SerialDut(Dut):
         super().__init__(pexpect_proc, app, **kwargs)
 
         self.serial = serial
-        self.serial.create_forward_io_thread(self.pexpect_proc)
+        self.serial.create_forward_io_proc(self.pexpect_proc.filepath)
 
     def write(self, data: AnyStr) -> int:
         return self.serial.proc.write(to_bytes(data, '\n'))
 
     def close(self) -> None:
-        self.serial.proc.close()
+        self.serial.close()
         self.serial.occupied_ports.pop(self.serial.port, None)
         logging.debug(f'released {self.serial.port}')
 

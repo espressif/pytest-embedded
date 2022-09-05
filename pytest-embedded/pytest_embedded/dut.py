@@ -18,7 +18,12 @@ class Dut:
     """
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, app: App, pexpect_logfile: str, test_case_name: str, **kwargs
+        self,
+        pexpect_proc: PexpectProcess,
+        app: App,
+        pexpect_logfile: str,
+        test_case_name: str,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -121,7 +126,10 @@ class Dut:
         return self.pexpect_proc.expect_exact(pattern, **kwargs)
 
     def expect_unity_test_output(
-        self, remove_asci_escape_code: bool = True, timeout: int = 60, extra_before: Optional[AnyStr] = None
+        self,
+        remove_asci_escape_code: bool = True,
+        timeout: int = 60,
+        extra_before: Optional[AnyStr] = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
