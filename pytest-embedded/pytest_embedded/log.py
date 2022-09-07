@@ -1,11 +1,11 @@
 import datetime
 import errno
 import logging
+import multiprocessing
 import os
 import subprocess
 import sys
 import tempfile
-import threading
 import uuid
 from io import TextIOWrapper
 from time import sleep
@@ -28,12 +28,13 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
     def __init__(
         self,
         pexpect_fr: BinaryIO,
-        pexpect_fw: BinaryIO,
         with_timestamp: bool = True,
         count: int = 1,
         total: int = 1,
         **kwargs,
     ):
+        super().__init__(pexpect_fr, **kwargs)
+
         self._count = count
         self._total = total
 
@@ -42,67 +43,9 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         else:
             self.source = None
 
-        super().__init__(pexpect_fr, **kwargs)
-
-        self._fr = pexpect_fr
-        self._fw = pexpect_fw
+        # print utils
         self._with_timestamp = with_timestamp
-        self._write_lock = threading.Lock()
-
         self._added_prefix = False
-
-    def send(self, s: AnyStr) -> int:
-        """
-        Write to the pexpect process and log.
-
-        Args:
-            s: bytes or str
-
-        Returns:
-            number of written bytes.
-        """
-        if not s:
-            return 0
-
-        s = self._coerce_send_string(s)
-        self._log(s, 'send')
-
-        # for pytest logging
-        _temp = sys.stdout
-        sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
-
-        _s = to_str(s)
-        prefix = ''
-        if self.source:
-            prefix = f'[{self.source}] ' + prefix
-        if self._with_timestamp:
-            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
-
-        if not self._added_prefix:
-            _s = prefix + _s
-            self._added_prefix = True
-        _s = _s.replace('\n', '\n' + prefix)
-        if _s.endswith(prefix):
-            _s = _s.rsplit(prefix, maxsplit=1)[0]
-            self._added_prefix = False
-
-        sys.stdout.write(_s)
-        sys.stdout.flush()
-        sys.stdout = _temp
-
-        # write the bytes into the pexpect process
-        b = self._encoder.encode(s, final=False)
-        try:
-            written = self._fw.write(b)
-            self._fw.flush()
-        except ValueError:  # write to closed file. since this function would be run in daemon thread, would happen
-            return 0
-
-        return written
-
-    def write(self, s: AnyStr) -> None:
-        with self._write_lock:
-            self.send(s)
 
     def read_nonblocking(self, size=1, timeout=-1) -> bytes:
         """
@@ -146,11 +89,7 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         """
         Close the temporary file streams
         """
-        try:
-            self._fr.close()
-            self._fw.close()
-        except:  # noqa
-            pass
+        self.close()
 
 
 class DuplicateStdout(TextIOWrapper):
@@ -237,7 +176,7 @@ def live_print_call(*args, **kwargs):
 
 class DuplicateStdoutMixin:
     """
-    A mixin class which provides function `create_forward_io_thread` to create a forward io thread.
+    A mixin class which provides function `create_forward_io_proc` to create a forward io thread.
 
     Notes:
         `_forward_io()` should be implemented in subclasses, the function should be something like:
@@ -248,25 +187,13 @@ class DuplicateStdoutMixin:
         ```
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, msg_queue: multiprocessing.Queue, **kwargs):
+        super().__init__(**kwargs)
 
-        self._forward_io_thread: threading.Thread = None  # type: ignore
+        self.q = msg_queue
+        self._p: multiprocessing.Process = None  # type: ignore
 
-    def create_forward_io_thread(self, pexpect_proc: PexpectProcess) -> None:
-        """
-        Create a forward io daemon thread if it doesn't exist.
-
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-        """
-        if self._forward_io_thread and self._forward_io_thread.is_alive():
-            return
-
-        self._forward_io_thread = threading.Thread(target=self._forward_io, args=(pexpect_proc,), daemon=True)
-        self._forward_io_thread.start()
-
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+    def _forward_io(self) -> None:
         raise NotImplementedError('should be implemented by subclasses')
 
 

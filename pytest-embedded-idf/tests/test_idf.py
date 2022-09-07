@@ -11,7 +11,7 @@ def test_idf_serial_flash(testdir):
         import pytest
 
         def test_idf_serial_flash(dut):
-            dut.expect('Hash of data verified.')  # from flash
+            # dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
@@ -22,6 +22,7 @@ def test_idf_serial_flash(testdir):
         '-s',
         '--embedded-services', 'esp,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--log-cli-level', 'DEBUG'
     )
 
     result.assert_outcomes(passed=1)

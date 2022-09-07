@@ -2,11 +2,14 @@ import datetime
 import functools
 import importlib
 import logging
+import multiprocessing
 import os
 import sys
 import tempfile
+import time
 from collections import defaultdict, namedtuple
 from operator import itemgetter
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,7 +39,7 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
-from .log import DuplicateStdout, PexpectProcess
+from .log import PexpectProcess
 from .unity import JunitMerger
 from .utils import find_by_suffix, to_list
 
@@ -71,7 +74,10 @@ def pytest_addoption(parser):
         '"--embedded-services=idf|esp-idf --count=3" would raise an exception.',
     )
     base_group.addoption(
-        '--parallel-count', default=1, type=_gte_one_int, help='Number of parallel build jobs. (Default: 1)'
+        '--parallel-count',
+        default=1,
+        type=_gte_one_int,
+        help='Number of parallel build jobs. (Default: 1)',
     )
     base_group.addoption(
         '--parallel-index',
@@ -321,7 +327,9 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     return wrapper
 
 
-def multi_dut_generator_fixture(func) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
+def multi_dut_generator_fixture(
+    func,
+) -> Callable[..., Generator[Union[Any, Tuple[Any]], Any, None]]:
     """
     Apply the multi-dut arguments to each fixture.
 
@@ -404,9 +412,24 @@ def _request_param_or_config_option_or_default(request: FixtureRequest, option: 
     return getattr(request, 'param', None) or request.config.getoption(option, None) or default
 
 
-####################
-# General Fixtures #
-####################
+###################
+# Helper Fixtures #
+###################
+@pytest.fixture
+def test_file_path(request: FixtureRequest) -> str:
+    """Current test script file path"""
+    return request.module.__file__
+
+
+@pytest.fixture
+def test_case_name(request: FixtureRequest) -> str:
+    """Current test case function name"""
+    return request.node.name
+
+
+###########################
+# Pre-initialize Fixtures #
+###########################
 @pytest.fixture(scope='session')
 def session_root_logdir(request: FixtureRequest) -> str:
     return _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
@@ -422,18 +445,6 @@ def session_tempdir(session_root_logdir) -> str:
     )
     os.makedirs(_tmpdir, exist_ok=True)
     return _tmpdir
-
-
-@pytest.fixture
-def test_file_path(request: FixtureRequest) -> str:
-    """Current test script file path"""
-    return request.module.__file__
-
-
-@pytest.fixture
-def test_case_name(request: FixtureRequest) -> str:
-    """Current test case function name"""
-    return request.node.name
 
 
 @pytest.fixture
@@ -455,14 +466,43 @@ def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _pexpect_fw(_pexpect_logfile) -> BinaryIO:
-    os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
-    return open(_pexpect_logfile, 'wb')
+def msg_queue(_pexpect_logfile) -> multiprocessing.Queue:
+    ctx = multiprocessing.get_context()
+
+    return ctx.Queue()
+
+
+def _listener(q: multiprocessing.Queue, filepath: str) -> None:
+    while True:
+        msg = q.get()
+        with open(filepath, 'ab') as fw:
+            fw.write(msg)
+            fw.flush()
+        time.sleep(0.1)
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _pexpect_fr(_pexpect_logfile, _pexpect_fw) -> BinaryIO:
+def listener(msg_queue, _pexpect_logfile) -> multiprocessing.Process:
+    os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
+
+    ctx = multiprocessing.get_context()
+
+    return ctx.Process(
+        target=_listener,
+        args=(
+            msg_queue,
+            _pexpect_logfile,
+        ),
+        daemon=True,
+    )
+
+
+@pytest.fixture
+@multi_dut_generator_fixture
+def _pexpect_fr(_pexpect_logfile, listener) -> BinaryIO:
+    Path(_pexpect_logfile).touch()
+    listener.start()
     return open(_pexpect_logfile, 'rb')
 
 
@@ -476,33 +516,11 @@ def with_timestamp(request: FixtureRequest) -> bool:
 @pytest.fixture
 @multi_dut_generator_fixture
 def pexpect_proc(
-    _pexpect_fr, _pexpect_fw, with_timestamp, **kwargs  # kwargs passed by `multi_dut_generator_fixture()`
+    _pexpect_fr, with_timestamp, **kwargs  # kwargs passed by `multi_dut_generator_fixture()`
 ) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    kwargs.update({'pexpect_fr': _pexpect_fr, 'pexpect_fw': _pexpect_fw, 'with_timestamp': with_timestamp})
+    kwargs.update({'pexpect_fr': _pexpect_fr, 'with_timestamp': with_timestamp})
     return PexpectProcess(**_drop_none_kwargs(kwargs))
-
-
-@pytest.fixture
-@multi_dut_generator_fixture
-def redirect(pexpect_proc: PexpectProcess) -> Callable[..., DuplicateStdout]:
-    """
-    A context manager that could help duplicate all the `sys.stdout` to `dut.pexpect_proc`.
-
-    ```python
-    with redirect():
-        print('this should be logged and sent to pexpect_proc')
-    ```
-
-    Warning:
-        This is NOT thread-safe, DO NOT use this in a thread. If you want to redirect the stdout of a thread to the
-        pexpect process and log it, please use `pexpect_proc.write()` instead.
-    """
-
-    def _inner():
-        return DuplicateStdout(pexpect_proc)
-
-    return _inner
 
 
 #####################
@@ -769,6 +787,7 @@ def _fixture_classes_and_options(
     _pexpect_logfile,
     test_case_name,
     pexpect_proc,
+    msg_queue,
 ) -> ClassCliOptions:
     """
     classes: the class that the fixture should instantiate
@@ -801,7 +820,6 @@ def _fixture_classes_and_options(
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
                         {
-                            'pexpect_proc': pexpect_proc,
                             'part_tool': part_tool,
                             'qemu_image_path': qemu_image_path,
                             'skip_regenerate_image': skip_regenerate_image,
@@ -813,7 +831,6 @@ def _fixture_classes_and_options(
                     classes[fixture] = IdfApp
                     kwargs[fixture].update(
                         {
-                            'pexpect_proc': pexpect_proc,
                             'part_tool': part_tool,
                         }
                     )
@@ -821,11 +838,6 @@ def _fixture_classes_and_options(
                 from pytest_embedded_arduino.app import ArduinoApp
 
                 classes[fixture] = ArduinoApp
-                kwargs[fixture].update(
-                    {
-                        'pexpect_proc': pexpect_proc,
-                    }
-                )
             else:
                 from .app import App
 
@@ -835,7 +847,7 @@ def _fixture_classes_and_options(
                 from pytest_embedded_serial_esp.serial import EspSerial
 
                 kwargs[fixture] = {
-                    'pexpect_proc': pexpect_proc,
+                    'msg_queue': msg_queue,
                     'target': target,
                     'beta_target': beta_target,
                     'port': os.getenv('ESPPORT') or port,
@@ -873,7 +885,7 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Serial
                 kwargs[fixture] = {
-                    'pexpect_proc': pexpect_proc,
+                    'msg_queue': msg_queue,
                     'port': port,
                     'baud': int(baud or Serial.DEFAULT_BAUDRATE),
                 }
@@ -911,6 +923,7 @@ def _fixture_classes_and_options(
         elif fixture == 'dut':
             kwargs[fixture] = {
                 'pexpect_proc': pexpect_proc,
+                'msg_queue': msg_queue,
                 'app': None,
                 'pexpect_logfile': _pexpect_logfile,
                 'test_case_name': test_case_name,

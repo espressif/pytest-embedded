@@ -1,18 +1,18 @@
-import contextlib
 import copy
 import logging
+import multiprocessing
 import time
-from typing import Dict, Union
+from typing import Dict
 
 import serial as pyserial
-from pytest_embedded.log import DuplicateStdoutMixin, PexpectProcess
 
 
-class Serial(DuplicateStdoutMixin):
+class Serial(multiprocessing.Process):
     """
     Custom serial class
 
     Attributes:
+        port (str): port address
         port_config (dict[str, Any]): port configs
         proc (serial.Serial): process created by `serial.serial_for_url()`
     """
@@ -32,37 +32,40 @@ class Serial(DuplicateStdoutMixin):
     occupied_ports: Dict[str, None] = dict()
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], baud: int = DEFAULT_BAUDRATE, **kwargs
+        self,
+        msg_queue: multiprocessing.Queue,
+        port: str,
+        baud: int = DEFAULT_BAUDRATE,
+        **kwargs,
     ):
         """
         Args:
-            pexpect_proc: `PexpectProcess` instance
-            port: port string or pyserial Serial instance
+            msg_queue: message queue
+            port: port string
+            baud: baud rate
+
+        Warnings:
+            the real `pyserial` object must be created inside `self._forward_io`.
+            The `pyserial` object can't be pickled when using multiprocessing.Process
         """
-        super().__init__()
+        self.q = msg_queue
+        self.port = port
+        self.baud = baud
 
         if port is None:
             raise ValueError('Please specify port')
 
-        if isinstance(port, str):
-            self.port = port
-            self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
-            self.port_config['baudrate'] = baud
-            self.port_config.update(**kwargs)
-            self.proc = pyserial.serial_for_url(self.port, **self.port_config)
-        else:  # pyserial instance
-            self.proc = port
-            self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
-            self.port = self.proc.port
+        if not isinstance(port, str):
+            raise ValueError('`port` must be str, the real `pyserial` object must be created inside `self._forward_io`')
 
-        self.pexpect_proc = pexpect_proc
-        self.baud = baud
+        self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
+        self.port_config['baudrate'] = baud
+        self.port_config.update(**kwargs)
 
-        self._post_init()
+        self.proc: pyserial.Serial = None  # type: ignore
 
-        self._start()
-
-        self._finalize_init()
+        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
+        self.start()
 
     def _post_init(self):
         pass
@@ -74,35 +77,20 @@ class Serial(DuplicateStdoutMixin):
         self.occupied_ports[self.port] = None
         logging.debug(f'occupied {self.port}')
 
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
+    def _forward_io(self) -> None:
+        self.proc = pyserial.serial_for_url(self.port, **self.port_config)
+
+        self._start()
+
+        self._post_init()
+
+        self._finalize_init()
+
         while self.proc.is_open:
-            try:
-                s = self.proc.read_all()
-                pexpect_proc.write(s)
-            except:  # noqa daemon thread may run at any case
-                break
-
-    def stop_redirect_thread(self) -> bool:
-        """
-        Close the serial port and reopen it to kill the redirect daemon thread.
-
-        Returns:
-            Killed the redirect thread or not
-        """
-        killed = False
-        if self._forward_io_thread and self._forward_io_thread.is_alive():
-            self.proc.close()
+            s = self.proc.read_all()
+            self.q.put(s)
             time.sleep(0.1)
-            self.proc.open()  # to kill the redirect stdout thread
-            killed = True
 
-        return killed
-
-    @contextlib.contextmanager
-    def disable_redirect_thread(self):
-        killed = self.stop_redirect_thread()
-
-        yield killed
-
-        if killed:
-            self.create_forward_io_thread(self.pexpect_proc)
+    def close(self):
+        self.proc.close()
+        super().close()
