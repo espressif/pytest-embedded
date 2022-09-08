@@ -13,8 +13,14 @@ class Serial(multiprocessing.Process):
 
     Attributes:
         port (str): port address
+        baud (int): baud rate
         port_config (dict[str, Any]): port configs
-        proc (serial.Serial): process created by `serial.serial_for_url()`
+        proc (pyserial.Serial): process created by `serial.serial_for_url()`
+
+    Warnings:
+        - the real `pyserial` object must be created inside `self._forward_io`,
+          The `pyserial` object can't be pickled when using multiprocessing.Process
+        - make sure this `Serial` __init__ run the last in MRO
     """
 
     DEFAULT_BAUDRATE = 115200
@@ -38,17 +44,7 @@ class Serial(multiprocessing.Process):
         baud: int = DEFAULT_BAUDRATE,
         **kwargs,
     ):
-        """
-        Args:
-            msg_queue: message queue
-            port: port string
-            baud: baud rate
-
-        Warnings:
-            the real `pyserial` object must be created inside `self._forward_io`.
-            The `pyserial` object can't be pickled when using multiprocessing.Process
-        """
-        self.q = msg_queue
+        self._q = msg_queue
         self.port = port
         self.baud = baud
 
@@ -65,7 +61,7 @@ class Serial(multiprocessing.Process):
         self.proc: pyserial.Serial = None  # type: ignore
 
         super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
-        self.start()
+        self.start()  # start self process
 
     def _post_init(self):
         pass
@@ -88,7 +84,7 @@ class Serial(multiprocessing.Process):
 
         while self.proc.is_open:
             s = self.proc.read_all()
-            self.q.put(s)
+            self._q.put(s)
             time.sleep(0.1)
 
     def close(self):

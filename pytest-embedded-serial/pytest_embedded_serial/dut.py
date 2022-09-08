@@ -10,15 +10,12 @@ from .serial import Serial
 class SerialDut(Dut):
     """
     Dut class for serial ports
+
+    Attributes:
+        serial (Serial): `Serial` instance
     """
 
     def __init__(self, serial: Serial, **kwargs) -> None:
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            app: `App` instance
-            serial: `Serial` instance
-        """
         super().__init__(**kwargs)
 
         self.serial = serial

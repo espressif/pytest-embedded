@@ -89,6 +89,9 @@ class EspSerial(Serial):
         # ensure port is closed. The real instance would be opened later when this process is auto started
         esp._port.close()
 
+        self.esp = None
+        self.stub = None
+
         target = esp.CHIP_NAME.lower().replace('-', '')
         logging.info(f'Target: %s, Port: %s', target, esp.serial_port)
 

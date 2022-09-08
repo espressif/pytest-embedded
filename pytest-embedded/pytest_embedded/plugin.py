@@ -39,7 +39,7 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
-from .log import PexpectProcess
+from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger
 from .utils import find_by_suffix, to_list
 
@@ -380,7 +380,7 @@ def multi_dut_generator_fixture(
                         current_kwargs[k] = getter(v)
                     else:
                         current_kwargs[k] = v
-                if func.__name__ in ['_pexpect_logfile', 'pexpect_proc']:
+                if func.__name__ in ['_pexpect_logfile', 'msg_queue']:
                     current_kwargs['count'] = i
                     current_kwargs['total'] = _COUNT
                 res.append(func(*args, **current_kwargs))
@@ -464,12 +464,15 @@ def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
     return os.path.join(test_case_tempdir, f'{name}.log')
 
 
+_ctx = multiprocessing.get_context()
+
+
 @pytest.fixture
 @multi_dut_generator_fixture
-def msg_queue(_pexpect_logfile) -> multiprocessing.Queue:
-    ctx = multiprocessing.get_context()
+def msg_queue(with_timestamp, **kwargs) -> multiprocessing.Queue:  # kwargs passed by `multi_dut_generator_fixture()`
 
-    return ctx.Queue()
+    kwargs.update({'with_timestamp': with_timestamp, 'ctx': _ctx})
+    return MessageQueue(**_drop_none_kwargs(kwargs))
 
 
 def _listener(q: multiprocessing.Queue, filepath: str) -> None:
@@ -515,12 +518,9 @@ def with_timestamp(request: FixtureRequest) -> bool:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def pexpect_proc(
-    _pexpect_fr, with_timestamp, **kwargs  # kwargs passed by `multi_dut_generator_fixture()`
-) -> PexpectProcess:
+def pexpect_proc(_pexpect_fr) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    kwargs.update({'pexpect_fr': _pexpect_fr, 'with_timestamp': with_timestamp})
-    return PexpectProcess(**_drop_none_kwargs(kwargs))
+    return PexpectProcess(_pexpect_fr)
 
 
 #####################

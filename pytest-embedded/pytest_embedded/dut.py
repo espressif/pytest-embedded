@@ -47,7 +47,6 @@ class Dut:
             setattr(self, k, v)
 
         # junit related
-        # TODO: if request.option.xmlpath
         self.testsuite = TestSuite(self.test_case_name)
 
     def close(self) -> None:
@@ -58,7 +57,7 @@ class Dut:
 
     def write(self, s: AnyStr) -> None:
         """
-        Write to message queue.
+        Write to message queue
         """
         self._q.put(to_bytes(s))
 

@@ -8,8 +8,9 @@ import sys
 import tempfile
 import uuid
 from io import TextIOWrapper
+from multiprocessing import queues
 from time import sleep
-from typing import AnyStr, BinaryIO, List, Union
+from typing import AnyStr, List, Union
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -18,38 +19,96 @@ from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 from .utils import to_bytes, to_str
 
 
-class PexpectProcess(pexpect.fdpexpect.fdspawn):
+class MessageQueue(queues.Queue):
     """
-    Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
+    Message Queue
+
+    All the messages would be printed when pushed into the queue
     """
 
-    STDOUT = sys.stdout
+    STDOUT = sys.__stdout__
 
-    def __init__(
-        self,
-        pexpect_fr: BinaryIO,
-        with_timestamp: bool = True,
-        count: int = 1,
-        total: int = 1,
-        **kwargs,
-    ):
-        super().__init__(pexpect_fr, **kwargs)
+    # need to be pickled
+    ATTRS = [
+        '_count',
+        '_total',
+        '_source',
+        '_with_timestamp',
+        '_added_prefix',
+    ]
+
+    def __init__(self, with_timestamp: bool = True, count: int = 1, total: int = 1, **kwargs):
+        super().__init__(**kwargs)
 
         self._count = count
         self._total = total
 
         if self._total > 1:
-            self.source = f'dut-{self._count}'
+            self._source = f'dut-{self._count}'
         else:
-            self.source = None
+            self._source = None
 
         # print utils
         self._with_timestamp = with_timestamp
         self._added_prefix = False
 
+    def __getstate__(self):
+        state = {k: getattr(self, k) for k in self.ATTRS}
+        state['parent_state'] = super().__getstate__()  # noqa
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state['parent_state'])  # noqa
+        del state['parent_state']
+        for k in state:
+            setattr(self, k, state[k])
+
+    def put(self, obj, **kwargs):
+        if not isinstance(obj, (str, bytes)):
+            super().put(obj, **kwargs)
+            return
+
+        if obj == '' or obj == b'':
+            super().put(obj, **kwargs)
+            return
+
+        try:
+            # for pytest logging
+            _temp = sys.stdout
+            sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
+
+            _s = to_str(obj)
+            prefix = ''
+            if self._source:
+                prefix = f'[{self._source}] ' + prefix
+            if self._with_timestamp:
+                prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
+
+            if not self._added_prefix:
+                _s = prefix + _s
+                self._added_prefix = True
+            _s = _s.replace('\n', '\n' + prefix)
+            if prefix and _s.endswith(prefix):
+                _s = _s.rsplit(prefix, maxsplit=1)[0]
+                self._added_prefix = False
+
+            sys.stdout.write(_s)
+            sys.stdout.flush()
+            sys.stdout = _temp
+
+            super().put(obj, **kwargs)
+        except Exception as e:
+            logging.error(e)
+
+
+class PexpectProcess(pexpect.fdpexpect.fdspawn):
+    """
+    Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
+    """
+
     def read_nonblocking(self, size=1, timeout=-1) -> bytes:
         """
-        Since we're using real file stream, here we only raise an EOF error only when the file stream has been closed.
+        Since we're using real file stream, here we only raise an EOF errorwhen the file stream has been closed.
         This could solve the `os.read()` blocked issue.
 
         Args:
@@ -94,28 +153,23 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
 class DuplicateStdout(TextIOWrapper):
     """
-    A context manager to duplicate `sys.stdout` to `pexpect_proc`.
+    A context manager to redirect `sys.stdout` to the message queue.
 
-    Warning:
-        - Within this context manager, the `print()` would be redirected to `self.write()`.
+    Notes:
+        - Within this context manager, the `print()` would be redirected to the message queue.
         All the `args` and `kwargs` passed to `print()` would be ignored and might not work as expected.
-        - The context manager replacement of `sys.stdout` is NOT thread-safe. DO NOT use it in a thread.
     """
 
-    STDOUT = sys.stdout
+    STDOUT = sys.__stdout__
 
-    def __init__(self, pexpect_proc: PexpectProcess):  # noqa
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-        """
+    def __init__(self, msg_queue: MessageQueue):  # noqa
         # DO NOT call super().__init__(), use TextIOWrapper as parent class only for types and functions
-        self.pexpect_proc = pexpect_proc
-        self.before = None
+        self._q = msg_queue
+        self._temp_stdout = None
 
     def __enter__(self):
         if sys.stdout != self.STDOUT:
-            self.before = sys.stdout
+            self._temp_stdout = sys.stdout
         sys.stdout = self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -126,12 +180,12 @@ class DuplicateStdout(TextIOWrapper):
 
     def write(self, data: bytes) -> None:
         """
-        Call `pexpect_proc.write()` instead of `sys.stdout.write()`
+        Write to the message queue
         """
         if not data:
             return
 
-        self.pexpect_proc.write(data)
+        self._q.put(data)
 
     def flush(self) -> None:
         """
@@ -143,8 +197,8 @@ class DuplicateStdout(TextIOWrapper):
         """
         Stop redirecting `sys.stdout`.
         """
-        if self.before:
-            sys.stdout = self.before
+        if self._temp_stdout:
+            sys.stdout = self._temp_stdout
         else:
             sys.stdout = self.STDOUT
 
