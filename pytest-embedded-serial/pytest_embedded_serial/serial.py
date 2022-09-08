@@ -75,17 +75,17 @@ class Serial(multiprocessing.Process):
 
     def _forward_io(self) -> None:
         self.proc = pyserial.serial_for_url(self.port, **self.port_config)
-
-        self._start()
-
         self._post_init()
-
+        self._start()
         self._finalize_init()
 
         while self.proc.is_open:
-            s = self.proc.read_all()
-            self._q.put(s)
-            time.sleep(0.1)
+            try:
+                s = self.proc.read_all()
+                self._q.put(s)
+                time.sleep(0.1)
+            except Exception as e:
+                logging.error(e)
 
     def close(self):
         self.proc.close()

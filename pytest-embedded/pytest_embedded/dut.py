@@ -85,7 +85,7 @@ class Dut:
                     raise e.__class__(debug_str) from e
                 else:
                     if self._p.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                        res.append(self._p._before.rstrip())
+                        res.append(self._p.before.rstrip())
                     else:
                         res.append(self._p.match)
 

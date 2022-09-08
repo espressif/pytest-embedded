@@ -49,12 +49,6 @@ class IdfDut(SerialDut):
     serial: IdfSerial
 
     def __init__(self, skip_check_coredump: bool = False, **kwargs) -> None:
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            app: `IdfApp` instance
-            serial: `IdfSerial` instance
-        """
         super().__init__(**kwargs)
 
         self.target = self.serial.target

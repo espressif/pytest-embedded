@@ -7,7 +7,6 @@ import subprocess
 import sys
 import tempfile
 import uuid
-from io import TextIOWrapper
 from multiprocessing import queues
 from time import sleep
 from typing import AnyStr, List, Union
@@ -69,36 +68,37 @@ class MessageQueue(queues.Queue):
             return
 
         if obj == '' or obj == b'':
-            super().put(obj, **kwargs)
             return
 
-        try:
-            # for pytest logging
-            _temp = sys.stdout
-            sys.stdout = self.STDOUT  # ensure the following print uses system sys.stdout
+        _b = to_bytes(obj)
+        _s = to_str(obj)
 
-            _s = to_str(obj)
-            prefix = ''
-            if self._source:
-                prefix = f'[{self._source}] ' + prefix
-            if self._with_timestamp:
-                prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
+        prefix = ''
+        if self._source:
+            prefix = f'[{self._source}] ' + prefix
+        if self._with_timestamp:
+            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
 
-            if not self._added_prefix:
-                _s = prefix + _s
-                self._added_prefix = True
-            _s = _s.replace('\n', '\n' + prefix)
-            if prefix and _s.endswith(prefix):
-                _s = _s.rsplit(prefix, maxsplit=1)[0]
-                self._added_prefix = False
+        if not self._added_prefix:
+            _s = prefix + _s
+            self._added_prefix = True
+        _s = _s.replace('\n', '\n' + prefix)
+        if prefix and _s.endswith(prefix):
+            _s = _s.rsplit(prefix, maxsplit=1)[0]
+            self._added_prefix = False
 
-            sys.stdout.write(_s)
-            sys.stdout.flush()
-            sys.stdout = _temp
+        super().put(_b, **kwargs)
+        self.STDOUT.write(_s)
+        self.STDOUT.flush()
 
-            super().put(obj, **kwargs)
-        except Exception as e:
-            logging.error(e)
+    def write(self, s: AnyStr):
+        self.put(s)
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return True
 
 
 class PexpectProcess(pexpect.fdpexpect.fdspawn):
@@ -139,6 +139,10 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
             if err.args[0] == errno.EBADF:  # Bad file descriptor
                 raise EOF('Bad File Descriptor')
             raise
+        except ValueError as err:
+            if err.args[0] == 'file descriptor cannot be a negative integer (-1)':
+                raise EOF('Bad File Descriptor')
+            raise
 
         s = self._decoder.decode(s, final=False)
         self._log(s, 'read')
@@ -149,65 +153,6 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         Close the temporary file streams
         """
         self.close()
-
-
-class DuplicateStdout(TextIOWrapper):
-    """
-    A context manager to redirect `sys.stdout` to the message queue.
-
-    Notes:
-        - Within this context manager, the `print()` would be redirected to the message queue.
-        All the `args` and `kwargs` passed to `print()` would be ignored and might not work as expected.
-    """
-
-    STDOUT = sys.__stdout__
-
-    def __init__(self, msg_queue: MessageQueue):  # noqa
-        # DO NOT call super().__init__(), use TextIOWrapper as parent class only for types and functions
-        self._q = msg_queue
-        self._temp_stdout = None
-
-    def __enter__(self):
-        if sys.stdout != self.STDOUT:
-            self._temp_stdout = sys.stdout
-        sys.stdout = self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def __del__(self):
-        self.close()
-
-    def write(self, data: bytes) -> None:
-        """
-        Write to the message queue
-        """
-        if not data:
-            return
-
-        self._q.put(data)
-
-    def flush(self) -> None:
-        """
-        Don't need to flush anymore since the `flush` method would be called inside `pexpect_proc`.
-        """
-        pass
-
-    def close(self) -> None:
-        """
-        Stop redirecting `sys.stdout`.
-        """
-        if self._temp_stdout:
-            sys.stdout = self._temp_stdout
-        else:
-            sys.stdout = self.STDOUT
-
-    def isatty(self) -> bool:
-        """
-        Returns:
-            True since it has `write()`.
-        """
-        return True
 
 
 def live_print_call(*args, **kwargs):

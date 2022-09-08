@@ -478,9 +478,12 @@ def msg_queue(with_timestamp, **kwargs) -> multiprocessing.Queue:  # kwargs pass
 def _listener(q: multiprocessing.Queue, filepath: str) -> None:
     while True:
         msg = q.get()
-        with open(filepath, 'ab') as fw:
-            fw.write(msg)
-            fw.flush()
+        if msg:
+            with open(filepath, 'ab') as fw:
+                fw.write(msg)
+                fw.flush()
+
+        # set interval
         time.sleep(0.1)
 
 
@@ -1076,8 +1079,8 @@ def dut(
 _junit_merger_key = pytest.StashKey['JunitMerger']()
 _pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
 _session_tempdir_key = pytest.StashKey['session_tempdir']()
-_port_target_cache_key = pytest.StashKey[str]()
-_port_app_cache_key = pytest.StashKey[str]()
+_port_target_cache_key = pytest.StashKey[Dict[str, str]]()
+_port_app_cache_key = pytest.StashKey[Dict[str, str]]()
 
 
 def pytest_configure(config: Config) -> None:

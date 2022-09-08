@@ -19,8 +19,6 @@ class IdfApp(App):
     Idf App class
 
     Attributes:
-        app_path (str): App path
-        binary_path (str): binary file path
         elf_file (str): elf file path
         flash_args (dict[str, Any]): dict of flasher_args.json
         flash_files (list[FlashFile]): list of (offset, file path, encrypted) of files need to be flashed in
@@ -34,13 +32,8 @@ class IdfApp(App):
         part_tool: Optional[str] = None,
         **kwargs,
     ):
-        """
-        Args:
-            app_path: App path
-            build_dir: Build directory
-            part_tool: Partition tool path
-        """
         super().__init__(**kwargs)
+
         if not self.binary_path:
             logging.debug('Binary path not specified, skipping parsing app...')
             return

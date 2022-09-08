@@ -11,7 +11,7 @@ def test_idf_serial_flash(testdir):
         import pytest
 
         def test_idf_serial_flash(dut):
-            # dut.expect('Hash of data verified.')  # from flash
+            dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
@@ -157,11 +157,11 @@ def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
         import pexpect
 
         def test_autoflash(app, dut):
-            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect('Hash of data verified.', timeout=10)
 
         def test_autoflash_again(app, dut):
             with pytest.raises(pexpect.TIMEOUT):
-                dut.expect('Hash of data verified.', timeout=5)
+                dut.expect('Hash of data verified.', timeout=10)
     """)
 
     result = testdir.runpytest(

@@ -54,6 +54,7 @@ def test_fixtures(testdir):
         import pytest
         import pexpect
         import tempfile
+        import contextlib
 
         def test_fixtures_root_logdir(session_root_logdir):
             assert session_root_logdir == os.getcwd()
@@ -72,8 +73,8 @@ def test_fixtures(testdir):
         def test_fixtures_dut(dut):
             assert dut.app.app_path.endswith('hello_world_esp32')
 
-        def test_fixture_redirect(pexpect_proc, dut, redirect):
-            with redirect():
+        def test_fixture_msg_queue(pexpect_proc, dut, msg_queue):
+            with contextlib.redirect_stdout(msg_queue):
                 print('redirect to pexpect_proc')
 
             pexpect_proc.expect('redirect')
@@ -99,6 +100,7 @@ def test_multi_count_fixtures(testdir):
     testdir.makepyfile("""
         import pytest
         import pexpect
+        import contextlib
 
         def test_fixtures_test_file_name(test_file_path):
             assert test_file_path.endswith('test_multi_count_fixtures.py')
@@ -116,13 +118,13 @@ def test_multi_count_fixtures(testdir):
             assert dut[0].app.app_path.endswith('hello_world_esp32')
             assert dut[1].app.app_path.endswith('hello_world_esp32c3')
 
-        def test_fixture_redirect(dut, redirect):
-            with redirect[1]():
+        def test_fixture_msg_queue(dut, msg_queue):
+            with contextlib.redirect_stdout(msg_queue[1]):
                 print('been redirected')
             dut[1].expect('been redirected')
 
             with pytest.raises(pexpect.TIMEOUT):
-                dut[0].expect('not been redirected', timeout=1)
+                dut[0].expect('been redirected', timeout=1)
     """)
 
     result = testdir.runpytest(
@@ -179,6 +181,7 @@ def test_expect(testdir):
         import inspect
         import pytest
         import os
+        import contextlib
 
         def test_expect(dut):
             dut.write('this would be redirected')
@@ -189,9 +192,8 @@ def test_expect(testdir):
             dut.expect(re.compile(b'redirected'))
 
 
-        def test_expect_return_value(redirect, dut):
-            # here we use fixture `redirect` to write the sys.stdout to dut
-            with redirect():
+        def test_expect_return_value(dut, msg_queue):
+            with contextlib.redirect_stdout(msg_queue):
                 print('this would be redirected')
 
             res = dut.expect('this (would) be ([cdeirt]+)')
@@ -217,7 +219,7 @@ def test_expect(testdir):
             dut.write('this would be redirected')
 
             # close the pexpect process to generate an EOF
-            dut.pexpect_proc.terminate()
+            dut._p.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b''
@@ -228,7 +230,7 @@ def test_expect(testdir):
             dut.expect('this')
 
             # close the pexpect process to generate an EOF
-            dut.pexpect_proc.terminate()
+            dut._p.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b' would be redirected'
