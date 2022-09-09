@@ -470,7 +470,6 @@ _ctx = multiprocessing.get_context()
 @pytest.fixture
 @multi_dut_generator_fixture
 def msg_queue(with_timestamp, **kwargs) -> multiprocessing.Queue:  # kwargs passed by `multi_dut_generator_fixture()`
-
     kwargs.update({'with_timestamp': with_timestamp, 'ctx': _ctx})
     return MessageQueue(**_drop_none_kwargs(kwargs))
 
@@ -502,6 +501,30 @@ def listener(msg_queue, _pexpect_logfile) -> multiprocessing.Process:
         ),
         daemon=True,
     )
+
+
+@pytest.fixture(scope='session')
+def port_app_cache():
+    ctx = multiprocessing.get_context()
+    cache = ctx.Queue()
+    cache.put({})  # to avoid Empty exception
+    return cache
+
+
+@pytest.fixture(scope='session')
+def port_target_cache():
+    ctx = multiprocessing.get_context()
+    cache = ctx.Queue()
+    cache.put({})  # to avoid Empty exception
+    return cache
+
+
+@pytest.fixture
+def occupied_ports():
+    ctx = multiprocessing.get_context()
+    cache = ctx.Queue()
+    cache.put({})  # to avoid Empty exception
+    return cache
 
 
 @pytest.fixture
@@ -791,6 +814,9 @@ def _fixture_classes_and_options(
     test_case_name,
     pexpect_proc,
     msg_queue,
+    port_app_cache,
+    port_target_cache,
+    occupied_ports,
 ) -> ClassCliOptions:
     """
     classes: the class that the fixture should instantiate
@@ -858,6 +884,8 @@ def _fixture_classes_and_options(
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
+                    'port_target_cache': port_target_cache,
+                    'occupied_ports': occupied_ports,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf.serial import IdfSerial
@@ -868,6 +896,7 @@ def _fixture_classes_and_options(
                             'app': None,
                             'confirm_target_elf_sha256': confirm_target_elf_sha256,
                             'erase_nvs': erase_nvs,
+                            'port_app_cache': port_app_cache,
                         }
                     )
                 elif 'arduino' in _services:
@@ -891,6 +920,7 @@ def _fixture_classes_and_options(
                     'msg_queue': msg_queue,
                     'port': port,
                     'baud': int(baud or Serial.DEFAULT_BAUDRATE),
+                    'occupied_ports': occupied_ports,
                 }
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:
@@ -1079,23 +1109,14 @@ def dut(
 _junit_merger_key = pytest.StashKey['JunitMerger']()
 _pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
 _session_tempdir_key = pytest.StashKey['session_tempdir']()
-_port_target_cache_key = pytest.StashKey[Dict[str, str]]()
-_port_app_cache_key = pytest.StashKey[Dict[str, str]]()
 
 
 def pytest_configure(config: Config) -> None:
-    port_target_cache: Dict[str, str] = {}
-    port_app_cache: Dict[str, str] = {}
-
     config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
-    config.stash[_port_target_cache_key] = port_target_cache
-    config.stash[_port_app_cache_key] = port_app_cache
 
     config.stash[_pytest_embedded_key] = PytestEmbedded(
         parallel_count=config.getoption('parallel_count'),
         parallel_index=config.getoption('parallel_index'),
-        port_target_cache=port_target_cache,
-        port_app_cache=port_app_cache,
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
@@ -1112,14 +1133,9 @@ class PytestEmbedded:
         self,
         parallel_count: int = 1,
         parallel_index: int = 1,
-        port_target_cache: Dict[str, str] = None,
-        port_app_cache: Dict[str, str] = None,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
-
-        self._port_target_cache = port_target_cache
-        self._port_app_cache = port_app_cache
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1168,34 +1184,6 @@ class PytestEmbedded:
             val = self._pytest_fixturedef_exec(fixturedef, request, kwargs)
             request.config.stash[_session_tempdir_key] = val
             return val
-
-        if fixturedef.argname != 'serial':
-            return
-
-        # inject the cache into the serial kwargs
-        kwargs = self._pytest_fixturedef_get_kwargs(fixturedef, request)
-        _class_cli_options = kwargs['_fixture_classes_and_options']
-
-        # compatible to multi-dut
-        if isinstance(_class_cli_options, ClassCliOptions):
-            iterable_class_cli_options = [_class_cli_options]
-        else:
-            iterable_class_cli_options = _class_cli_options
-
-        for _item in iterable_class_cli_options:
-            _item_cls = _item.classes.get('serial')
-            _item_kwargs = _item.kwargs.get('serial')
-
-            if _item_cls is None or _item_kwargs is None:
-                continue
-
-            if _item_cls.__name__ == 'IdfSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
-                _item_kwargs['port_app_cache'] = self._port_app_cache
-            elif _item_cls.__name__ == 'EspSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
-
-        return self._pytest_fixturedef_exec(fixturedef, request, kwargs)
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, items: List[Function]):

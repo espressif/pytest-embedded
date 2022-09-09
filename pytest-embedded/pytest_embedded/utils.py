@@ -97,3 +97,15 @@ def remove_asci_color_code(s: AnyStr) -> str:
     if isinstance(s, bytes):
         s = s.decode('utf-8', errors='ignore')
     return _ANSI_COLOR_CODE_RE.sub('', s)
+
+
+class InternalError(RuntimeError):
+    def __init__(self, s: str, *args):
+        if s:
+            s += '\n\n'
+        s += (
+            'Internal Error. Please report to https://github.com/espressif/pytest-embedded/issues '
+            'with the output of "--log-cli-level DEBUG" CLI option'
+        )
+
+        super().__init__(s, *args)

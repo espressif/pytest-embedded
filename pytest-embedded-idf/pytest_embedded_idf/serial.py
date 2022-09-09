@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import multiprocessing
 import os
 import tempfile
 from typing import Dict, Optional, TextIO, Union
@@ -25,18 +26,18 @@ class IdfSerial(EspSerial):
 
     def __init__(
         self,
+        port_app_cache: multiprocessing.Queue,
         app: IdfApp,
         target: Optional[str] = None,
-        port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
         erase_nvs: bool = False,
         **kwargs,
     ) -> None:
+        self._q_port_app_cache = port_app_cache
+
         self.app = app
         self.confirm_target_elf_sha256 = confirm_target_elf_sha256
         self.erase_nvs = erase_nvs
-
-        self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -49,9 +50,24 @@ class IdfSerial(EspSerial):
             **kwargs,
         )
 
+    @property
+    def port_app_cache(self) -> Dict[str, str]:
+        """
+        The occupied ports queue should be a dict that hold all the targets
+        """
+        cache = self._q_port_app_cache.get()
+        self._q_port_app_cache.put(cache)  # insert back immediately
+        return cache
+
+    def set_port_app_cache(self) -> None:
+        cache = self._q_port_app_cache.get()
+        cache[self.port] = self.app.binary_path
+        self._q_port_app_cache.put(cache)
+        logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
+
     def _post_init(self):
-        if self.port in self._port_app_cache:
-            if self.app.binary_path == self._port_app_cache[self.port]:  # hit the cache
+        if self.port in self.port_app_cache:
+            if self.app.binary_path == self.port_app_cache[self.port]:  # hit the cache
                 logging.debug('hit port-app cache: %s - %s', self.port, self.app.binary_path)
                 if self.confirm_target_elf_sha256:
                     if self.is_target_flashed_same_elf():
@@ -68,8 +84,8 @@ class IdfSerial(EspSerial):
                     )
                     self.skip_autoflash = True
 
-        logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
-        self._port_app_cache[self.port] = self.app.binary_path
+        self.set_port_app_cache()
+
         super()._post_init()
 
     def _start(self):

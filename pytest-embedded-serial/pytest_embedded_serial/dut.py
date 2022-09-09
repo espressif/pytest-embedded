@@ -1,4 +1,3 @@
-import logging
 from typing import AnyStr
 
 from pytest_embedded.dut import Dut
@@ -24,9 +23,5 @@ class SerialDut(Dut):
         return self._q.put(to_bytes(data, '\n'))
 
     def close(self) -> None:
-        self.serial.close()
-
-        self.serial.occupied_ports.pop(self.serial.port, None)
-        logging.debug(f'released {self.serial.port}')
-
+        self.serial.terminate()
         super().close()

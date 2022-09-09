@@ -1,10 +1,12 @@
 import contextlib
 import functools
 import logging
+import multiprocessing
 from enum import Enum
 from typing import Dict, Optional
 
 import esptool
+import serial as pyserial
 from pytest_embedded import MessageQueue
 from pytest_embedded_serial.dut import Serial
 
@@ -41,6 +43,8 @@ class EspSerial(Serial):
     def __init__(
         self,
         msg_queue: MessageQueue,
+        occupied_ports: multiprocessing.Queue,
+        port_target_cache: multiprocessing.Queue,
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
         port: Optional[str] = None,
@@ -48,15 +52,15 @@ class EspSerial(Serial):
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         erase_all: bool = False,
-        port_target_cache: Dict[str, str] = None,
         **kwargs,
     ) -> None:
-        self._port_target_cache: Dict[str, str] = port_target_cache if port_target_cache is not None else {}
+        self._q_port_target_cache = port_target_cache
+        self._q_used_ports = occupied_ports
 
         esptool_target = beta_target or target
         if port is None:
             available_ports = esptool.get_port_list()
-            ports = list(set(available_ports) - set(self.occupied_ports.keys()))
+            ports = list(set(available_ports) - set(self.occupied_ports))
 
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
             # esptool will reverse the list
@@ -64,7 +68,7 @@ class EspSerial(Serial):
 
             # prioritize the cache recorded target port
             if esptool_target:
-                for _port, _target in self._port_target_cache.items():
+                for _port, _target in self.port_target_cache.items():
                     if _target == esptool_target and _port in ports:
                         ports.sort(key=lambda x: x == _port)
                         logging.debug('hit port-target cache: %s - %s', _port, _target)
@@ -104,11 +108,25 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
-        super().__init__(msg_queue, esp.serial_port, baud, **kwargs)
+        super().__init__(msg_queue=msg_queue, occupied_ports=occupied_ports, port=esp.serial_port, baud=baud, **kwargs)
+
+    @property
+    def port_target_cache(self) -> Dict[str, str]:
+        """
+        The occupied ports queue should be a dict that hold all the targets
+        """
+        cache = self._q_port_target_cache.get()
+        self._q_port_target_cache.put(cache)  # insert back immediately
+        return cache
+
+    def set_port_target_cache(self) -> None:
+        cache = self._q_port_target_cache.get()
+        cache[self.port] = self.target
+        self._q_port_target_cache.put(cache)
+        logging.debug('set port-target cache: %s - %s', self.port, self.target)
 
     def _post_init(self):
-        logging.debug('set port-target cache: %s - %s', self.port, self.target)
-        self._port_target_cache[self.port] = self.target
+        self.set_port_target_cache()
         super()._post_init()
 
     def use_esptool(func):
@@ -122,6 +140,11 @@ class EspSerial(Serial):
 
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
+            close = False
+            if not self.proc:  # still at the setup period
+                self.proc = pyserial.serial_for_url(self.port, **self.port_config)
+                close = True
+
             settings = self.proc.get_settings()
             try:
                 with contextlib.redirect_stdout(self._q):
@@ -134,10 +157,12 @@ class EspSerial(Serial):
                     self.stub.hard_reset()
             except Exception as e:
                 print(e)
+            else:
+                return ret
             finally:
+                if close:
+                    self.proc.close()
                 self.proc.apply_settings(settings)
-
-            return ret
 
         return wrapper
 
