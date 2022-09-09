@@ -19,6 +19,8 @@ class SerialDut(Dut):
 
         self.serial = serial
 
+        self.serial.create_forward_io_thread()
+
     def write(self, data: AnyStr) -> None:
         return self._q.put(to_bytes(data, '\n'))
 

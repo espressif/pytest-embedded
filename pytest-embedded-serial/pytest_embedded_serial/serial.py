@@ -8,7 +8,7 @@ import serial as pyserial
 from pytest_embedded.utils import InternalError
 
 
-class Serial(multiprocessing.Process):
+class Serial:
     """
     Custom serial class
 
@@ -65,11 +65,10 @@ class Serial(multiprocessing.Process):
 
         self.proc: pyserial.Serial = None  # type: ignore
 
-        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
+        self._forward_io_proc = None
+
         self._post_init()
         self._start()
-
-        self.start()  # start self process
 
     @property
     def occupied_ports(self) -> List[str]:
@@ -101,6 +100,16 @@ class Serial(multiprocessing.Process):
     def _start(self):
         pass
 
+    def create_forward_io_thread(self) -> None:
+        """
+        Create a forward io daemon process if it doesn't exist.
+        """
+        if self._forward_io_proc and self._forward_io_proc.is_alive():
+            return
+
+        self._forward_io_proc = multiprocessing.Process(target=self._forward_io, daemon=True)
+        self._forward_io_proc.start()
+
     def _forward_io(self) -> None:
         self.proc = pyserial.serial_for_url(self.port, **self.port_config)
         while self.proc.is_open:
@@ -113,5 +122,6 @@ class Serial(multiprocessing.Process):
 
     def terminate(self, **kwargs):
         self.proc.close()
+        self._forward_io_proc.terminate()
         self.release_port()
-        super().terminate(**kwargs)
+        # super().terminate(**kwargs)
