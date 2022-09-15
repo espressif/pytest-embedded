@@ -122,7 +122,7 @@ def test_multi_count_fixtures(testdir):
             dut[1].expect('been redirected')
 
             with pytest.raises(pexpect.TIMEOUT):
-                dut[0].expect('not been redirected', timeout=1)
+                dut[0].expect('been redirected', timeout=1)
     """)
 
     result = testdir.runpytest(
@@ -217,7 +217,7 @@ def test_expect(testdir):
             dut.write('this would be redirected')
 
             # close the pexpect process to generate an EOF
-            dut.pexpect_proc.terminate()
+            dut._p.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b''
@@ -228,7 +228,7 @@ def test_expect(testdir):
             dut.expect('this')
 
             # close the pexpect process to generate an EOF
-            dut.pexpect_proc.terminate()
+            dut._p.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b' would be redirected'
@@ -421,3 +421,27 @@ def test_expect_unity_test_output_multi_dut(testdir):
     all_case_names = [item.attrib['name'] for item in junit_report]
 
     assert sorted(required_names) == sorted(all_case_names)
+
+
+def test_duplicate_stdout_popen(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+        import pexpect
+        import sys
+        from pytest_embedded.log import DuplicateStdoutPopen
+
+        def test_duplicate_stdout_popen(dut, msg_queue):
+            p = DuplicateStdoutPopen(msg_queue, [sys.executable, '-c', 'while True: a = input(); print(a)'])
+            p.write('foo')
+            dut.expect('foo')
+
+            p.write('bar')
+            dut.expect('bar')
+
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo', timeout=1)
+     """)
+
+    result = testdir.runpytest('-s')
+
+    result.assert_outcomes(passed=1)

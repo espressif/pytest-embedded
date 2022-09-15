@@ -1,20 +1,27 @@
 import contextlib
 import copy
 import logging
+import multiprocessing
 import time
-from typing import Dict, Union
+from typing import Dict
 
 import serial as pyserial
-from pytest_embedded.log import DuplicateStdoutMixin, PexpectProcess
 
 
-class Serial(DuplicateStdoutMixin):
+class Serial:
     """
     Custom serial class
 
     Attributes:
+        port (str): port address
+        baud (int): baud rate
         port_config (dict[str, Any]): port configs
-        proc (serial.Serial): process created by `serial.serial_for_url()`
+        proc (pyserial.Serial): process created by `serial.serial_for_url()`
+
+    Warning:
+        - the real `pyserial` object must be created inside `self._forward_io`,
+          The `pyserial` object can't be pickled when using multiprocessing.Process
+        - make sure this `Serial` __init__ run the last in MRO, it would create and start the redirect serial process
     """
 
     DEFAULT_BAUDRATE = 115200
@@ -32,37 +39,37 @@ class Serial(DuplicateStdoutMixin):
     occupied_ports: Dict[str, None] = dict()
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, port: Union[str, pyserial.Serial], baud: int = DEFAULT_BAUDRATE, **kwargs
+        self,
+        msg_queue: multiprocessing.Queue,
+        port: str,
+        baud: int = DEFAULT_BAUDRATE,
+        **kwargs,
     ):
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            port: port string or pyserial Serial instance
-        """
-        super().__init__()
+        self._q = msg_queue
+        self.port = port
+        self.baud = baud
 
         if port is None:
             raise ValueError('Please specify port')
 
-        if isinstance(port, str):
-            self.port = port
-            self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
-            self.port_config['baudrate'] = baud
-            self.port_config.update(**kwargs)
-            self.proc = pyserial.serial_for_url(self.port, **self.port_config)
-        else:  # pyserial instance
-            self.proc = port
-            self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
-            self.port = self.proc.port
+        if not isinstance(port, str):
+            raise ValueError('`port` must be str, the real `pyserial` object must be created inside `self._forward_io`')
 
-        self.pexpect_proc = pexpect_proc
-        self.baud = baud
+        self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
+        self.port_config['baudrate'] = baud
+        self.port_config.update(**kwargs)
+
+        self.proc: _SerialRedirectProcess = None  # type: ignore
 
         self._post_init()
-
         self._start()
-
         self._finalize_init()
+
+        self.start_redirect_serial_process()
+
+    def start_redirect_serial_process(self):
+        self.proc = _SerialRedirectProcess(self._q, self.port, self.port_config)
+        self.proc.start()
 
     def _post_init(self):
         pass
@@ -74,35 +81,54 @@ class Serial(DuplicateStdoutMixin):
         self.occupied_ports[self.port] = None
         logging.debug(f'occupied {self.port}')
 
-    def _forward_io(self, pexpect_proc: PexpectProcess) -> None:
-        while self.proc.is_open:
-            try:
-                s = self.proc.read_all()
-                pexpect_proc.write(s)
-            except:  # noqa daemon thread may run at any case
-                break
-
-    def stop_redirect_thread(self) -> bool:
-        """
-        Close the serial port and reopen it to kill the redirect daemon thread.
-
-        Returns:
-            Killed the redirect thread or not
-        """
-        killed = False
-        if self._forward_io_thread and self._forward_io_thread.is_alive():
-            self.proc.close()
-            time.sleep(0.1)
-            self.proc.open()  # to kill the redirect stdout thread
-            killed = True
-
-        return killed
+    def close(self):
+        self.proc.terminate()
+        self.occupied_ports.pop(self.port, None)
+        logging.debug(f'released {self.port}')
 
     @contextlib.contextmanager
-    def disable_redirect_thread(self):
-        killed = self.stop_redirect_thread()
+    def disable_redirect_serial(self) -> bool:
+        """
+        Close the redirect serial process, and start the redirect process again after yield back
+
+        Yields:
+            True if redirect serial process is been killed
+        """
+        killed = False
+        if self.proc and self.proc.is_alive():
+            self.proc.terminate()
+            # wait the serial port is closed by the `Process.terminate()`
+            # mostly for windows compatibility
+            time.sleep(1)
+            killed = True
 
         yield killed
 
         if killed:
-            self.create_forward_io_thread(self.pexpect_proc)
+            self.start_redirect_serial_process()
+
+
+class _SerialRedirectProcess(multiprocessing.Process):
+    """
+    Redirect serial process
+
+    Warning:
+        All attributes under this class or its sub-classes must be serializable.
+    """
+
+    def __init__(self, msg_queue, port, port_config):
+        self._q = msg_queue
+        self.port = port
+        self.port_config = port_config
+
+        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
+
+    def _forward_io(self) -> None:
+        _serial = pyserial.serial_for_url(self.port, **self.port_config)
+
+        while _serial.is_open:
+            try:
+                s = _serial.read_all()
+                self._q.put(s)
+            except Exception as e:
+                logging.error(e)

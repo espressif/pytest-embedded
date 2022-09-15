@@ -5,7 +5,6 @@ import tempfile
 from typing import Dict, Optional, TextIO, Union
 
 import esptool
-from pytest_embedded.log import PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
 
 from .app import IdfApp
@@ -23,24 +22,18 @@ class IdfSerial(EspSerial):
 
     def __init__(
         self,
-        pexpect_proc: PexpectProcess,
         app: IdfApp,
         target: Optional[str] = None,
-        beta_target: Optional[str] = None,
-        port: Optional[str] = None,
-        baud: int = EspSerial.DEFAULT_BAUDRATE,
-        esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
-        skip_autoflash: bool = False,
-        erase_all: bool = False,
         port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
         erase_nvs: bool = False,
         **kwargs,
     ) -> None:
-        self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
         self.app = app
         self.confirm_target_elf_sha256 = confirm_target_elf_sha256
         self.erase_nvs = erase_nvs
+
+        self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -49,20 +42,13 @@ class IdfSerial(EspSerial):
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
 
         super().__init__(
-            pexpect_proc,
-            target or app.target,
-            beta_target,
-            port,
-            baud,
-            esptool_baud,
-            skip_autoflash,
-            erase_all,
+            target=target or app.target,
             **kwargs,
         )
 
     def _post_init(self):
-        if self.esp.serial_port in self._port_app_cache:
-            if self.app.binary_path == self._port_app_cache[self.esp.serial_port]:  # hit the cache
+        if self.port in self._port_app_cache:
+            if self.app.binary_path == self._port_app_cache[self.port]:  # hit the cache
                 logging.debug('hit port-app cache: %s - %s', self.port, self.app.binary_path)
                 if self.confirm_target_elf_sha256:
                     if self.is_target_flashed_same_elf():
