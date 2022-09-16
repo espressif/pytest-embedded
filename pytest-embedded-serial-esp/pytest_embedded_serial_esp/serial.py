@@ -83,13 +83,39 @@ class EspSerial(Serial):
             )
 
         with contextlib.redirect_stdout(msg_queue):
-            esp: esptool.ESPLoader = esptool.get_default_connected_device(
-                ports,
-                port=port,
-                connect_attempts=3,
-                initial_baud=baud,
-                chip=esptool_target,
-            )
+            # Temp workaround for esptool
+            # on windows have to close the unused scanned ports manually
+            #
+            # could revert to the following code blocks after fixing it
+            #
+            # esp: esptool.ESPLoader = esptool.get_default_connected_device(
+            #     ports,
+            #     port=port,
+            #     connect_attempts=3,
+            #     initial_baud=baud,
+            #     chip=esptool_target,
+            # )
+            _esp = None
+            for each_port in reversed(ports):
+                print(f'Serial port {each_port}')
+                try:
+                    if esptool_target == 'auto':
+                        _esp = detect_chip(each_port, baud, connect_attempts=3)
+                    else:
+                        chip_class = CHIP_DEFS[esptool_target]
+                        _esp = chip_class(each_port, baud)
+                        _esp.connect(attempts=3)
+                    break
+                except (FatalError, OSError) as err:
+                    if port is not None:
+                        raise
+                    print(f'{each_port} failed to connect: {err}')
+                    if _esp:
+                        # ensure port is closed.
+                        _esp._port.close()
+                    _esp = None
+            esp = _esp
+
         if not esp:
             raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
         # ensure port is closed. The redirect instance would be opened later
