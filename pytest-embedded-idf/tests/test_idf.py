@@ -176,11 +176,11 @@ def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
     result.assert_outcomes(passed=2)
 
     set_app_cache_i = first_index_of_messages(
-        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^set port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
     )
     first_index_of_messages(
-        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
         set_app_cache_i + 1
     )
@@ -211,11 +211,11 @@ def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messa
     result.assert_outcomes(passed=2)
 
     set_app_cache_i = first_index_of_messages(
-        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^set port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
     )
     hit_app_cache_i = first_index_of_messages(
-        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
         set_app_cache_i + 1
     )
