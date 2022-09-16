@@ -464,6 +464,10 @@ def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
     return os.path.join(test_case_tempdir, f'{name}.log')
 
 
+# Suppress UserWarning on resource_tracker.py
+if sys.platform == 'darwin':
+    multiprocessing.set_start_method('fork')
+
 _ctx = multiprocessing.get_context()
 _stdout = sys.__stdout__
 
