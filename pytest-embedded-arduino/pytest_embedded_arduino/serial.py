@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 
 import esptool
-from pytest_embedded.log import PexpectProcess
 from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
 
 from .app import ArduinoApp
@@ -19,27 +18,13 @@ class ArduinoSerial(EspSerial):
 
     def __init__(
         self,
-        pexpect_proc: PexpectProcess,
         app: ArduinoApp,
-        port: Optional[str] = None,
-        baud: int = EspSerial.DEFAULT_BAUDRATE,
-        esptool_baud: int = EspSerial.ESPTOOL_DEFAULT_BAUDRATE,
         target: Optional[str] = None,
-        beta_target: Optional[str] = None,
-        skip_autoflash: bool = False,
-        erase_all: bool = False,
         **kwargs,
     ) -> None:
         self.app = app
         super().__init__(
-            pexpect_proc,
-            target or self.app.target,
-            beta_target,
-            port,
-            baud,
-            esptool_baud,
-            skip_autoflash,
-            erase_all,
+            target=target or self.app.target,
             **kwargs,
         )
 

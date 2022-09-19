@@ -1,7 +1,7 @@
 import os
 import re
+import tempfile
 
-import pytest
 from pytest_embedded_idf.dut import IdfDut
 
 
@@ -52,6 +52,8 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
 
 
 def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys, monkeypatch):
+    monkeypatch.setenv('IDF_PATH', tempfile.tempdir)
+
     testdir.makepyfile("""
         import pexpect
         import pytest
@@ -174,11 +176,11 @@ def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
     result.assert_outcomes(passed=2)
 
     set_app_cache_i = first_index_of_messages(
-        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^set port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
     )
     first_index_of_messages(
-        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
         set_app_cache_i + 1
     )
@@ -209,11 +211,11 @@ def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messa
     result.assert_outcomes(passed=2)
 
     set_app_cache_i = first_index_of_messages(
-        re.compile('^set port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^set port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
     )
     hit_app_cache_i = first_index_of_messages(
-        re.compile('^hit port-app cache:.+hello_world_esp32/build$', re.MULTILINE),
+        re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
         set_app_cache_i + 1
     )
@@ -255,7 +257,6 @@ def test_different_build_dir(testdir):
     result.assert_outcomes(passed=1)
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_multi_dut_read_flash(testdir):
     testdir.makepyfile(r"""
         import pytest

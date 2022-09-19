@@ -50,11 +50,10 @@ def to_list(s: _T) -> List[_T]:
         s: Anything
 
     Returns:
-        `list(s)`. If `s` is a tuple or a set.
-
-        itself. If `s` is a list
-
-        `[s]`. If `s` is other types.
+        List (list[_T]):
+            - `list(s)` (List. If `s` is a tuple or a set.
+            - itself. If `s` is a list.
+            - `[s]`. If `s` is other types.
     """
     if not s:
         return s

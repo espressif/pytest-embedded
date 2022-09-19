@@ -1,10 +1,13 @@
+import contextlib
 import functools
 import logging
 from enum import Enum
 from typing import Dict, Optional
 
 import esptool
-from pytest_embedded.log import DuplicateStdout, PexpectProcess
+import serial as pyserial
+from esptool import CHIP_DEFS, FatalError, detect_chip
+from pytest_embedded.log import MessageQueue
 from pytest_embedded_serial.dut import Serial
 
 
@@ -16,10 +19,6 @@ class EsptoolVersion(Enum):
 class EspSerial(Serial):
     """
     Serial class for ports connected to espressif products
-
-    Attributes:
-        esp: esptool.ESPLoader, will auto upload stub.
-        stub: esptool.ESPStubLoader, stubbed loader.
     """
 
     ESPTOOL_DEFAULT_BAUDRATE = 921600
@@ -43,7 +42,7 @@ class EspSerial(Serial):
 
     def __init__(
         self,
-        pexpect_proc: PexpectProcess,
+        msg_queue: MessageQueue,
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
         port: Optional[str] = None,
@@ -76,36 +75,64 @@ class EspSerial(Serial):
         else:
             ports = [port]
 
-        with DuplicateStdout(pexpect_proc):
-            # normal loader
-            if esptool_target not in (['auto'] + self.ESPTOOL_CHIPS):
-                raise ValueError(
-                    f'esptool version {self._ESPTOOL_RAW_VERSION} not support target {esptool_target}\n'
-                    f'Supported targets: {self.ESPTOOL_CHIPS}'
-                )
-
-            self.esp: esptool.ESPLoader = esptool.get_default_connected_device(
-                ports,
-                port=port,
-                connect_attempts=3,
-                initial_baud=baud,
-                chip=esptool_target,
+        # normal loader
+        if esptool_target not in (['auto'] + self.ESPTOOL_CHIPS):
+            raise ValueError(
+                f'esptool version {self._ESPTOOL_RAW_VERSION} not support target {esptool_target}\n'
+                f'Supported targets: {self.ESPTOOL_CHIPS}'
             )
-            if not self.esp:
-                raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
 
-            # stub loader has more functionalities, need to run after calling `run_stub()`
-            self.stub: esptool.ESPLoader = self.esp.run_stub()
+        with contextlib.redirect_stdout(msg_queue):
+            # Temp workaround for esptool
+            # on windows have to close the unused scanned ports manually
+            #
+            # could revert to the following code blocks after fixing it
+            #
+            # esp: esptool.ESPLoader = esptool.get_default_connected_device(
+            #     ports,
+            #     port=port,
+            #     connect_attempts=3,
+            #     initial_baud=baud,
+            #     chip=esptool_target,
+            # )
+            _esp = None
+            for each_port in reversed(ports):
+                print(f'Serial port {each_port}')
+                try:
+                    if esptool_target == 'auto':
+                        _esp = detect_chip(each_port, baud, connect_attempts=3)
+                    else:
+                        chip_class = CHIP_DEFS[esptool_target]
+                        _esp = chip_class(each_port, baud)
+                        _esp.connect(attempts=3)
+                    break
+                except (FatalError, OSError) as err:
+                    if port is not None:
+                        raise
+                    print(f'{each_port} failed to connect: {err}')
+                    if _esp:
+                        # ensure port is closed.
+                        _esp._port.close()
+                    _esp = None
+            esp = _esp
 
-        target = self.esp.CHIP_NAME.lower().replace('-', '')
-        logging.info(f'Target: %s, Port: %s', target, self.esp.serial_port)
+        if not esp:
+            raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
+        # ensure port is closed. The redirect instance would be opened later
+        esp._port.close()
+
+        self.esp = None
+        self.stub = None
+
+        target = esp.CHIP_NAME.lower().replace('-', '')
+        logging.info(f'Target: %s, Port: %s', target, esp.serial_port)
 
         self.target = target
 
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
-        super().__init__(pexpect_proc, port=self.esp._port, baud=baud, **kwargs)
+        super().__init__(msg_queue, esp.serial_port, baud, **kwargs)
 
     def _post_init(self):
         logging.debug('set port-target cache: %s - %s', self.port, self.target)
@@ -114,26 +141,35 @@ class EspSerial(Serial):
 
     def use_esptool(func):
         """
-        1. close the port and open the port to kill the `self._forward_io` thread
-        2. call `run_stub()`
-        3. call to the decorated function, could use `self.stub` as the stubbed loader
-        4. call `hard_reset()`
-        5. create the `self.forward_io` thread again.
+        1. close the redirect serial process if exists
+        2. close the serial connection
+        3. use esptool to connect to the serial port and call `run_stub()`
+        4. call to the decorated function, could use `self.stub` inside the function as the stubbed loader
+        5. call `hard_reset()`
+        5. create the redirect serial process again
+
+        Warning:
+            the real `pyserial` object must be created inside `self._forward_io`,
+                The `pyserial` object can't be pickled when using multiprocessing.Process
         """
 
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            with self.disable_redirect_thread() as killed:
-                settings = self.proc.get_settings()
+            with self.disable_redirect_serial():
+                _s = pyserial.serial_for_url(self.port, **self.port_config)
+                settings = _s.get_settings()
                 try:
-                    with DuplicateStdout(self.pexpect_proc):
-                        if killed:
-                            self.esp.connect('hard_reset')
-                            self.stub = self.esp.run_stub()
+                    with contextlib.redirect_stdout(self._q):
+                        self.esp = esptool.detect_chip(_s, self.baud)
+                        self.esp.connect('hard_reset')
+                        self.stub = self.esp.run_stub()
+
                         ret = func(self, *args, **kwargs)
-                        self.stub.hard_reset()
                 finally:
-                    self.proc.apply_settings(settings)
+                    self.stub.hard_reset()
+
+                    _s.apply_settings(settings)
+                    _s.close()
 
             return ret
 

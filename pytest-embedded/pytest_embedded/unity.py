@@ -271,7 +271,9 @@ class JunitMerger:
                 junit_parent.attrib['errors'], merging_parent.attrib['errors']
             )
             junit_parent.attrib['failures'] = self._int_add(
-                junit_parent.attrib['failures'], merging_parent.attrib['failures'], -int(junit_case_is_fail)
+                junit_parent.attrib['failures'],
+                merging_parent.attrib['failures'],
+                -int(junit_case_is_fail),
             )
             junit_parent.attrib['skipped'] = self._int_add(
                 junit_parent.attrib['skipped'], merging_parent.attrib['skipped']

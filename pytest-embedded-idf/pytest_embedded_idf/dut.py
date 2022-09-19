@@ -6,7 +6,6 @@ from contextlib import redirect_stdout
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from pytest_embedded import PexpectProcess
 from pytest_embedded_serial.dut import SerialDut
 
 from .app import IdfApp
@@ -39,6 +38,14 @@ class UnittestMenuCase:
 
 
 class IdfDut(SerialDut):
+    """
+    Dut class for serial ports connect to Espressif boards which are flashed with ESP-IDF apps
+
+    Attributes:
+        target (str): target chip type
+        skip_check_coredump (bool): skip check core dumped or not while dut teardown if set to True
+    """
+
     XTENSA_TARGETS = ['esp32', 'esp32s2', 'esp32s3']
     RISCV32_TARGETS = ['esp32c3', 'esp32h2', 'esp32c2']
 
@@ -49,18 +56,10 @@ class IdfDut(SerialDut):
     app: IdfApp
     serial: IdfSerial
 
-    def __init__(
-        self, pexpect_proc: PexpectProcess, app: IdfApp, serial: IdfSerial, skip_check_coredump: bool = False, **kwargs
-    ) -> None:
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            app: `IdfApp` instance
-            serial: `IdfSerial` instance
-        """
-        super().__init__(pexpect_proc, app, serial, **kwargs)
+    def __init__(self, skip_check_coredump: bool = False, **kwargs) -> None:
+        super().__init__(**kwargs)
 
-        self.target = serial.target
+        self.target = self.serial.target
         self.skip_check_coredump = skip_check_coredump
 
     @property
@@ -105,7 +104,7 @@ class IdfDut(SerialDut):
 
         from esp_coredump import CoreDump  # need IDF_PATH
 
-        with open(self.pexpect_proc._fr.name, 'rb') as fr:
+        with open(self.logfile, 'rb') as fr:
             s = fr.read()
 
             for i, coredump in enumerate(set(self.COREDUMP_UART_REGEX.findall(s))):  # may duplicate
@@ -116,7 +115,10 @@ class IdfDut(SerialDut):
                         coredump_file.flush()
 
                     coredump = CoreDump(
-                        chip=self.target, core=coredump_file.name, core_format='b64', prog=self.app.elf_file
+                        chip=self.target,
+                        core=coredump_file.name,
+                        core_format='b64',
+                        prog=self.app.elf_file,
                     )
                     with open(os.path.join(self.logdir, f'coredump_output_{i}'), 'w') as fw:
                         with redirect_stdout(fw):
@@ -139,7 +141,7 @@ class IdfDut(SerialDut):
         else:
             raise ValueError(f'Invalid coredump format. Use _parse_b64_coredump for UART')
 
-        with self.serial.disable_redirect_thread():
+        with self.serial.disable_redirect_serial():
             coredump = CoreDump(
                 chip=self.target,
                 core_format=core_format,
