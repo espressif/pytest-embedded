@@ -2,7 +2,13 @@ import os
 import re
 import tempfile
 
+import pytest
 from pytest_embedded_idf.dut import IdfDut
+
+toolchain_required = pytest.mark.skipif(
+    os.getenv('PATH') is None or os.path.join('riscv32-esp-elf-gdb', 'bin') not in os.getenv('PATH'),
+    reason="'riscv32-esp-elf-gdb' is not found in $PATH. The test execution will be skipped",
+)
 
 
 def test_idf_serial_flash(testdir):
@@ -345,6 +351,59 @@ def test_erase_flash(testdir):
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
         '--target', 'esp32',
     )
+
+    result.assert_outcomes(passed=1)
+
+
+@toolchain_required
+def test_check_coredump(testdir, caplog, first_index_of_messages):
+    testdir.makepyfile(r"""
+        import pexpect
+        import pytest
+
+        def test_check_coredump(dut):
+            dut.expect(pexpect.TIMEOUT, timeout=10)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
+        '--target', 'esp32c3',
+        '--panic-output-decode-script', os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
+        '--log-cli-level', 'INFO',
+    )
+    first_index_of_messages(
+        re.compile(r'app_main \(\) at /COMPONENT_MAIN_DIR/hello_world_main.c:17', re.MULTILINE),
+        caplog.messages,
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@toolchain_required
+def test_skip_check_coredump(testdir, caplog, first_index_of_messages):
+    testdir.makepyfile(r"""
+        import pexpect
+        import pytest
+
+        def test_skip_check_coredump(dut):
+            dut.expect(pexpect.TIMEOUT, timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
+        '--panic-output-decode-script', os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
+        '--skip-check-coredump', 'True',
+        '--log-cli-level', 'INFO',
+    )
+    with pytest.raises(AssertionError):
+        first_index_of_messages(
+            re.compile(r'app_main \(\) at /COMPONENT_MAIN_DIR/hello_world_main.c:17', re.MULTILINE),
+            caplog.messages,
+        )
 
     result.assert_outcomes(passed=1)
 
