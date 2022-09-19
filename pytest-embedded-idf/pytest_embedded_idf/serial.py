@@ -5,7 +5,7 @@ import tempfile
 from typing import Dict, Optional, TextIO, Union
 
 import esptool
-from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
+from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
 
@@ -123,10 +123,8 @@ class IdfSerial(EspSerial):
             'verify': False,
             'ignore_flash_encryption_efuse_setting': False,
             'erase_all': False,
+            'force': False,
         }
-
-        if self.ESPTOOL_VERSION == EsptoolVersion.V4:
-            default_kwargs['force'] = False
 
         if self.erase_all:
             default_kwargs['erase_all'] = True

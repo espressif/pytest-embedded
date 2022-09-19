@@ -1,19 +1,16 @@
 import contextlib
 import functools
 import logging
-from enum import Enum
 from typing import Dict, Optional
 
 import esptool
 import serial as pyserial
-from esptool import CHIP_DEFS, FatalError, detect_chip
+from esptool import CHIP_DEFS, FatalError
+from esptool import __version__ as ESPTOOL_VERSION
+from esptool import detect_chip
+from esptool.targets import CHIP_LIST as ESPTOOL_CHIPS
 from pytest_embedded.log import MessageQueue
 from pytest_embedded_serial.dut import Serial
-
-
-class EsptoolVersion(Enum):
-    V3 = 3
-    V4 = 4
 
 
 class EspSerial(Serial):
@@ -22,23 +19,6 @@ class EspSerial(Serial):
     """
 
     ESPTOOL_DEFAULT_BAUDRATE = 921600
-
-    try:
-        # esptool>=4.0
-        from esptool import __version__
-        from esptool.loader import ESPLoader
-        from esptool.targets import CHIP_LIST
-
-        ESPTOOL_VERSION = EsptoolVersion.V4
-        ESPTOOL_CHIPS = CHIP_LIST
-        _ESPTOOL_RAW_VERSION = __version__
-    except (AttributeError, ModuleNotFoundError):
-        # esptool<4.0
-        from esptool import SUPPORTED_CHIPS, ESPLoader, __version__
-
-        ESPTOOL_VERSION = EsptoolVersion.V3
-        ESPTOOL_CHIPS = SUPPORTED_CHIPS
-        _ESPTOOL_RAW_VERSION = __version__
 
     def __init__(
         self,
@@ -76,10 +56,10 @@ class EspSerial(Serial):
             ports = [port]
 
         # normal loader
-        if esptool_target not in (['auto'] + self.ESPTOOL_CHIPS):
+        if esptool_target not in (['auto'] + ESPTOOL_CHIPS):
             raise ValueError(
-                f'esptool version {self._ESPTOOL_RAW_VERSION} not support target {esptool_target}\n'
-                f'Supported targets: {self.ESPTOOL_CHIPS}'
+                f'esptool version {ESPTOOL_VERSION} not support target {esptool_target}\n'
+                f'Supported targets: {ESPTOOL_CHIPS}'
             )
 
         with contextlib.redirect_stdout(msg_queue):

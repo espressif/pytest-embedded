@@ -25,7 +25,7 @@ URL = 'https://docs.espressif.com/projects/pytest-embedded/en/latest/'
 VERSION = get_version()
 REQUIRES = [
     f'pytest-embedded-serial~={VERSION}',
-    'esptool>=3.1',
+    'esptool>=4.0',
 ]
 ENTRY_POINTS = {}
 

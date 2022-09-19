@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import esptool
-from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
+from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import ArduinoApp
 
@@ -60,11 +60,9 @@ class ArduinoSerial(EspSerial):
             'ignore_flash_encryption_efuse_setting': False,
             'erase_all': False,
             'encrypt': False,
+            'force': False,
+            'chip': self.app.target,
         }
-
-        if self.ESPTOOL_VERSION == EsptoolVersion.V4:
-            default_kwargs['force'] = False
-            default_kwargs['chip'] = self.app.target
 
         if self.erase_all:
             default_kwargs['erase_all'] = True

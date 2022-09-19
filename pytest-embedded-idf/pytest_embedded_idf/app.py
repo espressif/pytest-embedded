@@ -205,13 +205,8 @@ class IdfApp(App):
         Returns:
             sha256 value appended to app
         """
-        from pytest_embedded_serial_esp.serial import EspSerial, EsptoolVersion
-
-        if EspSerial.ESPTOOL_VERSION == EsptoolVersion.V3:
-            from esptool import LoadFirmwareImage, hexify
-        else:
-            from esptool.bin_image import LoadFirmwareImage
-            from esptool.util import hexify
+        from esptool.bin_image import LoadFirmwareImage
+        from esptool.util import hexify
 
         image = LoadFirmwareImage(self.target, filepath)
         if image.append_digest:
