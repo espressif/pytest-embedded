@@ -1,5 +1,6 @@
 import functools
 import logging
+import multiprocessing
 import os.path
 import textwrap
 from typing import AnyStr, Callable, List, Match, Optional, Union
@@ -7,7 +8,7 @@ from typing import AnyStr, Callable, List, Match, Optional, Union
 import pexpect
 
 from .app import App
-from .log import PexpectProcess
+from .log import _PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
 from .utils import remove_asci_color_code, to_bytes, to_list, to_str
 
@@ -15,44 +16,50 @@ from .utils import remove_asci_color_code, to_bytes, to_list, to_str
 class Dut:
     """
     Device under test (DUT) base class
+
+    Attributes:
+        app (App): `App` instance
+        logfile (str): log file path
+        logdir (str): log folder path
+        test_case_name (str): test case name
     """
 
     def __init__(
-        self, pexpect_proc: PexpectProcess, app: App, pexpect_logfile: str, test_case_name: str, **kwargs
+        self,
+        pexpect_proc: _PexpectProcess,
+        msg_queue: multiprocessing.Queue,
+        app: App,
+        pexpect_logfile: str,
+        test_case_name: str,
+        **kwargs,
     ) -> None:
-        """
-        Args:
-            pexpect_proc: `PexpectProcess` instance
-            app: `App` instance
-        """
-        self.pexpect_proc = pexpect_proc
-        self.app = app
+        self._p = pexpect_proc
+        self._q = msg_queue
 
+        self.app = app
         self.logfile = pexpect_logfile
         self.logdir = os.path.dirname(self.logfile)
         logging.info(f'Logs recorded under folder: {self.logdir}')
 
         self.test_case_name = test_case_name
-        self.dut_name = os.path.splitext(os.path.basename(pexpect_logfile))[0]
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
         # junit related
-        # TODO: if request.option.xmlpath
         self.testsuite = TestSuite(self.test_case_name)
 
     def close(self) -> None:
         if self.testsuite.testcases:
-            junit_report = os.path.join(self.logdir, f'{self.dut_name}.xml')
+            junit_report = os.path.splitext(self.logfile)[0] + '.xml'
             self.testsuite.dump(junit_report)
             logging.info(f'Created unity output junit report: {junit_report}')
 
-    def write(self, *args, **kwargs) -> None:
+    def write(self, s: AnyStr) -> None:
         """
-        Write to `pexpect_proc`. All arguments would pass to `pexpect.spawn.write()`
+        Write to the `MessageQueue` instance
         """
-        self.pexpect_proc.write(*args, **kwargs)
+        self._q.put(to_bytes(s))
 
     def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:  # noqa
         @functools.wraps(func)  # noqa
@@ -66,9 +73,9 @@ class Dut:
                     index = func(self, pattern, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
                     wrapped_buffer_bytes = textwrap.shorten(
-                        remove_asci_color_code(to_str(self.pexpect_proc.buffer)),
+                        remove_asci_color_code(to_str(self._p.buffer)),
                         width=200,
-                        placeholder=f'... (total {len(self.pexpect_proc.buffer)} bytes)',
+                        placeholder=f'... (total {len(self._p.buffer)} bytes)',
                     )
                     debug_str = (
                         f'Not found "{str(pattern)}"\n'
@@ -77,10 +84,10 @@ class Dut:
                     )
                     raise e.__class__(debug_str) from e
                 else:
-                    if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                        res.append(self.pexpect_proc.before.rstrip())
+                    if self._p.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                        res.append(self._p.before.rstrip())
                     else:
-                        res.append(self.pexpect_proc.match)
+                        res.append(self._p.match)
 
                 if expect_all:
                     patterns.pop(index)
@@ -97,31 +104,48 @@ class Dut:
     @_pexpect_func  # noqa
     def expect(self, pattern, **kwargs) -> Match:  # noqa
         """
-        Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect()`.
+        Expect the `pattern` from the internal buffer. All the arguments would pass to `pexpect.expect()`.
+
+        Args:
+            pattern: string, or compiled regex, or a list of string and compiled regex.
+
+        Keyword Args:
+            timeout (str): would raise `pexpect.TIMEOUT` exception when pattern is not matched
+            expect_all (bool): need to match all specified patterns if this flag is `True`.
+                Otherwise match any of them could pass
 
         Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            (AnyStr): if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
 
-        Returns:
-            re.Match: if matched given string.
+            (re.Match): if matched given string.
         """
-        return self.pexpect_proc.expect(pattern, **kwargs)
+        return self._p.expect(pattern, **kwargs)
 
     @_pexpect_func  # noqa
     def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
         """
-        Expect from `pexpect_proc`. All the arguments would pass to `pexpect.expect_exact()`.
+        Expect the `pattern` from the internal buffer. All the arguments would pass to `pexpect.expect_exact()`.
+
+        Args:
+            pattern: string, or a list of string
+
+        Keyword Args:
+            timeout (str): would raise `pexpect.TIMEOUT` exception when pattern is not matched
+            expect_all (bool): need to match all specified patterns if this flag is `True`.
+                Otherwise match any of them could pass
 
         Returns:
-            AnyStr: if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            (AnyStr): if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
 
-        Returns:
-            re.Match: if matched given string.
+            (re.Match): if matched given string.
         """
-        return self.pexpect_proc.expect_exact(pattern, **kwargs)
+        return self._p.expect_exact(pattern, **kwargs)
 
     def expect_unity_test_output(
-        self, remove_asci_escape_code: bool = True, timeout: int = 60, extra_before: Optional[AnyStr] = None
+        self,
+        remove_asci_escape_code: bool = True,
+        timeout: int = 60,
+        extra_before: Optional[AnyStr] = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -140,9 +164,9 @@ class Dut:
         self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
 
         if extra_before:
-            log = to_bytes(extra_before) + self.pexpect_proc.before
+            log = to_bytes(extra_before) + self._p.before
         else:
-            log = self.pexpect_proc.before
+            log = self._p.before
 
         if remove_asci_escape_code:
             log = remove_asci_color_code(log)

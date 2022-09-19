@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from pytest_embedded.app import App
 
@@ -10,8 +10,6 @@ class ArduinoApp(App):
     Arduino App class
 
     Attributes:
-        app_path (str): Application path.
-        build_dir (str): Build directory.
         sketch (str): Sketch name.
         fqbn (str): Fully Qualified Board Name.
         target (str) : ESPxx chip.
@@ -30,19 +28,11 @@ class ArduinoApp(App):
 
     def __init__(
         self,
-        app_path: Optional[str] = None,
-        build_dir: Optional[str] = None,
         **kwargs,
     ):
-        """
-        Args:
-            app_path (str): Application path.
-            build_dir: Build directory.
-        """
+        super().__init__(**kwargs)
 
-        super().__init__(app_path, build_dir, **kwargs)
-
-        self.sketch = os.path.basename(app_path)
+        self.sketch = os.path.basename(self.app_path)
         self.fqbn = self._get_fqbn(self.binary_path)
         self.target = self.fqbn.split(':')[2]
         self.flash_files = self._get_bin_files(self.binary_path, self.sketch, self.target)

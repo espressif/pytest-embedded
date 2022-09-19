@@ -1,8 +1,9 @@
+import contextlib
 import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import DuplicateStdout, PexpectProcess, live_print_call
+from pytest_embedded.log import MessageQueue, live_print_call
 from pytest_embedded_idf.app import IdfApp
 
 from . import DEFAULT_IMAGE_FN
@@ -68,32 +69,21 @@ class QemuApp(IdfApp):
     QEMU App class
 
     Attributes:
-        pexpect_proc (PexpectProcess): pexpect process
         image_path (str): QEMU flash-able bin path
     """
 
     def __init__(
         self,
-        pexpect_proc: PexpectProcess,
-        app_path: Optional[str] = None,
-        build_dir: Optional[str] = None,
-        part_tool: Optional[str] = None,
+        msg_queue: MessageQueue,
         qemu_image_path: Optional[str] = None,
         skip_regenerate_image: Optional[bool] = False,
         **kwargs,
     ):
-        """
-        Args:
-            pexpect_proc: pexpect process
-            app_path: App path
-            build_dir: Build directory
-            part_tool: Partition tool path
-            qemu_image_path: QEMU flashable bin path
-            skip_regenerate_image: skip regenerate QEMU image
-        """
-        super().__init__(app_path, build_dir=build_dir, part_tool=part_tool, **kwargs)
-        self.pexpect_proc = pexpect_proc
-        self.image_path = qemu_image_path or os.path.join(self.app_path, self.build_dir, DEFAULT_IMAGE_FN)
+        self._q = msg_queue
+
+        super().__init__(**kwargs)
+
+        self.image_path = qemu_image_path or os.path.join(self.binary_path, DEFAULT_IMAGE_FN)
         self.skip_regenerate_image = skip_regenerate_image
 
         if self.target != 'esp32':
@@ -108,6 +98,6 @@ class QemuApp(IdfApp):
         if os.path.exists(self.image_path) and self.skip_regenerate_image:
             logging.info(f'Using existing image: {self.image_path}')
         else:
-            with DuplicateStdout(self.pexpect_proc):
+            with contextlib.redirect_stdout(self._q):
                 image_maker = IdfFlashImageMaker(self, self.image_path)
                 image_maker.make_bin()

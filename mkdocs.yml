@@ -2,6 +2,8 @@ site_name: pytest-embedded
 
 theme:
   name: "material"
+  features:
+    - toc.integrate
   palette:
     - scheme: default
       toggle:
@@ -42,7 +44,6 @@ plugins:
       handlers:
         python:
           rendering:
-            members_order: 'source'
             show_root_heading: True
       watch:
         - pytest-embedded
