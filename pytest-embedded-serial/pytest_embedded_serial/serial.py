@@ -68,6 +68,9 @@ class Serial:
         self.start_redirect_serial_process()
 
     def start_redirect_serial_process(self):
+        if self.proc and self.proc.is_alive():
+            return
+
         self.proc = _SerialRedirectProcess(self._q, self.port, self.port_config)
         self.proc.start()
 
