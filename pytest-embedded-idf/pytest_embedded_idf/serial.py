@@ -93,47 +93,47 @@ class IdfSerial(EspSerial):
         encrypt_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if file.encrypted]
 
         nvs_file = None
-        if self.erase_nvs:
-            address = self.app.partition_table['nvs']['offset']
-            size = self.app.partition_table['nvs']['size']
-            nvs_file = tempfile.NamedTemporaryFile(delete=False)
-            nvs_file.write(b'\xff' * size)
-            if not isinstance(address, int):
-                address = int(address, 0)
-
-            if self.app.flash_settings['encrypt']:
-                encrypt_files.append((address, open(nvs_file.name, 'rb')))
-            else:
-                flash_files.append((address, open(nvs_file.name, 'rb')))
-
-        # fake flasher args object, this is a hack until
-        # esptool Python API is improved
-        class FlashArgs(object):
-            def __init__(self, attributes):
-                for key, value in attributes.items():
-                    self.__setattr__(key, value)
-
-        # write_flash expects the parameter encrypt_files to be None and not
-        # an empty list, so perform the check here
-        default_kwargs = {
-            'addr_filename': flash_files,
-            'encrypt_files': encrypt_files or None,
-            'no_stub': False,
-            'compress': True,
-            'verify': False,
-            'ignore_flash_encryption_efuse_setting': False,
-            'erase_all': False,
-            'force': False,
-        }
-
-        if self.erase_all:
-            default_kwargs['erase_all'] = True
-
-        default_kwargs.update(self.app.flash_settings)
-        default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
-        args = FlashArgs(default_kwargs)
-
         try:
+            if self.erase_nvs:
+                address = self.app.partition_table['nvs']['offset']
+                size = self.app.partition_table['nvs']['size']
+                nvs_file = tempfile.NamedTemporaryFile(delete=False)
+                nvs_file.write(b'\xff' * size)
+                if not isinstance(address, int):
+                    address = int(address, 0)
+
+                if self.app.flash_settings['encrypt']:
+                    encrypt_files.append((address, open(nvs_file.name, 'rb')))
+                else:
+                    flash_files.append((address, open(nvs_file.name, 'rb')))
+
+            # fake flasher args object, this is a hack until
+            # esptool Python API is improved
+            class FlashArgs(object):
+                def __init__(self, attributes):
+                    for key, value in attributes.items():
+                        self.__setattr__(key, value)
+
+            # write_flash expects the parameter encrypt_files to be None and not
+            # an empty list, so perform the check here
+            default_kwargs = {
+                'addr_filename': flash_files,
+                'encrypt_files': encrypt_files or None,
+                'no_stub': False,
+                'compress': True,
+                'verify': False,
+                'ignore_flash_encryption_efuse_setting': False,
+                'erase_all': False,
+                'force': False,
+            }
+
+            if self.erase_all:
+                default_kwargs['erase_all'] = True
+
+            default_kwargs.update(self.app.flash_settings)
+            default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
+            args = FlashArgs(default_kwargs)
+
             self.stub.change_baud(self.esptool_baud)
             esptool.detect_flash_size(self.stub, args)
             esptool.write_flash(self.stub, args)
