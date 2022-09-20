@@ -1,3 +1,38 @@
+## v1.0.0a0 (2022-09-20)
+
+### Feat
+
+- add fixture `msg_queue`
+- add fixture `session_root_logdir` and cli option `--root-logdir`
+- simplify import path by adding more object to `__all__`
+- **idf**: Support panic handler output for RISC-V targets
+
+### Fix
+
+- remove `autouse=True` for fixture `session_tempdir`
+
+### Refactor
+
+- use multiprocessing.Process with Queue. Now you may use `threading.Thread` safely in your scripts
+
+
+### Breaking Changes
+
+- **esp**: Support `esptool>4.0` only
+- `Dut` and all subclasses
+    - remove attribute `pexpect_proc`
+- `Serial` and all subclasses
+    - rename `disable_redirect_thread()` to `disable_redirect_serial()`
+    - remove `stop_redirect_thread()`
+    - add `start_redirect_serial_process()`
+- `DuplicateStdoutPopen` and all subclasses
+    - remove `create_forward_io_thread()`, the redirect process would be auto-created
+    - rename `send()` to `write()` in order to keep the consistency with other classes
+- remove `DuplicateStdout`. Now you may use `contextlib.redirect_stdout(msg_queue)` 
+instead
+- remove `DuplicateStdoutMixin`
+
+
 ## v0.8.2 (2022-08-23)
 
 ### Fix
