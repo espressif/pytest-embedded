@@ -1,8 +1,9 @@
 import contextlib
 import copy
+import inspect
 import logging
 import multiprocessing
-import time
+import queue
 from typing import Dict
 
 import serial as pyserial
@@ -46,6 +47,7 @@ class Serial:
         **kwargs,
     ):
         self._q = msg_queue
+
         self.port = port
         self.baud = baud
 
@@ -99,10 +101,8 @@ class Serial:
         """
         killed = False
         if self.proc and self.proc.is_alive():
-            self.proc.terminate()
-            # wait the serial port is closed by the `Process.terminate()`
-            # mostly for windows compatibility
-            time.sleep(1)
+            while self.proc.is_alive():
+                self.proc.terminate()
             killed = True
 
         yield killed
@@ -113,7 +113,7 @@ class Serial:
 
 class _SerialRedirectProcess(multiprocessing.Process):
     """
-    Redirect serial process
+    Redirect serial process. All pyserial.Serial methods was also runnable within this class.
 
     Warning:
         All attributes under this class or its sub-classes must be serializable.
@@ -121,6 +121,8 @@ class _SerialRedirectProcess(multiprocessing.Process):
 
     def __init__(self, msg_queue, port, port_config):
         self._q = msg_queue
+        self._event_q = multiprocessing.Queue()
+
         self.port = port
         self.port_config = port_config
 
@@ -131,7 +133,45 @@ class _SerialRedirectProcess(multiprocessing.Process):
 
         while _serial.is_open:
             try:
+                self._event_loop(_serial)
+            except Exception as e:
+                logging.error(e)
+
+    def _event_loop(self, _serial: pyserial.Serial):
+        """
+        Since pyserial.Serial instance can't be serialized, we pass the `_serial` as an reference of the object
+        defined in _forward_io. The pyserial.Serial methods are mocked to send an event to the queue, and the real
+        method is running here.
+        """
+        try:
+            _e, _args, _kwargs = self._event_q.get_nowait()
+            logging.debug('running method %s with args %s and kwargs %s', _e, _args, _kwargs)
+        except queue.Empty:
+            _e, _args, _kwargs = 'read', [], {}
+
+        if _e == 'read':
+            try:
                 s = _serial.read_all()
                 self._q.put(s)
             except Exception as e:
                 logging.error(e)
+        else:
+            try:
+                getattr(_serial, _e)(*_args, **_kwargs)
+            except Exception as e:
+                logging.error(e)
+
+
+def _mock_pyserial_method(name):
+    def real_func(self, *args, **kwargs):
+        logging.debug('Mocking method "%s" with args %s kwargs %s', name, args, kwargs)
+        self._event_q.put((name, args, kwargs))
+
+    return real_func
+
+
+# mock pyserial Serial methods into this class
+_pyserial_func = inspect.getmembers(pyserial.Serial, predicate=inspect.isfunction)
+for _f_name, _ in _pyserial_func:
+    if not _f_name.startswith('__'):  # not magic functions
+        setattr(_SerialRedirectProcess, _f_name, _mock_pyserial_method(_f_name))

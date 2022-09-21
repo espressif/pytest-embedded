@@ -20,4 +20,4 @@ class SerialDut(Dut):
         self.serial = serial
 
     def write(self, data: AnyStr) -> None:
-        return self._q.put(to_bytes(data, '\n'))
+        self.serial.proc.write(to_bytes(data, '\n'))
