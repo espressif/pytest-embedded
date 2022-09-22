@@ -1,3 +1,9 @@
+## v1.0.0a1 (2022-09-22)
+
+### Fix
+
+- **serial**: event loop for interacting with `serial.proc`
+
 ## v1.0.0a0 (2022-09-20)
 
 ### Feat
