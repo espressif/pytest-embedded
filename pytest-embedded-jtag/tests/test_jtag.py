@@ -14,18 +14,15 @@ def test_pexpect_by_jtag(testdir):
         import os
         import time
 
-        def test_pexpect_by_jtag(dut):
-            dut.gdb.gdb_set('mi-async', 'on')
-            dut.gdb.file_exec_and_symbols(os.path.join(dut.app.app_path, 'build', 'hello-world.elf'))
-            dut.gdb.interpreter_exec_console(f'source {os.path.join(dut.app.app_path, "gdbinit")}')
+        def test_pexpect_by_jtag(dut: IdfDut):
+            dut.gdb.write(f'target remote 127.0.0.1:{dut.openocd.gdb_port}')
+            dut.gdb.write(f'file {dut.app.elf_file}')
+            dut.gdb.write('mon reset halt')
+            dut.gdb.write('thb app_main')
+            dut.gdb.write('c')
             dut.expect('hit Temporary breakpoint')
-
-            time.sleep(5)  # wait a while for the breakpoint
-            dut.gdb.break_insert('esp_restart')
-            dut.expect('\^done,bkpt={number="3",type="breakpoint",disp="keep",enabled="y",addr="0x40081d04",func="esp_restart"')
-
-            dut.gdb.exec_continue_all()
-            dut.expect('Restarting now.')
+            dut.gdb.write('c')
+            dut.expect('Hello world!')
     """)
 
     result = testdir.runpytest(

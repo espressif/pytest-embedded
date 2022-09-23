@@ -7,10 +7,12 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import telnetlib
 import tempfile
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from pathlib import Path
+from time import sleep
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -172,12 +174,12 @@ def pytest_addoption(parser):
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
     jtag_group.addoption(
         '--gdb-cli-args',
-        help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
+        help='GDB cli arguments. (Default: "--quiet"',
     )
     jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
     jtag_group.addoption(
         '--openocd-cli-args',
-        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")',
+        help='openocd cli arguments. (Default: "-f board/esp32-wrover-kit-3.3v.cfg")',
     )
 
     qemu_group = parser.getgroup('embedded-qemu')
@@ -627,7 +629,7 @@ SERVICE_LIB_NAMES = {
 
 FIXTURES_SERVICES = {
     'app': ['base', 'idf', 'qemu', 'arduino'],
-    'serial': ['serial', 'esp', 'idf', 'arduino'],
+    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino'],
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
@@ -907,13 +909,12 @@ def _fixture_classes_and_options(
     classes: Dict[str, type] = {}
     kwargs: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
-    for fixture, provide_services in FIXTURES_SERVICES.items():
+    for fixture, _ in FIXTURES_SERVICES.items():
         if fixture == 'app':
             kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
             if 'idf' in _services:
                 if 'qemu' in _services:
-                    from pytest_embedded_qemu import DEFAULT_IMAGE_FN
-                    from pytest_embedded_qemu.app import QemuApp
+                    from pytest_embedded_qemu import DEFAULT_IMAGE_FN, QemuApp
 
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
@@ -925,7 +926,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_idf.app import IdfApp
+                    from pytest_embedded_idf import IdfApp
 
                     classes[fixture] = IdfApp
                     kwargs[fixture].update(
@@ -934,7 +935,7 @@ def _fixture_classes_and_options(
                         }
                     )
             elif 'arduino' in _services:
-                from pytest_embedded_arduino.app import ArduinoApp
+                from pytest_embedded_arduino import ArduinoApp
 
                 classes[fixture] = ArduinoApp
             else:
@@ -943,7 +944,7 @@ def _fixture_classes_and_options(
                 classes[fixture] = App
         elif fixture == 'serial':
             if 'esp' in _services:
-                from pytest_embedded_serial_esp.serial import EspSerial
+                from pytest_embedded_serial_esp import EspSerial
 
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
@@ -956,7 +957,7 @@ def _fixture_classes_and_options(
                     'erase_all': erase_all,
                 }
                 if 'idf' in _services:
-                    from pytest_embedded_idf.serial import IdfSerial
+                    from pytest_embedded_idf import IdfSerial
 
                     classes[fixture] = IdfSerial
                     kwargs[fixture].update(
@@ -967,7 +968,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 elif 'arduino' in _services:
-                    from pytest_embedded_arduino.serial import ArduinoSerial
+                    from pytest_embedded_arduino import ArduinoSerial
 
                     classes[fixture] = ArduinoSerial
                     kwargs[fixture].update(
@@ -976,7 +977,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_serial_esp.serial import EspSerial
+                    from pytest_embedded_serial_esp import EspSerial
 
                     classes[fixture] = EspSerial
             elif 'serial' in _services or 'jtag' in _services:
@@ -991,16 +992,17 @@ def _fixture_classes_and_options(
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:
                 if fixture == 'openocd':
-                    from pytest_embedded_jtag.openocd import OpenOcd
+                    from pytest_embedded_jtag import OpenOcd
 
                     classes[fixture] = OpenOcd
                     kwargs[fixture] = {
                         'msg_queue': msg_queue,
                         'openocd_prog_path': openocd_prog_path,
                         'openocd_cli_args': openocd_cli_args,
+                        'port_offset': dut_index,
                     }
                 else:
-                    from pytest_embedded_jtag.gdb import Gdb
+                    from pytest_embedded_jtag import Gdb
 
                     classes[fixture] = Gdb
                     kwargs[fixture] = {
@@ -1010,8 +1012,7 @@ def _fixture_classes_and_options(
                     }
         elif fixture == 'qemu':
             if 'qemu' in _services:
-                from pytest_embedded_qemu import DEFAULT_IMAGE_FN
-                from pytest_embedded_qemu.qemu import Qemu
+                from pytest_embedded_qemu import DEFAULT_IMAGE_FN, Qemu
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
@@ -1023,6 +1024,7 @@ def _fixture_classes_and_options(
                     'qemu_extra_args': qemu_extra_args,
                 }
         elif fixture == 'dut':
+            classes[fixture] = Dut
             kwargs[fixture] = {
                 'pexpect_proc': pexpect_proc,
                 'msg_queue': msg_queue,
@@ -1031,7 +1033,7 @@ def _fixture_classes_and_options(
                 'test_case_name': test_case_name,
             }
             if 'qemu' in _services:
-                from pytest_embedded_qemu.dut import QemuDut
+                from pytest_embedded_qemu import QemuDut
 
                 classes[fixture] = QemuDut
                 kwargs[fixture].update(
@@ -1040,9 +1042,9 @@ def _fixture_classes_and_options(
                     }
                 )
             elif 'jtag' in _services:
-                from pytest_embedded_jtag.dut import JtagDut
+                from pytest_embedded_serial import SerialDut
 
-                classes[fixture] = JtagDut
+                classes[fixture] = SerialDut
                 kwargs[fixture].update(
                     {
                         'serial': None,
@@ -1052,7 +1054,7 @@ def _fixture_classes_and_options(
                 )
             elif 'serial' in _services or 'esp' in _services:
                 if 'esp' in _services and 'idf' in _services:
-                    from pytest_embedded_idf.dut import IdfDut
+                    from pytest_embedded_idf import IdfDut
 
                     classes[fixture] = IdfDut
                     kwargs[fixture].update(
@@ -1062,7 +1064,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_serial.dut import SerialDut
+                    from pytest_embedded_serial import SerialDut
 
                     classes[fixture] = SerialDut
 
@@ -1071,10 +1073,6 @@ def _fixture_classes_and_options(
                         'serial': None,
                     }
                 )
-            else:
-                from .dut import Dut
-
-                classes[fixture] = Dut
 
     return ClassCliOptions(classes, kwargs)
 
@@ -1170,6 +1168,12 @@ def dut(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
+
+    if 'openocd' in kwargs and openocd:
+        # open telnet port to interact with openocd
+        sleep(1)  # make sure openocd already opened telnet port
+        kwargs['telnet'] = telnetlib.Telnet('127.0.0.1', openocd.telnet_port, 5)
+
     return cls(**_drop_none_kwargs(kwargs))
 
 

@@ -42,7 +42,7 @@ class Serial:
     def __init__(
         self,
         msg_queue: multiprocessing.Queue,
-        port: str,
+        port: str = None,
         baud: int = DEFAULT_BAUDRATE,
         **kwargs,
     ):
