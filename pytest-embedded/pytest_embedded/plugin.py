@@ -7,12 +7,10 @@ import multiprocessing
 import os
 import subprocess
 import sys
-import telnetlib
 import tempfile
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from pathlib import Path
-from time import sleep
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -997,6 +995,7 @@ def _fixture_classes_and_options(
                     classes[fixture] = OpenOcd
                     kwargs[fixture] = {
                         'msg_queue': msg_queue,
+                        'app': None,
                         'openocd_prog_path': openocd_prog_path,
                         'openocd_cli_args': openocd_cli_args,
                         'port_offset': dut_index,
@@ -1042,9 +1041,15 @@ def _fixture_classes_and_options(
                     }
                 )
             elif 'jtag' in _services:
-                from pytest_embedded_serial import SerialDut
+                if 'idf' in _services:
+                    from pytest_embedded_idf import IdfDut
 
-                classes[fixture] = SerialDut
+                    classes[fixture] = IdfDut
+                else:
+                    from pytest_embedded_serial import SerialDut
+
+                    classes[fixture] = SerialDut
+
                 kwargs[fixture].update(
                     {
                         'serial': None,
@@ -1168,11 +1173,6 @@ def dut(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
-
-    if 'openocd' in kwargs and openocd:
-        # open telnet port to interact with openocd
-        sleep(1)  # make sure openocd already opened telnet port
-        kwargs['telnet'] = telnetlib.Telnet('127.0.0.1', openocd.telnet_port, 5)
 
     return cls(**_drop_none_kwargs(kwargs))
 

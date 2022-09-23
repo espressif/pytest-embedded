@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 from pytest_embedded_serial.dut import SerialDut
 
 from .app import IdfApp
-from .serial import IdfSerial
 
 
 @dataclass
@@ -60,14 +59,15 @@ class IdfDut(SerialDut):
     PANIC_END = b'ELF file SHA256:'
 
     app: IdfApp
-    serial: IdfSerial
 
-    def __init__(self, skip_check_coredump: bool = False, panic_output_decode_script: str = None, **kwargs) -> None:
-        super().__init__(**kwargs)
-
-        self.target = self.serial.target
+    def __init__(
+        self, app: IdfApp, skip_check_coredump: bool = False, panic_output_decode_script: str = None, **kwargs
+    ) -> None:
+        self.target = app.target
         self.skip_check_coredump = skip_check_coredump
         self._panic_output_decode_script = panic_output_decode_script
+
+        super().__init__(app=app, **kwargs)
 
     @property
     def toolchain_prefix(self) -> str:
@@ -330,3 +330,13 @@ class IdfDut(SerialDut):
                 raise NotImplementedError('Unrecognized test case:', case)
 
         return test_menu
+
+    def setup_jtag(self):
+        for _f in self.app.flash_files:
+            if _f.encrypted:
+                raise ValueError('Encrypted files can\'t be flashed in via JTAG')
+            self.openocd.write(f'program_esp {_f.file_path} {hex(_f.offset)} verify')
+            self.expect_exact('** Verify OK **')
+
+        super().setup_jtag()
+        self.gdb.write(f'file {self.app.elf_file}')

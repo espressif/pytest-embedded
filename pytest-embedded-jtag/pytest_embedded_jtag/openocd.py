@@ -1,9 +1,12 @@
 import logging
 import os
 import shlex
-from typing import Optional
+import telnetlib
+import time
+from typing import AnyStr, Optional
 
 from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
+from pytest_embedded.utils import to_bytes, to_str
 
 
 class OpenOcd(DuplicateStdoutPopen):
@@ -52,3 +55,26 @@ class OpenOcd(DuplicateStdoutPopen):
         logging.info(' '.join(cmd))
 
         super().__init__(msg_queue, cmd, **kwargs)
+
+        # open telnet port to interact with openocd
+        for i in range(30):
+            try:
+                self.telnet = telnetlib.Telnet('127.0.0.1', self.telnet_port, 5)
+                break
+            except ConnectionRefusedError:
+                time.sleep(1)
+        else:
+            raise ConnectionRefusedError
+
+    def write(self, cmd: AnyStr) -> str:
+        # read all output already sent
+        resp = self.telnet.read_very_eager()
+        logging.debug(f'TELNET <-: {resp}')
+
+        logging.debug(f'TELNET ->: {cmd}')
+        self.telnet.write(to_bytes(cmd, '\n'))
+
+        resp = self.telnet.read_until(b'>')
+        logging.debug(f'TELNET <-: {resp}')
+
+        return to_str(resp)

@@ -176,6 +176,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
         Args:
             s: bytes or str
         """
+        logging.debug(to_str(s))
         self.stdin.write(to_bytes(s, '\n'))
 
 

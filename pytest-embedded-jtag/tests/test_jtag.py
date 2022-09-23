@@ -14,9 +14,7 @@ def test_pexpect_by_jtag(testdir):
         import os
         import time
 
-        def test_pexpect_by_jtag(dut: IdfDut):
-            dut.gdb.write(f'target remote 127.0.0.1:{dut.openocd.gdb_port}')
-            dut.gdb.write(f'file {dut.app.elf_file}')
+        def test_pexpect_by_jtag(dut):
             dut.gdb.write('mon reset halt')
             dut.gdb.write('thb app_main')
             dut.gdb.write('c')
@@ -27,9 +25,10 @@ def test_pexpect_by_jtag(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'jtag',
+        '--embedded-services', 'jtag,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--port', '/dev/ttyUSB1',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)

@@ -37,5 +37,11 @@ class SerialDut(Dut):
         self.gdb = gdb
         self.telnet = telnet
 
+        if self.openocd and self.gdb:
+            self.setup_jtag()
+
     def write(self, data: AnyStr) -> None:
-        self.serial.proc.write(to_bytes(data, '\n'))
+        self.serial.proc.write(to_bytes(data, '\n'))  # noqa
+
+    def setup_jtag(self):
+        self.gdb.write(f'target extended-remote :{self.openocd.gdb_port}')
