@@ -315,6 +315,8 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if _COUNT == 1:
+            if func.__name__ == 'dut_index':
+                kwargs['count'] = 1
             return func(*args, **kwargs)
 
         res = tuple()
@@ -326,6 +328,10 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
                     current_kwargs[k] = getter(v)
                 else:
                     current_kwargs[k] = v
+
+            if func.__name__ == 'dut_index':
+                current_kwargs['count'] = i
+
             res = tuple(list(res) + [func(*args, **current_kwargs)])
 
         return res
@@ -386,9 +392,7 @@ def multi_dut_generator_fixture(
                         current_kwargs[k] = getter(v)
                     else:
                         current_kwargs[k] = v
-                if func.__name__ in ['_pexpect_logfile', '_listener']:
-                    current_kwargs['count'] = i
-                    current_kwargs['total'] = _COUNT
+
                 res.append(func(*args, **current_kwargs))
             try:
                 yield res
@@ -460,10 +464,22 @@ def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
 
 
 @pytest.fixture
+@multi_dut_fixture
+def dut_index(**kwargs):
+    return kwargs['count']
+
+
+@pytest.fixture
+@multi_dut_fixture
+def dut_total():
+    return _COUNT
+
+
+@pytest.fixture
 @multi_dut_generator_fixture
-def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
-    if 'count' in kwargs:
-        name = f'dut-{kwargs["count"]}'
+def _pexpect_logfile(test_case_tempdir, dut_index, dut_total) -> str:
+    if dut_total > 1:
+        name = f'dut-{dut_index}'
     else:
         name = 'dut'
 
@@ -532,7 +548,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _listener(msg_queue, _pexpect_logfile, with_timestamp, **kwargs) -> multiprocessing.Process:
+def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
     """
     The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
     and do two things together:
@@ -541,8 +557,11 @@ def _listener(msg_queue, _pexpect_logfile, with_timestamp, **kwargs) -> multipro
     2. write the string to `_pexpect_logfile`
     """
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
-
-    kwargs['with_timestamp'] = with_timestamp
+    kwargs = {
+        'with_timestamp': with_timestamp,
+        'count': dut_index,
+        'total': dut_total,
+    }
 
     return _ctx.Process(
         target=_listen,
@@ -856,6 +875,7 @@ def _fixture_classes_and_options(
     qemu_extra_args,
     skip_regenerate_image,
     # pre-initialized fixtures
+    dut_index,
     _pexpect_logfile,
     test_case_name,
     pexpect_proc,
