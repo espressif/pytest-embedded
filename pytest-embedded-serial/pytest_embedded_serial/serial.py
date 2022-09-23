@@ -67,9 +67,9 @@ class Serial:
         self._start()
         self._finalize_init()
 
-        self.start_redirect_serial_process()
+        self.start_redirect_process()
 
-    def start_redirect_serial_process(self):
+    def start_redirect_process(self):
         if self.proc and self.proc.is_alive():
             return
 
@@ -108,7 +108,7 @@ class Serial:
         yield killed
 
         if killed:
-            self.start_redirect_serial_process()
+            self.start_redirect_process()
 
 
 class _SerialRedirectProcess(multiprocessing.Process):
