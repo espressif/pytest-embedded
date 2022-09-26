@@ -1015,6 +1015,7 @@ def _fixture_classes_and_options(
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
+                    'msg_queue': msg_queue,
                     'qemu_image_path': qemu_image_path
                     or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
                     'qemu_prog_path': qemu_prog_path,
