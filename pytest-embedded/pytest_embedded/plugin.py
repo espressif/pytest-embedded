@@ -5,6 +5,7 @@ import importlib
 import logging
 import multiprocessing
 import os
+import subprocess
 import sys
 import tempfile
 from collections import defaultdict, namedtuple
@@ -358,7 +359,11 @@ def multi_dut_generator_fixture(
     def wrapper(*args, **kwargs):
         def _close_or_terminate(obj):
             try:
-                obj.close()
+                if isinstance(obj, subprocess.Popen):
+                    obj.terminate()
+                    obj.kill()
+                else:
+                    obj.close()
             except OSError as e:
                 logging.debug(str(e))
                 pass

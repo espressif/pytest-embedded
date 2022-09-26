@@ -123,6 +123,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
     def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], **kwargs):
         self._q = msg_queue
+        self._p = None
 
         # we use real log file to record output, pipe-like file object won't be non-blocking.
         _log_file = os.path.join(
@@ -154,7 +155,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
         self.close()
 
     def close(self):
-        self._p.terminate()
+        if self._p:
+            self._p.terminate()
 
         self._fw.close()
 
