@@ -14,6 +14,8 @@ class OpenOcd(DuplicateStdoutPopen):
     Class to communicate to OpenOCD
     """
 
+    SOURCE = 'OPENOCD'
+
     OPENOCD_PROG_PATH = 'openocd'
     OPENOCD_DEFAULT_ARGS = '-f board/esp32-wrover-kit-3.3v.cfg'
 

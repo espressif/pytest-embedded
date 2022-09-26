@@ -6,6 +6,8 @@ from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
 
 
 class Gdb(DuplicateStdoutPopen):
+    SOURCE = 'GDB'
+
     GDB_PROG_PATH = 'xtensa-esp32-elf-gdb'
     GDB_DEFAULT_ARGS = '--quiet'
 

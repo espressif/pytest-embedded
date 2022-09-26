@@ -12,6 +12,8 @@ class Qemu(DuplicateStdoutPopen):
     QEMU class
     """
 
+    SOURCE = 'QEMU'
+
     QEMU_PROG_PATH = 'qemu-system-xtensa'
     QEMU_DEFAULT_ARGS = '-nographic -no-reboot -machine esp32'
 

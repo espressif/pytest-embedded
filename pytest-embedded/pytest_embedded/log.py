@@ -121,6 +121,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
     Subclass of `subprocess.Popen` that redirect the output into the `MessageQueue` instance
     """
 
+    SOURCE = 'POPEN'
+
     def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], **kwargs):
         self._q = msg_queue
         self._p = None
@@ -176,7 +178,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
         Args:
             s: bytes or str
         """
-        logging.debug(to_str(s))
+        logging.debug(f'{self.SOURCE} ->: {to_str(s)}')
         self.stdin.write(to_bytes(s, '\n'))
 
 
