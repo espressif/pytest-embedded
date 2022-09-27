@@ -42,7 +42,7 @@ from .app import App
 from .dut import Dut
 from .log import MessageQueue, _PexpectProcess
 from .unity import JunitMerger
-from .utils import find_by_suffix, to_list, to_str
+from .utils import Meta, find_by_suffix, to_list, to_str
 
 if TYPE_CHECKING:
     from pytest_embedded_jtag.gdb import Gdb
@@ -208,6 +208,7 @@ def pytest_addoption(parser):
 # helpers #
 ###########
 _COUNT = 1
+_LOG_DIR = tempfile.gettempdir()
 
 
 def _gte_one_int(v) -> int:
@@ -447,7 +448,9 @@ def test_case_name(request: FixtureRequest) -> str:
 ###########################
 @pytest.fixture(scope='session')
 def session_root_logdir(request: FixtureRequest) -> str:
-    return _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
+    global _LOG_DIR
+    _LOG_DIR = _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
+    return _LOG_DIR
 
 
 @pytest.fixture(scope='session')
@@ -1222,8 +1225,7 @@ class PytestEmbedded:
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
 
-        self._port_target_cache = port_target_cache
-        self._port_app_cache = port_app_cache
+        self._meta = Meta(_LOG_DIR, port_target_cache, port_app_cache)
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1273,7 +1275,7 @@ class PytestEmbedded:
             request.config.stash[_session_tempdir_key] = val
             return val
 
-        if fixturedef.argname != 'serial':
+        if fixturedef.argname not in ['serial', 'dut']:
             return
 
         # inject the cache into the serial kwargs
@@ -1287,17 +1289,13 @@ class PytestEmbedded:
             iterable_class_cli_options = _class_cli_options
 
         for _item in iterable_class_cli_options:
-            _item_cls = _item.classes.get('serial')
-            _item_kwargs = _item.kwargs.get('serial')
+            _item_cls = _item.classes.get(fixturedef.argname)
+            _item_kwargs = _item.kwargs.get(fixturedef.argname)
 
             if _item_cls is None or _item_kwargs is None:
                 continue
 
-            if _item_cls.__name__ == 'IdfSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
-                _item_kwargs['port_app_cache'] = self._port_app_cache
-            elif _item_cls.__name__ == 'EspSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
+            _item_kwargs['meta'] = self._meta
 
         return self._pytest_fixturedef_exec(fixturedef, request, kwargs)
 

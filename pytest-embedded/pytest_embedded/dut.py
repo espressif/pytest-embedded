@@ -10,7 +10,7 @@ import pexpect
 from .app import App
 from .log import _PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import remove_asci_color_code, to_bytes, to_list, to_str
+from .utils import Meta, remove_asci_color_code, to_bytes, to_list, to_str
 
 
 class Dut:
@@ -20,7 +20,6 @@ class Dut:
     Attributes:
         app (App): `App` instance
         logfile (str): log file path
-        logdir (str): log folder path
         test_case_name (str): test case name
     """
 
@@ -31,16 +30,15 @@ class Dut:
         app: App,
         pexpect_logfile: str,
         test_case_name: str,
+        meta: Optional[Meta] = None,
         **kwargs,
     ) -> None:
         self._p = pexpect_proc
         self._q = msg_queue
+        self._meta = meta
 
         self.app = app
         self.logfile = pexpect_logfile
-        self.logdir = os.path.dirname(self.logfile)
-        logging.info(f'Logs recorded under folder: {self.logdir}')
-
         self.test_case_name = test_case_name
 
         for k, v in kwargs.items():

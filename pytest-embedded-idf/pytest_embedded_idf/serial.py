@@ -2,7 +2,7 @@ import hashlib
 import logging
 import os
 import tempfile
-from typing import Dict, Optional, TextIO, Union
+from typing import Optional, TextIO, Union
 
 import esptool
 from pytest_embedded_serial_esp.serial import EspSerial
@@ -24,7 +24,6 @@ class IdfSerial(EspSerial):
         self,
         app: IdfApp,
         target: Optional[str] = None,
-        port_app_cache: Dict[str, str] = None,
         confirm_target_elf_sha256: bool = False,
         erase_nvs: bool = False,
         **kwargs,
@@ -32,8 +31,6 @@ class IdfSerial(EspSerial):
         self.app = app
         self.confirm_target_elf_sha256 = confirm_target_elf_sha256
         self.erase_nvs = erase_nvs
-
-        self._port_app_cache: Dict[str, str] = port_app_cache if port_app_cache is not None else {}
 
         if not hasattr(self.app, 'target'):
             raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
@@ -47,8 +44,8 @@ class IdfSerial(EspSerial):
         )
 
     def _post_init(self):
-        if self.port in self._port_app_cache:
-            if self.app.binary_path == self._port_app_cache[self.port]:  # hit the cache
+        if self._meta and self.port in self._meta.port_app_cache:
+            if self.app.binary_path == self._meta.port_app_cache[self.port]:  # hit the cache
                 logging.debug('hit port-app cache: %s - %s', self.port, self.app.binary_path)
                 if self.confirm_target_elf_sha256:
                     if self.is_target_flashed_same_elf():
@@ -66,7 +63,7 @@ class IdfSerial(EspSerial):
                     self.skip_autoflash = True
 
         logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
-        self._port_app_cache[self.port] = self.app.binary_path
+        self._meta.port_app_cache[self.port] = self.app.binary_path
         super()._post_init()
 
     def _start(self):

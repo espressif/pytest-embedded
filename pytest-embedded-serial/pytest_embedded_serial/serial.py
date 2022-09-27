@@ -4,9 +4,10 @@ import inspect
 import logging
 import multiprocessing
 import queue
-from typing import Dict
+from typing import Dict, Optional
 
 import serial as pyserial
+from pytest_embedded.utils import Meta
 
 
 class Serial:
@@ -44,9 +45,11 @@ class Serial:
         msg_queue: multiprocessing.Queue,
         port: str = None,
         baud: int = DEFAULT_BAUDRATE,
+        meta: Optional[Meta] = None,
         **kwargs,
     ):
         self._q = msg_queue
+        self._meta = meta
 
         self.port = port
         self.baud = baud

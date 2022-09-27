@@ -61,7 +61,11 @@ class IdfDut(SerialDut):
     app: IdfApp
 
     def __init__(
-        self, app: IdfApp, skip_check_coredump: bool = False, panic_output_decode_script: str = None, **kwargs
+        self,
+        app: IdfApp,
+        skip_check_coredump: bool = False,
+        panic_output_decode_script: str = None,
+        **kwargs,
     ) -> None:
         self.target = app.target
         self.skip_check_coredump = skip_check_coredump
@@ -194,7 +198,7 @@ class IdfDut(SerialDut):
                         core_format='b64',
                         prog=self.app.elf_file,
                     )
-                    with open(os.path.join(self.logdir, f'coredump_output_{i}'), 'w') as fw:
+                    with open(os.path.join(self._meta.logdir, f'coredump_output_{i}'), 'w') as fw:
                         with redirect_stdout(fw):
                             coredump.info_corefile()
                 finally:
@@ -222,7 +226,7 @@ class IdfDut(SerialDut):
                 port=self.serial.port,
                 prog=self.app.elf_file,
             )
-            with open(os.path.join(self.logdir, f'coredump_output'), 'w') as fw:
+            with open(os.path.join(self._meta.logdir, f'coredump_output'), 'w') as fw:
                 with redirect_stdout(fw):
                     coredump.info_corefile()
 
@@ -332,11 +336,25 @@ class IdfDut(SerialDut):
         return test_menu
 
     def setup_jtag(self):
+        run_flash = True
+        if self.serial.port in self._meta.port_app_cache:
+            if self.app.binary_path == self._meta.port_app_cache[self.serial.port]:  # hit the cache
+                logging.debug('hit port-app cache: %s - %s', self.serial.port, self.app.binary_path)
+                logging.info('App is the same according to the session cache')
+                run_flash = False
+
+        if run_flash:
+            self.flash_via_jtag()
+
+        super().setup_jtag()
+        self.gdb.write(f'file {self.app.elf_file}')
+
+    def flash_via_jtag(self):
         for _f in self.app.flash_files:
             if _f.encrypted:
                 raise ValueError('Encrypted files can\'t be flashed in via JTAG')
             self.openocd.write(f'program_esp {_f.file_path} {hex(_f.offset)} verify')
             self.expect_exact('** Verify OK **')
 
-        super().setup_jtag()
-        self.gdb.write(f'file {self.app.elf_file}')
+        logging.debug('set port-app cache: %s - %s', self.serial.port, self.app.binary_path)
+        self._meta.port_app_cache[self.serial.port] = self.app.binary_path
