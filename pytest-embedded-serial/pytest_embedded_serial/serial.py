@@ -9,6 +9,7 @@ from typing import Dict, Optional
 import serial as pyserial
 from pytest_embedded.log import MessageQueue
 from pytest_embedded.utils import Meta
+from serial.tools import list_ports
 
 
 class Serial:
@@ -45,6 +46,7 @@ class Serial:
         self,
         msg_queue: MessageQueue,
         port: str = None,
+        port_location: str = None,
         baud: int = DEFAULT_BAUDRATE,
         meta: Optional[Meta] = None,
         **kwargs,
@@ -55,10 +57,22 @@ class Serial:
         self.port = port
         self.baud = baud
 
-        if port is None:
-            raise ValueError('Please specify port')
+        if port is None and not port_location:
+            raise ValueError('Please specify port or provide the port location')
+        if port_location:
+            for port in list_ports.comports():
+                if port.location == port_location:
+                    if self.port and port.device != self.port:
+                        raise ValueError(
+                            f'The specified location {port_location} binds with port {port.device}, not {self.port}'
+                        )
 
-        if not isinstance(port, str):
+                    self.port = port.device
+                    break
+            else:
+                raise ValueError(f'The specified location {port_location} cannot be found.')
+
+        if not isinstance(self.port, str):
             raise ValueError('`port` must be str, the real `pyserial` object must be created inside `self._forward_io`')
 
         self.port_config = copy.deepcopy(self.DEFAULT_PORT_CONFIG)
