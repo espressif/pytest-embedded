@@ -15,24 +15,20 @@ def test_pexpect_by_jtag(testdir):
         import time
 
         def test_pexpect_by_jtag(dut):
-            dut.gdb.gdb_set('mi-async', 'on')
-            dut.gdb.file_exec_and_symbols(os.path.join(dut.app.app_path, 'build', 'hello-world.elf'))
-            dut.gdb.interpreter_exec_console(f'source {os.path.join(dut.app.app_path, "gdbinit")}')
+            dut.gdb.write('mon reset halt')
+            dut.gdb.write('thb app_main')
+            dut.gdb.write('c')
             dut.expect('hit Temporary breakpoint')
-
-            time.sleep(5)  # wait a while for the breakpoint
-            dut.gdb.break_insert('esp_restart')
-            dut.expect('\^done,bkpt={number="3",type="breakpoint",disp="keep",enabled="y",addr="0x40081d04",func="esp_restart"')
-
-            dut.gdb.exec_continue_all()
-            dut.expect('Restarting now.')
+            dut.gdb.write('c')
+            dut.expect('Hello world!')
     """)
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'jtag',
+        '--embedded-services', 'jtag,idf',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--port', '/dev/ttyUSB1',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)

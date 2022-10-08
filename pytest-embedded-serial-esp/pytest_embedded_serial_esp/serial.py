@@ -1,7 +1,7 @@
 import contextlib
 import functools
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 import esptool
 import serial as pyserial
@@ -10,6 +10,7 @@ from esptool import __version__ as ESPTOOL_VERSION
 from esptool import detect_chip
 from esptool.targets import CHIP_LIST as ESPTOOL_CHIPS
 from pytest_embedded.log import MessageQueue
+from pytest_embedded.utils import Meta
 from pytest_embedded_serial.dut import Serial
 
 
@@ -30,10 +31,10 @@ class EspSerial(Serial):
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
         erase_all: bool = False,
-        port_target_cache: Dict[str, str] = None,
+        meta: Optional[Meta] = None,
         **kwargs,
     ) -> None:
-        self._port_target_cache: Dict[str, str] = port_target_cache if port_target_cache is not None else {}
+        self._meta = meta
 
         esptool_target = beta_target or target
         if port is None:
@@ -46,10 +47,11 @@ class EspSerial(Serial):
 
             # prioritize the cache recorded target port
             if esptool_target:
-                for _port, _target in self._port_target_cache.items():
-                    if _target == esptool_target and _port in ports:
-                        ports.sort(key=lambda x: x == _port)
-                        logging.debug('hit port-target cache: %s - %s', _port, _target)
+                if self._meta:
+                    for _port, _target in self._meta.port_target_cache.items():
+                        if _target == esptool_target and _port in ports:
+                            ports.sort(key=lambda x: x == _port)
+                            logging.debug('hit port-target cache: %s - %s', _port, _target)
 
             logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
@@ -112,11 +114,12 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
-        super().__init__(msg_queue, esp.serial_port, baud, **kwargs)
+        super().__init__(msg_queue, esp.serial_port, baud, meta=meta, **kwargs)
 
     def _post_init(self):
         logging.debug('set port-target cache: %s - %s', self.port, self.target)
-        self._port_target_cache[self.port] = self.target
+        if self._meta:
+            self._meta.port_target_cache[self.port] = self.target
         super()._post_init()
 
     def use_esptool(func):

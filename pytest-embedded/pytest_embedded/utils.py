@@ -1,6 +1,7 @@
+import dataclasses
 import os
 import re
-from typing import AnyStr, List, Optional, TypeVar
+from typing import AnyStr, Dict, List, Optional, TypeVar
 
 
 def to_str(bytes_str: AnyStr) -> str:
@@ -96,3 +97,14 @@ def remove_asci_color_code(s: AnyStr) -> str:
     if isinstance(s, bytes):
         s = s.decode('utf-8', errors='ignore')
     return _ANSI_COLOR_CODE_RE.sub('', s)
+
+
+@dataclasses.dataclass
+class Meta:
+    """
+    Meta info for testing, session scope
+    """
+
+    logdir: str
+    port_app_cache: Dict[str, str]
+    port_target_cache: Dict[str, str]

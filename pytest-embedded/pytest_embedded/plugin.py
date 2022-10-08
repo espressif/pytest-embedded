@@ -5,6 +5,7 @@ import importlib
 import logging
 import multiprocessing
 import os
+import subprocess
 import sys
 import tempfile
 from collections import defaultdict, namedtuple
@@ -41,7 +42,7 @@ from .app import App
 from .dut import Dut
 from .log import MessageQueue, _PexpectProcess
 from .unity import JunitMerger
-from .utils import find_by_suffix, to_list, to_str
+from .utils import Meta, find_by_suffix, to_list, to_str
 
 if TYPE_CHECKING:
     from pytest_embedded_jtag.gdb import Gdb
@@ -171,12 +172,12 @@ def pytest_addoption(parser):
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
     jtag_group.addoption(
         '--gdb-cli-args',
-        help='GDB cli arguments. (Default: "--nx --quiet --interpreter=mi2"',
+        help='GDB cli arguments. (Default: "--quiet"',
     )
     jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
     jtag_group.addoption(
         '--openocd-cli-args',
-        help='openocd cli arguments. (Default: "f board/esp32-wrover-kit-3.3v.cfg -d2")',
+        help='openocd cli arguments. (Default: "-f board/esp32-wrover-kit-3.3v.cfg")',
     )
 
     qemu_group = parser.getgroup('embedded-qemu')
@@ -207,6 +208,7 @@ def pytest_addoption(parser):
 # helpers #
 ###########
 _COUNT = 1
+_LOG_DIR = tempfile.gettempdir()
 
 
 def _gte_one_int(v) -> int:
@@ -315,6 +317,8 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if _COUNT == 1:
+            if func.__name__ == 'dut_index':
+                kwargs['count'] = 1
             return func(*args, **kwargs)
 
         res = tuple()
@@ -326,6 +330,10 @@ def multi_dut_fixture(func) -> Callable[..., Union[Any, Tuple[Any]]]:
                     current_kwargs[k] = getter(v)
                 else:
                     current_kwargs[k] = v
+
+            if func.__name__ == 'dut_index':
+                current_kwargs['count'] = i
+
             res = tuple(list(res) + [func(*args, **current_kwargs)])
 
         return res
@@ -352,7 +360,11 @@ def multi_dut_generator_fixture(
     def wrapper(*args, **kwargs):
         def _close_or_terminate(obj):
             try:
-                obj.close()
+                if isinstance(obj, subprocess.Popen):
+                    obj.terminate()
+                    obj.kill()
+                else:
+                    obj.close()
             except OSError as e:
                 logging.debug(str(e))
                 pass
@@ -386,9 +398,7 @@ def multi_dut_generator_fixture(
                         current_kwargs[k] = getter(v)
                     else:
                         current_kwargs[k] = v
-                if func.__name__ in ['_pexpect_logfile', '_listener']:
-                    current_kwargs['count'] = i
-                    current_kwargs['total'] = _COUNT
+
                 res.append(func(*args, **current_kwargs))
             try:
                 yield res
@@ -438,7 +448,9 @@ def test_case_name(request: FixtureRequest) -> str:
 ###########################
 @pytest.fixture(scope='session')
 def session_root_logdir(request: FixtureRequest) -> str:
-    return _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
+    global _LOG_DIR
+    _LOG_DIR = _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
+    return _LOG_DIR
 
 
 @pytest.fixture(scope='session')
@@ -460,10 +472,22 @@ def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
 
 
 @pytest.fixture
+@multi_dut_fixture
+def dut_index(**kwargs):
+    return kwargs['count']
+
+
+@pytest.fixture
+@multi_dut_fixture
+def dut_total():
+    return _COUNT
+
+
+@pytest.fixture
 @multi_dut_generator_fixture
-def _pexpect_logfile(test_case_tempdir, **kwargs) -> str:
-    if 'count' in kwargs:
-        name = f'dut-{kwargs["count"]}'
+def _pexpect_logfile(test_case_tempdir, dut_index, dut_total) -> str:
+    if dut_total > 1:
+        name = f'dut-{dut_index}'
     else:
         name = 'dut'
 
@@ -532,7 +556,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _listener(msg_queue, _pexpect_logfile, with_timestamp, **kwargs) -> multiprocessing.Process:
+def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
     """
     The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
     and do two things together:
@@ -541,8 +565,11 @@ def _listener(msg_queue, _pexpect_logfile, with_timestamp, **kwargs) -> multipro
     2. write the string to `_pexpect_logfile`
     """
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
-
-    kwargs['with_timestamp'] = with_timestamp
+    kwargs = {
+        'with_timestamp': with_timestamp,
+        'count': dut_index,
+        'total': dut_total,
+    }
 
     return _ctx.Process(
         target=_listen,
@@ -603,7 +630,7 @@ SERVICE_LIB_NAMES = {
 
 FIXTURES_SERVICES = {
     'app': ['base', 'idf', 'qemu', 'arduino'],
-    'serial': ['serial', 'esp', 'idf', 'arduino'],
+    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino'],
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
@@ -856,6 +883,7 @@ def _fixture_classes_and_options(
     qemu_extra_args,
     skip_regenerate_image,
     # pre-initialized fixtures
+    dut_index,
     _pexpect_logfile,
     test_case_name,
     pexpect_proc,
@@ -882,13 +910,12 @@ def _fixture_classes_and_options(
     classes: Dict[str, type] = {}
     kwargs: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
-    for fixture, provide_services in FIXTURES_SERVICES.items():
+    for fixture, _ in FIXTURES_SERVICES.items():
         if fixture == 'app':
             kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
             if 'idf' in _services:
                 if 'qemu' in _services:
-                    from pytest_embedded_qemu import DEFAULT_IMAGE_FN
-                    from pytest_embedded_qemu.app import QemuApp
+                    from pytest_embedded_qemu import DEFAULT_IMAGE_FN, QemuApp
 
                     classes[fixture] = QemuApp
                     kwargs[fixture].update(
@@ -900,7 +927,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_idf.app import IdfApp
+                    from pytest_embedded_idf import IdfApp
 
                     classes[fixture] = IdfApp
                     kwargs[fixture].update(
@@ -909,7 +936,7 @@ def _fixture_classes_and_options(
                         }
                     )
             elif 'arduino' in _services:
-                from pytest_embedded_arduino.app import ArduinoApp
+                from pytest_embedded_arduino import ArduinoApp
 
                 classes[fixture] = ArduinoApp
             else:
@@ -918,7 +945,7 @@ def _fixture_classes_and_options(
                 classes[fixture] = App
         elif fixture == 'serial':
             if 'esp' in _services:
-                from pytest_embedded_serial_esp.serial import EspSerial
+                from pytest_embedded_serial_esp import EspSerial
 
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
@@ -931,7 +958,7 @@ def _fixture_classes_and_options(
                     'erase_all': erase_all,
                 }
                 if 'idf' in _services:
-                    from pytest_embedded_idf.serial import IdfSerial
+                    from pytest_embedded_idf import IdfSerial
 
                     classes[fixture] = IdfSerial
                     kwargs[fixture].update(
@@ -942,7 +969,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 elif 'arduino' in _services:
-                    from pytest_embedded_arduino.serial import ArduinoSerial
+                    from pytest_embedded_arduino import ArduinoSerial
 
                     classes[fixture] = ArduinoSerial
                     kwargs[fixture].update(
@@ -951,7 +978,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_serial_esp.serial import EspSerial
+                    from pytest_embedded_serial_esp import EspSerial
 
                     classes[fixture] = EspSerial
             elif 'serial' in _services or 'jtag' in _services:
@@ -966,16 +993,18 @@ def _fixture_classes_and_options(
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:
                 if fixture == 'openocd':
-                    from pytest_embedded_jtag.openocd import OpenOcd
+                    from pytest_embedded_jtag import OpenOcd
 
                     classes[fixture] = OpenOcd
                     kwargs[fixture] = {
                         'msg_queue': msg_queue,
+                        'app': None,
                         'openocd_prog_path': openocd_prog_path,
                         'openocd_cli_args': openocd_cli_args,
+                        'port_offset': dut_index,
                     }
                 else:
-                    from pytest_embedded_jtag.gdb import Gdb
+                    from pytest_embedded_jtag import Gdb
 
                     classes[fixture] = Gdb
                     kwargs[fixture] = {
@@ -985,11 +1014,11 @@ def _fixture_classes_and_options(
                     }
         elif fixture == 'qemu':
             if 'qemu' in _services:
-                from pytest_embedded_qemu import DEFAULT_IMAGE_FN
-                from pytest_embedded_qemu.qemu import Qemu
+                from pytest_embedded_qemu import DEFAULT_IMAGE_FN, Qemu
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
+                    'msg_queue': msg_queue,
                     'qemu_image_path': qemu_image_path
                     or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
                     'qemu_prog_path': qemu_prog_path,
@@ -997,6 +1026,7 @@ def _fixture_classes_and_options(
                     'qemu_extra_args': qemu_extra_args,
                 }
         elif fixture == 'dut':
+            classes[fixture] = Dut
             kwargs[fixture] = {
                 'pexpect_proc': pexpect_proc,
                 'msg_queue': msg_queue,
@@ -1005,7 +1035,7 @@ def _fixture_classes_and_options(
                 'test_case_name': test_case_name,
             }
             if 'qemu' in _services:
-                from pytest_embedded_qemu.dut import QemuDut
+                from pytest_embedded_qemu import QemuDut
 
                 classes[fixture] = QemuDut
                 kwargs[fixture].update(
@@ -1014,9 +1044,15 @@ def _fixture_classes_and_options(
                     }
                 )
             elif 'jtag' in _services:
-                from pytest_embedded_jtag.dut import JtagDut
+                if 'idf' in _services:
+                    from pytest_embedded_idf import IdfDut
 
-                classes[fixture] = JtagDut
+                    classes[fixture] = IdfDut
+                else:
+                    from pytest_embedded_serial import SerialDut
+
+                    classes[fixture] = SerialDut
+
                 kwargs[fixture].update(
                     {
                         'serial': None,
@@ -1026,7 +1062,7 @@ def _fixture_classes_and_options(
                 )
             elif 'serial' in _services or 'esp' in _services:
                 if 'esp' in _services and 'idf' in _services:
-                    from pytest_embedded_idf.dut import IdfDut
+                    from pytest_embedded_idf import IdfDut
 
                     classes[fixture] = IdfDut
                     kwargs[fixture].update(
@@ -1036,7 +1072,7 @@ def _fixture_classes_and_options(
                         }
                     )
                 else:
-                    from pytest_embedded_serial.dut import SerialDut
+                    from pytest_embedded_serial import SerialDut
 
                     classes[fixture] = SerialDut
 
@@ -1045,10 +1081,6 @@ def _fixture_classes_and_options(
                         'serial': None,
                     }
                 )
-            else:
-                from .dut import Dut
-
-                classes[fixture] = Dut
 
     return ClassCliOptions(classes, kwargs)
 
@@ -1144,6 +1176,7 @@ def dut(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
+
     return cls(**_drop_none_kwargs(kwargs))
 
 
@@ -1192,8 +1225,7 @@ class PytestEmbedded:
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
 
-        self._port_target_cache = port_target_cache
-        self._port_app_cache = port_app_cache
+        self._meta = Meta(_LOG_DIR, port_target_cache, port_app_cache)
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1243,7 +1275,7 @@ class PytestEmbedded:
             request.config.stash[_session_tempdir_key] = val
             return val
 
-        if fixturedef.argname != 'serial':
+        if fixturedef.argname not in ['serial', 'dut']:
             return
 
         # inject the cache into the serial kwargs
@@ -1257,17 +1289,13 @@ class PytestEmbedded:
             iterable_class_cli_options = _class_cli_options
 
         for _item in iterable_class_cli_options:
-            _item_cls = _item.classes.get('serial')
-            _item_kwargs = _item.kwargs.get('serial')
+            _item_cls = _item.classes.get(fixturedef.argname)
+            _item_kwargs = _item.kwargs.get(fixturedef.argname)
 
             if _item_cls is None or _item_kwargs is None:
                 continue
 
-            if _item_cls.__name__ == 'IdfSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
-                _item_kwargs['port_app_cache'] = self._port_app_cache
-            elif _item_cls.__name__ == 'EspSerial':  # use str to avoid ImportError
-                _item_kwargs['port_target_cache'] = self._port_target_cache
+            _item_kwargs['meta'] = self._meta
 
         return self._pytest_fixturedef_exec(fixturedef, request, kwargs)
 

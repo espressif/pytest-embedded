@@ -4,9 +4,10 @@ import inspect
 import logging
 import multiprocessing
 import queue
-from typing import Dict
+from typing import Dict, Optional
 
 import serial as pyserial
+from pytest_embedded.utils import Meta
 
 
 class Serial:
@@ -42,11 +43,13 @@ class Serial:
     def __init__(
         self,
         msg_queue: multiprocessing.Queue,
-        port: str,
+        port: str = None,
         baud: int = DEFAULT_BAUDRATE,
+        meta: Optional[Meta] = None,
         **kwargs,
     ):
         self._q = msg_queue
+        self._meta = meta
 
         self.port = port
         self.baud = baud
@@ -67,9 +70,9 @@ class Serial:
         self._start()
         self._finalize_init()
 
-        self.start_redirect_serial_process()
+        self.start_redirect_process()
 
-    def start_redirect_serial_process(self):
+    def start_redirect_process(self):
         if self.proc and self.proc.is_alive():
             return
 
@@ -108,7 +111,7 @@ class Serial:
         yield killed
 
         if killed:
-            self.start_redirect_serial_process()
+            self.start_redirect_process()
 
 
 class _SerialRedirectProcess(multiprocessing.Process):

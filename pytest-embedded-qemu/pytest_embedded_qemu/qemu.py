@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen
+from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
 
 from . import DEFAULT_IMAGE_FN
 
@@ -12,6 +12,8 @@ class Qemu(DuplicateStdoutPopen):
     QEMU class
     """
 
+    SOURCE = 'QEMU'
+
     QEMU_PROG_PATH = 'qemu-system-xtensa'
     QEMU_DEFAULT_ARGS = '-nographic -no-reboot -machine esp32'
 
@@ -20,6 +22,7 @@ class Qemu(DuplicateStdoutPopen):
 
     def __init__(
         self,
+        msg_queue: MessageQueue,
         qemu_image_path: Optional[str] = None,
         qemu_prog_path: Optional[str] = None,
         qemu_cli_args: Optional[str] = None,
@@ -47,4 +50,4 @@ class Qemu(DuplicateStdoutPopen):
         cmd = f'{qemu_prog_path} {qemu_cli_args} {" ".join(qemu_extra_args)}'
         logging.debug(cmd)
 
-        super().__init__(cmd, shell=True, **kwargs)
+        super().__init__(msg_queue, cmd, shell=True, **kwargs)
