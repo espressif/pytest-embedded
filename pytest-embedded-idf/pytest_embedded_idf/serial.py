@@ -70,7 +70,37 @@ class IdfSerial(EspSerial):
             logging.info('Skipping auto flash...')
             super()._start()
         else:
-            self.flash()
+            if self.app.is_loadable_elf:
+                self.load_ram()
+            else:
+                self.flash()
+
+    def load_ram(self) -> None:
+        if not self.app.is_loadable_elf:
+            raise ValueError('elf should be loadable elf')
+
+        live_print_call(
+            [
+                'esptool.py',
+                '--chip',
+                self.app.target,
+                'elf2image',
+                self.app.elf_file,
+                *self.app._parse_flash_args(),
+            ],
+            msg_queue=self._q,
+        )
+        live_print_call(
+            [
+                'esptool.py',
+                '--chip',
+                self.app.target,
+                '--no-stub',
+                'load_ram',
+                self.app.elf_file.replace('.elf', '.bin'),
+            ],
+            msg_queue=self._q,
+        )
 
     @EspSerial.use_esptool()
     def flash(self) -> None:

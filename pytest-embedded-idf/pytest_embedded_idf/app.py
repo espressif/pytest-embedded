@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shlex
 import subprocess
 import sys
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -25,7 +26,8 @@ class IdfApp(App):
         flash_settings (dict[str, Any]): dict of flash settings
     """
 
-    FLASH_ARGS_FILENAME = 'flasher_args.json'
+    FLASH_ARGS_FILENAME = 'flash_args'
+    FLASH_ARGS_JSON_FILENAME = 'flasher_args.json'
 
     def __init__(
         self,
@@ -59,7 +61,7 @@ class IdfApp(App):
 
         if not self.is_loadable_elf:
             self.bin_file = self._get_bin_file()
-            self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args()
+            self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args_json()
 
     @property
     def parttool_path(self) -> str:
@@ -163,9 +165,7 @@ class IdfApp(App):
                 return os.path.realpath(os.path.join(self.binary_path, fn))
         raise ValueError(f'Bin file under {self.binary_path} not found')
 
-    def _parse_flash_args(
-        self,
-    ) -> Tuple[Dict[str, Any], List[FlashFile], Dict[str, str]]:
+    def _parse_flash_args(self) -> List[str]:
         flash_args_filepath = None
         for fn in os.listdir(self.binary_path):
             if fn == self.FLASH_ARGS_FILENAME:
@@ -176,6 +176,21 @@ class IdfApp(App):
             raise ValueError(f'{self.FLASH_ARGS_FILENAME} not found')
 
         with open(flash_args_filepath) as fr:
+            return shlex.split(fr.read().strip())
+
+    def _parse_flash_args_json(
+        self,
+    ) -> Tuple[Dict[str, Any], List[FlashFile], Dict[str, str]]:
+        flash_args_json_filepath = None
+        for fn in os.listdir(self.binary_path):
+            if fn == self.FLASH_ARGS_JSON_FILENAME:
+                flash_args_json_filepath = os.path.realpath(os.path.join(self.binary_path, fn))
+                break
+
+        if not flash_args_json_filepath:
+            raise ValueError(f'{self.FLASH_ARGS_JSON_FILENAME} not found')
+
+        with open(flash_args_json_filepath) as fr:
             flash_args = json.load(fr)
 
         def _is_encrypted(_flash_args: Dict[str, Any], _offset: int, _file_path: str):
