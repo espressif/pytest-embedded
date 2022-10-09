@@ -79,6 +79,15 @@ class Serial:
         self.proc = _SerialRedirectProcess(self._q, self.port, self.port_config)
         self.proc.start()
 
+    def stop_redirect_process(self) -> bool:
+        killed = False
+        if self.proc and self.proc.is_alive():
+            while self.proc.is_alive():
+                self.proc.terminate()
+            killed = True
+
+        return killed
+
     def _post_init(self):
         pass
 
@@ -102,11 +111,7 @@ class Serial:
         Yields:
             True if redirect serial process is been killed
         """
-        killed = False
-        if self.proc and self.proc.is_alive():
-            while self.proc.is_alive():
-                self.proc.terminate()
-            killed = True
+        killed = self.stop_redirect_process()
 
         yield killed
 
