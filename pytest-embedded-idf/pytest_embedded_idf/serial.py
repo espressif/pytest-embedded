@@ -5,7 +5,8 @@ import tempfile
 from typing import Optional, TextIO, Union
 
 import esptool
-from pytest_embedded_serial_esp.serial import EspSerial
+from pytest_embedded.log import live_print_call
+from pytest_embedded_serial_esp.serial import EspSerial, EsptoolArgs
 
 from .app import IdfApp
 
@@ -71,7 +72,7 @@ class IdfSerial(EspSerial):
         else:
             self.flash()
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def flash(self) -> None:
         """
         Flash the `app.flash_files` to the dut
@@ -102,13 +103,6 @@ class IdfSerial(EspSerial):
                 else:
                     flash_files.append((address, open(nvs_file.name, 'rb')))
 
-            # fake flasher args object, this is a hack until
-            # esptool Python API is improved
-            class FlashArgs(object):
-                def __init__(self, attributes):
-                    for key, value in attributes.items():
-                        self.__setattr__(key, value)
-
             # write_flash expects the parameter encrypt_files to be None and not
             # an empty list, so perform the check here
             default_kwargs = {
@@ -127,7 +121,7 @@ class IdfSerial(EspSerial):
 
             default_kwargs.update(self.app.flash_settings)
             default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
-            args = FlashArgs(default_kwargs)
+            args = EsptoolArgs(**default_kwargs)
 
             self.stub.change_baud(self.esptool_baud)
             esptool.detect_flash_size(self.stub, args)
@@ -148,7 +142,7 @@ class IdfSerial(EspSerial):
             for (_, f) in encrypt_files:
                 f.close()
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def dump_flash(
         self,
         partition: Optional[str] = None,
@@ -190,7 +184,7 @@ class IdfSerial(EspSerial):
         else:
             return content
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def erase_partition(self, partition_name: str) -> None:
         """
         Erase the partition provided
@@ -209,7 +203,7 @@ class IdfSerial(EspSerial):
         else:
             raise ValueError(f'partition name "{partition_name}" not found in app partition table')
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def erase_flash(self) -> None:
         """
         Erase the complete flash
@@ -217,7 +211,7 @@ class IdfSerial(EspSerial):
         logging.info('Erasing the flash')
         self.stub.erase_flash()
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def read_flash_elf_sha256(self) -> bytes:
         """
         Read the sha256 digest of the flashed elf file

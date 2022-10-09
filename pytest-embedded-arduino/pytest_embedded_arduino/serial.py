@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import esptool
-from pytest_embedded_serial_esp.serial import EspSerial
+from pytest_embedded_serial_esp.serial import EspSerial, EsptoolArgs
 
 from .app import ArduinoApp
 
@@ -35,7 +35,7 @@ class ArduinoSerial(EspSerial):
         else:
             self.flash()
 
-    @EspSerial.use_esptool
+    @EspSerial.use_esptool()
     def flash(self) -> None:
         """
         Flash the binary files to the board.
@@ -43,13 +43,6 @@ class ArduinoSerial(EspSerial):
         flash_files = [
             (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
         ]
-
-        # fake flasher args object, this is a hack until
-        # esptool Python API is improved
-        class FlashArgs(object):
-            def __init__(self, attributes):
-                for key, value in attributes.items():
-                    self.__setattr__(key, value)
 
         default_kwargs = {
             'addr_filename': flash_files,
@@ -68,7 +61,7 @@ class ArduinoSerial(EspSerial):
             default_kwargs['erase_all'] = True
 
         default_kwargs.update(self.app.flash_settings)
-        flash_args = FlashArgs(default_kwargs)
+        flash_args = EsptoolArgs(**default_kwargs)
 
         try:
             self.stub.change_baud(self.esptool_baud)
