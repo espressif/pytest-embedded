@@ -371,8 +371,7 @@ def multi_dut_generator_fixture(
             except AttributeError:
                 try:
                     obj.terminate()
-                except AttributeError as e:
-                    logging.debug(str(e))
+                except AttributeError:
                     pass
             except Exception as e:
                 logging.debug(str(e))
