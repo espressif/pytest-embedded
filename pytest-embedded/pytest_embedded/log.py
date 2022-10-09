@@ -116,12 +116,27 @@ def live_print_call(*args, **kwargs):
         print(to_str(process.stdout.read()))
 
 
+class _PopenRedirectProcess(multiprocessing.Process):
+    def __init__(self, msg_queue: MessageQueue, logfile: str):
+        self._q = msg_queue
+
+        self.logfile = logfile
+
+        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
+
+    def _forward_io(self) -> None:
+        with open(self.logfile) as fr:
+            while True:
+                self._q.put(fr.read())
+
+
 class DuplicateStdoutPopen(subprocess.Popen):
     """
     Subclass of `subprocess.Popen` that redirect the output into the `MessageQueue` instance
     """
 
     SOURCE = 'POPEN'
+    REDIRECT_CLS = _PopenRedirectProcess
 
     def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], **kwargs):
         self._q = msg_queue
@@ -137,6 +152,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
         if parent_dir:  # in case value is a single file under the current dir
             os.makedirs(os.path.dirname(_log_file), exist_ok=True)
         self._fw = open(_log_file, 'w')
+        self._logfile = _log_file
+        self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
 
         kwargs.update(
@@ -150,8 +167,11 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
         super().__init__(cmd, **kwargs)
 
-        self._p = _PopenRedirectProcess(msg_queue, _log_file)
-        self._p.start()
+        # some sub classes does not need to redirect to the message queue, they use blocking-IO instead and
+        # return the response immediately in `write()`
+        if self.REDIRECT_CLS:
+            self._p = self.REDIRECT_CLS(msg_queue, _log_file)
+            self._p.start()
 
     def __del__(self):
         self.close()
@@ -180,17 +200,3 @@ class DuplicateStdoutPopen(subprocess.Popen):
         """
         logging.debug(f'{self.SOURCE} ->: {to_str(s)}')
         self.stdin.write(to_bytes(s, '\n'))
-
-
-class _PopenRedirectProcess(multiprocessing.Process):
-    def __init__(self, msg_queue: MessageQueue, logfile: str):
-        self._q = msg_queue
-
-        self.logfile = logfile
-
-        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
-
-    def _forward_io(self) -> None:
-        with open(self.logfile) as fr:
-            while True:
-                self._q.put(fr.read())
