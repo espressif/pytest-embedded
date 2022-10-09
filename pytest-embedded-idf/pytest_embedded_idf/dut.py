@@ -336,6 +336,9 @@ class IdfDut(SerialDut):
         return test_menu
 
     def setup_jtag(self):
+        super().setup_jtag()
+        self.gdb.write(f'file {self.app.elf_file}')
+
         run_flash = True
         if self.serial.port in self._meta.port_app_cache:
             if self.app.binary_path == self._meta.port_app_cache[self.serial.port]:  # hit the cache
@@ -346,10 +349,17 @@ class IdfDut(SerialDut):
         if run_flash:
             self.flash_via_jtag()
 
-        super().setup_jtag()
-        self.gdb.write(f'file {self.app.elf_file}')
-
     def flash_via_jtag(self):
+        if self.app.is_loadable_elf:
+            # loadable elf flash to ram. no cache.
+            # load via test script.
+            # For example:
+            # self.gdb.write('mon reset halt')
+            # self.gdb.write('thb *0x40007d54')
+            # self.gdb.write('c')
+            # self.gdb.write('load')
+            return
+
         for _f in self.app.flash_files:
             if _f.encrypted:
                 raise ValueError('Encrypted files can\'t be flashed in via JTAG')

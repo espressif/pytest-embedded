@@ -34,23 +34,32 @@ class IdfApp(App):
     ):
         super().__init__(**kwargs)
 
+        # Optional info
+        self._sdkconfig = None
+        self._target = None
+        # the partition table is used for nvs
+        self._parttool = part_tool
+        self._partition_table = None
+
         if not self.binary_path:
             logging.debug('Binary path not specified, skipping parsing app...')
             return
 
         # Required if binary path exists
         self.elf_file = self._get_elf_file()
-        self.bin_file = self._get_bin_file()
 
-        self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args()
+        # loadable elf file skip the rest of these
+        if self.sdkconfig.get('APP_BUILD_TYPE_ELF_RAM'):
+            self.is_loadable_elf = True
+        else:
+            self.is_loadable_elf = False
 
-        # Optional info
-        self._sdkconfig = None
-        self._target = None
+        self.bin_file = None
+        self.flash_args, self.flash_files, self.flash_settings = None, None, None
 
-        # the partition table is used for nvs
-        self._parttool = part_tool
-        self._partition_table = None
+        if not self.is_loadable_elf:
+            self.bin_file = self._get_bin_file()
+            self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args()
 
     @property
     def parttool_path(self) -> str:

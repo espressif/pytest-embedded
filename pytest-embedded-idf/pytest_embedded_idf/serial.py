@@ -62,8 +62,6 @@ class IdfSerial(EspSerial):
                     )
                     self.skip_autoflash = True
 
-        logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
-        self._meta.port_app_cache[self.port] = self.app.binary_path
         super()._post_init()
 
     def _start(self):
@@ -135,6 +133,9 @@ class IdfSerial(EspSerial):
             esptool.detect_flash_size(self.stub, args)
             esptool.write_flash(self.stub, args)
             self.stub.change_baud(self.baud)
+
+            logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
+            self._meta.port_app_cache[self.port] = self.app.binary_path
         finally:
             if nvs_file:
                 nvs_file.close()
