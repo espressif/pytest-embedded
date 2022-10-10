@@ -7,6 +7,7 @@ import queue
 from typing import Dict, Optional
 
 import serial as pyserial
+from pytest_embedded.log import MessageQueue
 from pytest_embedded.utils import Meta
 
 
@@ -42,7 +43,7 @@ class Serial:
 
     def __init__(
         self,
-        msg_queue: multiprocessing.Queue,
+        msg_queue: MessageQueue,
         port: str = None,
         baud: int = DEFAULT_BAUDRATE,
         meta: Optional[Meta] = None,
