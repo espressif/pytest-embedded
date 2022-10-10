@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import uuid
 from multiprocessing import queues
-from typing import AnyStr, List, Union
+from typing import AnyStr, List, Optional, Union
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -98,9 +98,13 @@ class _PexpectProcess(pexpect.fdpexpect.fdspawn):
         self.close()
 
 
-def live_print_call(*args, **kwargs):
+def live_print_call(*args, msg_queue: Optional[MessageQueue] = None, expect_returncode: int = 0, **kwargs):
     """
-    live print the `subprocess.Popen` process.
+    live print the `subprocess.Popen` process
+
+    Args:
+        msg_queue: `MessageQueue` instance, would redirect to message queue instead of sys.stdout if specified
+        expect_returncode: expect return code. (Default 0). Would raise exception when return code is different
 
     Notes:
         This function behaves the same as `subprocess.call()`, it would block your current process.
@@ -113,7 +117,27 @@ def live_print_call(*args, **kwargs):
 
     process = subprocess.Popen(*args, **default_kwargs)
     while process.poll() is None:
-        print(to_str(process.stdout.read()))
+        if msg_queue:
+            msg_queue.put(process.stdout.read())
+        else:
+            print(to_str(process.stdout.read()))
+
+    if process.returncode != expect_returncode:
+        raise subprocess.CalledProcessError(process.returncode, process.args)
+
+
+class _PopenRedirectProcess(multiprocessing.Process):
+    def __init__(self, msg_queue: MessageQueue, logfile: str):
+        self._q = msg_queue
+
+        self.logfile = logfile
+
+        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
+
+    def _forward_io(self) -> None:
+        with open(self.logfile) as fr:
+            while True:
+                self._q.put(fr.read())
 
 
 class DuplicateStdoutPopen(subprocess.Popen):
@@ -122,6 +146,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     """
 
     SOURCE = 'POPEN'
+    REDIRECT_CLS = _PopenRedirectProcess
 
     def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], **kwargs):
         self._q = msg_queue
@@ -137,6 +162,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
         if parent_dir:  # in case value is a single file under the current dir
             os.makedirs(os.path.dirname(_log_file), exist_ok=True)
         self._fw = open(_log_file, 'w')
+        self._logfile = _log_file
+        self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
 
         kwargs.update(
@@ -150,8 +177,11 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
         super().__init__(cmd, **kwargs)
 
-        self._p = _PopenRedirectProcess(msg_queue, _log_file)
-        self._p.start()
+        # some sub classes does not need to redirect to the message queue, they use blocking-IO instead and
+        # return the response immediately in `write()`
+        if self.REDIRECT_CLS:
+            self._p = self.REDIRECT_CLS(msg_queue, _log_file)
+            self._p.start()
 
     def __del__(self):
         self.close()
@@ -180,17 +210,3 @@ class DuplicateStdoutPopen(subprocess.Popen):
         """
         logging.debug(f'{self.SOURCE} ->: {to_str(s)}')
         self.stdin.write(to_bytes(s, '\n'))
-
-
-class _PopenRedirectProcess(multiprocessing.Process):
-    def __init__(self, msg_queue: MessageQueue, logfile: str):
-        self._q = msg_queue
-
-        self.logfile = logfile
-
-        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
-
-    def _forward_io(self) -> None:
-        with open(self.logfile) as fr:
-            while True:
-                self._q.put(fr.read())

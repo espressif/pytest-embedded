@@ -14,6 +14,16 @@ from pytest_embedded.utils import Meta
 from pytest_embedded_serial.dut import Serial
 
 
+class EsptoolArgs(object):
+    """
+    fake args object, this is a hack until esptool Python API is improved
+    """
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            self.__setattr__(key, value)
+
+
 class EspSerial(Serial):
     """
     Serial class for ports connected to espressif products
@@ -103,8 +113,8 @@ class EspSerial(Serial):
         # ensure port is closed. The redirect instance would be opened later
         esp._port.close()
 
-        self.esp = None
-        self.stub = None
+        self.esp: esptool.ESPLoader = None  # type: ignore
+        self.stub: esptool.ESPLoader = None  # type: ignore
 
         target = esp.CHIP_NAME.lower().replace('-', '')
         logging.info(f'Target: %s, Port: %s', target, esp.serial_port)
@@ -122,7 +132,7 @@ class EspSerial(Serial):
             self._meta.port_target_cache[self.port] = self.target
         super()._post_init()
 
-    def use_esptool(func):
+    def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):
         """
         1. close the redirect serial process if exists
         2. close the serial connection
@@ -131,32 +141,42 @@ class EspSerial(Serial):
         5. call `hard_reset()`
         5. create the redirect serial process again
 
+        Args:
+            hard_reset_after: run hard reset after
+            no_stub: disable launching the flasher stub
+
         Warning:
             the real `pyserial` object must be created inside `self._forward_io`,
                 The `pyserial` object can't be pickled when using multiprocessing.Process
         """
 
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            with self.disable_redirect_serial():
-                _s = pyserial.serial_for_url(self.port, **self.port_config)
-                settings = _s.get_settings()
-                try:
-                    with contextlib.redirect_stdout(self._q):
-                        self.esp = esptool.detect_chip(_s, self.baud)
-                        self.esp.connect('hard_reset')
-                        self.stub = self.esp.run_stub()
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(self, *args, **kwargs):
+                with self.disable_redirect_serial():
+                    _s = pyserial.serial_for_url(self.port, **self.port_config)
+                    settings = _s.get_settings()
+                    try:
+                        with contextlib.redirect_stdout(self._q):
+                            self.esp = esptool.detect_chip(_s, self.baud)
+                            self.esp.connect('hard_reset')
 
-                        ret = func(self, *args, **kwargs)
-                finally:
-                    self.stub.hard_reset()
+                            if not no_stub:
+                                self.stub = self.esp.run_stub()
 
-                    _s.apply_settings(settings)
-                    _s.close()
+                            ret = func(self, *args, **kwargs)
+                    finally:
+                        if hard_reset_after:
+                            self.esp.hard_reset()
 
-            return ret
+                        _s.apply_settings(settings)
+                        _s.close()
 
-        return wrapper
+                return ret
+
+            return wrapper
+
+        return decorator
 
     def _start(self):
         self.hard_reset()
