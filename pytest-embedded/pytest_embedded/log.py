@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import uuid
 from multiprocessing import queues
-from typing import AnyStr, List, Union
+from typing import AnyStr, List, Optional, Union
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -98,9 +98,13 @@ class _PexpectProcess(pexpect.fdpexpect.fdspawn):
         self.close()
 
 
-def live_print_call(*args, **kwargs):
+def live_print_call(*args, msg_queue: Optional[MessageQueue] = None, expect_returncode: int = 0, **kwargs):
     """
-    live print the `subprocess.Popen` process.
+    live print the `subprocess.Popen` process
+
+    Args:
+        msg_queue: `MessageQueue` instance, would redirect to message queue instead of sys.stdout if specified
+        expect_returncode: expect return code. (Default 0). Would raise exception when return code is different
 
     Notes:
         This function behaves the same as `subprocess.call()`, it would block your current process.
@@ -113,7 +117,13 @@ def live_print_call(*args, **kwargs):
 
     process = subprocess.Popen(*args, **default_kwargs)
     while process.poll() is None:
-        print(to_str(process.stdout.read()))
+        if msg_queue:
+            msg_queue.put(process.stdout.read())
+        else:
+            print(to_str(process.stdout.read()))
+
+    if process.returncode != expect_returncode:
+        raise subprocess.CalledProcessError(process.returncode, process.args)
 
 
 class _PopenRedirectProcess(multiprocessing.Process):
