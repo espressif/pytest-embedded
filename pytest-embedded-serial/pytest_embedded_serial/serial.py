@@ -61,6 +61,8 @@ class Serial:
             raise ValueError('Please specify port or provide the port location')
         if port_location:
             for port in list_ports.comports():
+                if port.device in self.occupied_ports:
+                    continue
                 if port.location == port_location:
                     if self.port and port.device != self.port:
                         raise ValueError(
