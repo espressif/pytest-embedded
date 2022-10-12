@@ -1,3 +1,28 @@
+## v1.0.0a2 (2022-10-12)
+
+### Feat
+
+- **esp**: add new argument `hard_reset_after` and `no_stub` to `EspSerial.use_esptool`
+- **esp**: add `EsptoolArgs`
+- **esp**: support bind ports by `esptool` `read_mac`
+- **esp**: support loadable elf
+- **jtag**: support flash via JTAG
+- **jtag**: support loadable elf
+- **serial**: support bind ports by USB device location
+- `live_print_call` could accept kwargs `msg_queue` and `expect_returncode`
+- add fixture `dut_index` and `dut_total`
+- improve logging in popen objects
+
+### Fix
+
+- **qemu**: pass wrong init args
+- kill processes generated inside popen afterwards
+
+### Breaking Changes
+
+- **serial**: rename `start_redirect_serial_process` to `start_redirect_process`
+- **jtag**: remove `JtagDut`. use `SerialDut` or its subclasses instead
+
 ## v1.0.0a1 (2022-09-22)
 
 ### Fix
@@ -21,7 +46,6 @@
 
 - use multiprocessing.Process with Queue. Now you may use `threading.Thread` safely in your scripts
 
-
 ### Breaking Changes
 
 - **esp**: Support `esptool>4.0` only
@@ -37,7 +61,6 @@
 - remove `DuplicateStdout`. Now you may use `contextlib.redirect_stdout(msg_queue)` 
 instead
 - remove `DuplicateStdoutMixin`
-
 
 ## v0.8.2 (2022-08-23)
 
