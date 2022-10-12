@@ -116,6 +116,9 @@ def pytest_addoption(parser):
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
     serial_group.addoption(
+        '--port-location', help='USB device location string ("<bus>-<port>[-<port>]…"). Default: None'
+    )
+    serial_group.addoption(
         '--baud',
         help='serial port communication baud rate. (Default: 115200)',
     )
@@ -681,6 +684,13 @@ def baud(request: FixtureRequest) -> Optional[str]:
     return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def port_location(request: FixtureRequest) -> Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'port_location', None)
+
+
 #######
 # esp #
 #######
@@ -861,6 +871,7 @@ def _fixture_classes_and_options(
     app_path,
     build_dir,
     port,
+    port_location,
     target,
     beta_target,
     baud,
@@ -951,6 +962,7 @@ def _fixture_classes_and_options(
                     'target': target,
                     'beta_target': beta_target,
                     'port': os.getenv('ESPPORT') or port,
+                    'port_location': port_location,
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
@@ -987,6 +999,7 @@ def _fixture_classes_and_options(
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
                     'port': port,
+                    'port_location': port_location,
                     'baud': int(baud or Serial.DEFAULT_BAUDRATE),
                 }
         elif fixture in ['openocd', 'gdb']:

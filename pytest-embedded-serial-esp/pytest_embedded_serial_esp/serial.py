@@ -124,7 +124,7 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
-        super().__init__(msg_queue, esp.serial_port, baud, meta=meta, **kwargs)
+        super().__init__(msg_queue=msg_queue, port=esp.serial_port, baud=baud, meta=meta, **kwargs)
 
     def _post_init(self):
         logging.debug('set port-target cache: %s - %s', self.port, self.target)
