@@ -1,6 +1,7 @@
 import contextlib
 import functools
 import logging
+import subprocess
 from typing import Optional
 
 import esptool
@@ -9,9 +10,24 @@ from esptool import CHIP_DEFS, FatalError
 from esptool import __version__ as ESPTOOL_VERSION
 from esptool import detect_chip
 from esptool.targets import CHIP_LIST as ESPTOOL_CHIPS
-from pytest_embedded.log import MessageQueue
+from pexpect import TIMEOUT
+from pytest_embedded.log import MessageQueue, _PexpectProcess, live_print_call
 from pytest_embedded.utils import Meta
 from pytest_embedded_serial.dut import Serial
+
+
+def _is_port_mac_verified(pexpect_proc: _PexpectProcess, port: str, port_mac: str, msg_queue) -> bool:
+    try:
+        live_print_call(['esptool.py', '--port', port, 'read_mac'], msg_queue=msg_queue)
+    except subprocess.CalledProcessError:
+        return False
+    else:
+        try:
+            pexpect_proc.expect(f'MAC: {port_mac.lower()}', timeout=0.1)
+        except TIMEOUT:
+            return False
+        else:
+            return True
 
 
 class EsptoolArgs(object):
@@ -33,10 +49,12 @@ class EspSerial(Serial):
 
     def __init__(
         self,
+        pexpect_proc: _PexpectProcess,
         msg_queue: MessageQueue,
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
         port: Optional[str] = None,
+        port_mac: str = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         skip_autoflash: bool = False,
@@ -54,6 +72,13 @@ class EspSerial(Serial):
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
             # esptool will reverse the list
             ports.sort()
+            if port_mac:
+                for port in ports:
+                    if _is_port_mac_verified(pexpect_proc, port, port_mac, msg_queue):
+                        ports = [port]
+                        break
+                else:
+                    raise ValueError(f'The specified MAC address {port_mac} cannot be found.')
 
             # prioritize the cache recorded target port
             if esptool_target:
@@ -65,7 +90,13 @@ class EspSerial(Serial):
 
             logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
-            ports = [port]
+            if port_mac:
+                if _is_port_mac_verified(pexpect_proc, port, port_mac, msg_queue):
+                    ports = [port]
+                else:
+                    raise ValueError(f'The specified MAC address {port_mac} binds with different port, not with {port}')
+            else:
+                ports = [port]
 
         # normal loader
         if esptool_target not in (['auto'] + ESPTOOL_CHIPS):

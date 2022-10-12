@@ -139,6 +139,10 @@ def pytest_addoption(parser):
         '--esptool-baud',
         help='esptool flashing baud rate. (Env: "ESPBAUD" if service "esp" specified, Default: 921600)',
     )
+    esp_group.addoption(
+        '--port-mac',
+        help='MAC address of the board. (Default: None)',
+    )
 
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
@@ -729,6 +733,13 @@ def esptool_baud(request: FixtureRequest) -> Optional[str]:
     return _request_param_or_config_option_or_default(request, 'esptool_baud', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def port_mac(request: FixtureRequest) -> Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'port_mac', None)
+
+
 #######
 # idf #
 #######
@@ -872,6 +883,7 @@ def _fixture_classes_and_options(
     build_dir,
     port,
     port_location,
+    port_mac,
     target,
     beta_target,
     baud,
@@ -958,11 +970,13 @@ def _fixture_classes_and_options(
                 from pytest_embedded_serial_esp import EspSerial
 
                 kwargs[fixture] = {
+                    'pexpect_proc': pexpect_proc,
                     'msg_queue': msg_queue,
                     'target': target,
                     'beta_target': beta_target,
                     'port': os.getenv('ESPPORT') or port,
                     'port_location': port_location,
+                    'port_mac': port_mac,
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
