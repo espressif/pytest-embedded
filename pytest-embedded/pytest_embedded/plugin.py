@@ -40,7 +40,7 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
-from .log import MessageQueue, _PexpectProcess
+from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger
 from .utils import Meta, find_by_suffix, to_list, to_str
 
@@ -215,7 +215,6 @@ def pytest_addoption(parser):
 # helpers #
 ###########
 _COUNT = 1
-_LOG_DIR = tempfile.gettempdir()
 
 
 def _gte_one_int(v) -> int:
@@ -454,9 +453,8 @@ def test_case_name(request: FixtureRequest) -> str:
 ###########################
 @pytest.fixture(scope='session')
 def session_root_logdir(request: FixtureRequest) -> str:
-    global _LOG_DIR
-    _LOG_DIR = _request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir())
-    return _LOG_DIR
+    """Session scoped log dir for pytest-embedded"""
+    return os.path.realpath(_request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir()))
 
 
 @pytest.fixture(scope='session')
@@ -465,10 +463,28 @@ def session_tempdir(session_root_logdir) -> str:
     _tmpdir = os.path.join(
         session_root_logdir,
         'pytest-embedded',
-        datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+        f'{datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S-%f")}',
     )
     os.makedirs(_tmpdir, exist_ok=True)
     return _tmpdir
+
+
+@pytest.fixture(scope='session')
+def port_target_cache() -> Dict[str, str]:
+    """Session scoped port-target cache, for esp only"""
+    return {}
+
+
+@pytest.fixture(scope='session')
+def port_app_cache() -> Dict[str, str]:
+    """Session scoped port-app cache, for idf only"""
+    return {}
+
+
+@pytest.fixture(scope='session')
+def _meta(session_tempdir, port_target_cache, port_app_cache) -> Meta:
+    """Session scoped _meta info"""
+    return Meta(session_tempdir, port_target_cache, port_app_cache)
 
 
 @pytest.fixture
@@ -598,9 +614,9 @@ def _pexpect_fr(_pexpect_logfile, _listener) -> BinaryIO:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def pexpect_proc(_pexpect_fr) -> _PexpectProcess:
+def pexpect_proc(_pexpect_fr) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    return _PexpectProcess(_pexpect_fr)
+    return PexpectProcess(_pexpect_fr)
 
 
 @pytest.fixture
@@ -910,6 +926,7 @@ def _fixture_classes_and_options(
     test_case_name,
     pexpect_proc,
     msg_queue,
+    _meta,
 ) -> ClassCliOptions:
     """
     classes: the class that the fixture should instantiate
@@ -981,6 +998,7 @@ def _fixture_classes_and_options(
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
+                    'meta': _meta,
                 }
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfSerial
@@ -1015,6 +1033,7 @@ def _fixture_classes_and_options(
                     'port': port,
                     'port_location': port_location,
                     'baud': int(baud or Serial.DEFAULT_BAUDRATE),
+                    'meta': _meta,
                 }
         elif fixture in ['openocd', 'gdb']:
             if 'jtag' in _services:
@@ -1059,6 +1078,7 @@ def _fixture_classes_and_options(
                 'app': None,
                 'pexpect_logfile': _pexpect_logfile,
                 'test_case_name': test_case_name,
+                'meta': _meta,
             }
             if 'qemu' in _services:
                 from pytest_embedded_qemu import QemuDut
@@ -1212,23 +1232,14 @@ def dut(
 _junit_merger_key = pytest.StashKey['JunitMerger']()
 _pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
 _session_tempdir_key = pytest.StashKey['session_tempdir']()
-_port_target_cache_key = pytest.StashKey[Dict[str, str]]()
-_port_app_cache_key = pytest.StashKey[Dict[str, str]]()
 
 
 def pytest_configure(config: Config) -> None:
-    port_target_cache: Dict[str, str] = {}
-    port_app_cache: Dict[str, str] = {}
-
     config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
-    config.stash[_port_target_cache_key] = port_target_cache
-    config.stash[_port_app_cache_key] = port_app_cache
 
     config.stash[_pytest_embedded_key] = PytestEmbedded(
         parallel_count=config.getoption('parallel_count'),
         parallel_index=config.getoption('parallel_index'),
-        port_target_cache=port_target_cache,
-        port_app_cache=port_app_cache,
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
@@ -1245,13 +1256,9 @@ class PytestEmbedded:
         self,
         parallel_count: int = 1,
         parallel_index: int = 1,
-        port_target_cache: Dict[str, str] = None,
-        port_app_cache: Dict[str, str] = None,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
-
-        self._meta = Meta(_LOG_DIR, port_target_cache, port_app_cache)
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1300,30 +1307,6 @@ class PytestEmbedded:
             val = self._pytest_fixturedef_exec(fixturedef, request, kwargs)
             request.config.stash[_session_tempdir_key] = val
             return val
-
-        if fixturedef.argname not in ['serial', 'dut']:
-            return
-
-        # inject the cache into the serial kwargs
-        kwargs = self._pytest_fixturedef_get_kwargs(fixturedef, request)
-        _class_cli_options = kwargs['_fixture_classes_and_options']
-
-        # compatible to multi-dut
-        if isinstance(_class_cli_options, ClassCliOptions):
-            iterable_class_cli_options = [_class_cli_options]
-        else:
-            iterable_class_cli_options = _class_cli_options
-
-        for _item in iterable_class_cli_options:
-            _item_cls = _item.classes.get(fixturedef.argname)
-            _item_kwargs = _item.kwargs.get(fixturedef.argname)
-
-            if _item_cls is None or _item_kwargs is None:
-                continue
-
-            _item_kwargs['meta'] = self._meta
-
-        return self._pytest_fixturedef_exec(fixturedef, request, kwargs)
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, items: List[Function]):

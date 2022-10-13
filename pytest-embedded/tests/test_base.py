@@ -161,7 +161,7 @@ def test_default_app_path(testdir):
     (2, 1, 3),
     (2, 2, 2),
 ])
-def test_parallel_run(testdir, parallel_count, parallel_index, res):
+def test_parallel_run(parallel_count, parallel_index, res):
     from pytest_embedded.plugin import PytestEmbedded
 
     fake_items = [1, 2, 3, 4, 5]
@@ -200,24 +200,25 @@ def test_expect(testdir):
             assert res.group(2).decode('utf-8') == 'redirected'
 
 
-        def test_expect_from_timeout(dut):
+        @pytest.mark.flaky(reruns=3, reruns_delay=2)
+        def test_expect_from_timeout(msg_queue, dut):
             def write_bytes():
                 for _ in range(5):
-                    dut.write('1')
-                    time.sleep(3)
+                    msg_queue.write('1')
+                    time.sleep(1.5)
 
             write_thread = threading.Thread(target=write_bytes, daemon=True)
             write_thread.start()
 
-            res = dut.expect(pexpect.TIMEOUT, timeout=5)
-            assert res == b'11'
+            res = dut.expect(pexpect.TIMEOUT, timeout=4)
+            assert res == b'111'
 
 
         def test_expect_from_eof_at_first(dut):
             dut.write('this would be redirected')
 
             # close the pexpect process to generate an EOF
-            dut._p.terminate()
+            dut.pexpect_proc.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b''
@@ -228,7 +229,7 @@ def test_expect(testdir):
             dut.expect('this')
 
             # close the pexpect process to generate an EOF
-            dut._p.terminate()
+            dut.pexpect_proc.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b' would be redirected'

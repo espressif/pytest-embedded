@@ -11,12 +11,12 @@ from esptool import __version__ as ESPTOOL_VERSION
 from esptool import detect_chip
 from esptool.targets import CHIP_LIST as ESPTOOL_CHIPS
 from pexpect import TIMEOUT
-from pytest_embedded.log import MessageQueue, _PexpectProcess, live_print_call
+from pytest_embedded.log import MessageQueue, PexpectProcess, live_print_call
 from pytest_embedded.utils import Meta
 from pytest_embedded_serial.dut import Serial
 
 
-def _is_port_mac_verified(pexpect_proc: _PexpectProcess, port: str, port_mac: str, msg_queue) -> bool:
+def _is_port_mac_verified(pexpect_proc: PexpectProcess, port: str, port_mac: str, msg_queue) -> bool:
     try:
         live_print_call(['esptool.py', '--port', port, 'read_mac'], msg_queue=msg_queue)
     except subprocess.CalledProcessError:
@@ -49,7 +49,7 @@ class EspSerial(Serial):
 
     def __init__(
         self,
-        pexpect_proc: _PexpectProcess,
+        pexpect_proc: PexpectProcess,
         msg_queue: MessageQueue,
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
