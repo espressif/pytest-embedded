@@ -47,6 +47,10 @@ class Dut:
         # junit related
         self.testsuite = TestSuite(self.test_case_name)
 
+    @property
+    def logdir(self):
+        return self._meta.logdir
+
     def close(self) -> None:
         if self.testsuite.testcases:
             junit_report = os.path.splitext(self.logfile)[0] + '.xml'

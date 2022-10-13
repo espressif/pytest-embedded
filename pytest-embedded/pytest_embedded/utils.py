@@ -106,5 +106,5 @@ class Meta:
     """
 
     logdir: str
-    port_app_cache: Dict[str, str]
     port_target_cache: Dict[str, str]
+    port_app_cache: Dict[str, str]
