@@ -463,7 +463,7 @@ def session_tempdir(session_root_logdir) -> str:
     _tmpdir = os.path.join(
         session_root_logdir,
         'pytest-embedded',
-        datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+        f'{datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S-%f")}',
     )
     os.makedirs(_tmpdir, exist_ok=True)
     return _tmpdir
