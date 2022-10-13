@@ -40,7 +40,7 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
-from .log import MessageQueue, _PexpectProcess
+from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger
 from .utils import Meta, find_by_suffix, to_list, to_str
 
@@ -614,9 +614,9 @@ def _pexpect_fr(_pexpect_logfile, _listener) -> BinaryIO:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def pexpect_proc(_pexpect_fr) -> _PexpectProcess:
+def pexpect_proc(_pexpect_fr) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    return _PexpectProcess(_pexpect_fr)
+    return PexpectProcess(_pexpect_fr)
 
 
 @pytest.fixture

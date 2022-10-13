@@ -41,7 +41,7 @@ class MessageQueue(queues.Queue):
         return True
 
 
-class _PexpectProcess(pexpect.fdpexpect.fdspawn):
+class PexpectProcess(pexpect.fdpexpect.fdspawn):
     """
     Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
     """

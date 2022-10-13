@@ -8,7 +8,7 @@ from typing import AnyStr, Callable, List, Match, Optional, Union
 import pexpect
 
 from .app import App
-from .log import _PexpectProcess
+from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
 from .utils import Meta, remove_asci_color_code, to_bytes, to_list, to_str
 
@@ -18,6 +18,7 @@ class Dut:
     Device under test (DUT) base class
 
     Attributes:
+        pexpect_proc (PexpectProcess): `PexpectProcess` instance
         app (App): `App` instance
         logfile (str): log file path
         test_case_name (str): test case name
@@ -25,7 +26,7 @@ class Dut:
 
     def __init__(
         self,
-        pexpect_proc: _PexpectProcess,
+        pexpect_proc: PexpectProcess,
         msg_queue: multiprocessing.Queue,
         app: App,
         pexpect_logfile: str,
@@ -33,10 +34,10 @@ class Dut:
         meta: Optional[Meta] = None,
         **kwargs,
     ) -> None:
-        self._p = pexpect_proc
         self._q = msg_queue
         self._meta = meta
 
+        self.pexpect_proc = pexpect_proc
         self.app = app
         self.logfile = pexpect_logfile
         self.test_case_name = test_case_name
@@ -75,9 +76,9 @@ class Dut:
                     index = func(self, pattern, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
                     wrapped_buffer_bytes = textwrap.shorten(
-                        remove_asci_color_code(to_str(self._p.buffer)),
+                        remove_asci_color_code(to_str(self.pexpect_proc.buffer)),
                         width=200,
-                        placeholder=f'... (total {len(self._p.buffer)} bytes)',
+                        placeholder=f'... (total {len(self.pexpect_proc.buffer)} bytes)',
                     )
                     debug_str = (
                         f'Not found "{str(pattern)}"\n'
@@ -86,10 +87,10 @@ class Dut:
                     )
                     raise e.__class__(debug_str) from e
                 else:
-                    if self._p.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                        res.append(self._p.before.rstrip())
+                    if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                        res.append(self.pexpect_proc.before.rstrip())
                     else:
-                        res.append(self._p.match)
+                        res.append(self.pexpect_proc.match)
 
                 if expect_all:
                     patterns.pop(index)
@@ -121,7 +122,7 @@ class Dut:
 
             (re.Match): if matched given string.
         """
-        return self._p.expect(pattern, **kwargs)
+        return self.pexpect_proc.expect(pattern, **kwargs)
 
     @_pexpect_func  # noqa
     def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
@@ -141,7 +142,7 @@ class Dut:
 
             (re.Match): if matched given string.
         """
-        return self._p.expect_exact(pattern, **kwargs)
+        return self.pexpect_proc.expect_exact(pattern, **kwargs)
 
     def expect_unity_test_output(
         self,
@@ -166,9 +167,9 @@ class Dut:
         self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
 
         if extra_before:
-            log = to_bytes(extra_before) + self._p.before
+            log = to_bytes(extra_before) + self.pexpect_proc.before
         else:
-            log = self._p.before
+            log = self.pexpect_proc.before
 
         if remove_asci_escape_code:
             log = remove_asci_color_code(log)

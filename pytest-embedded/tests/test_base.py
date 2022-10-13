@@ -217,7 +217,7 @@ def test_expect(testdir):
             dut.write('this would be redirected')
 
             # close the pexpect process to generate an EOF
-            dut._p.terminate()
+            dut.pexpect_proc.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b''
@@ -228,7 +228,7 @@ def test_expect(testdir):
             dut.expect('this')
 
             # close the pexpect process to generate an EOF
-            dut._p.terminate()
+            dut.pexpect_proc.terminate()
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b' would be redirected'
