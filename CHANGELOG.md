@@ -1,3 +1,14 @@
+## v1.0.0b0 (2022-10-13)
+
+### Feat
+
+- add fixture `port_target_cache`, `port_app_cache`
+
+### Fix
+
+- add micro second digits to `session_tempdir`
+- revert the breaking change to rename `dut.pexpect_proc` to `dut._p`
+
 ## v1.0.0a2 (2022-10-12)
 
 ### Feat
