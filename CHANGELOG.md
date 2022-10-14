@@ -1,3 +1,14 @@
+## v1.0.0b1 (2022-10-14)
+
+### Feat
+
+- make DuplicateStdoutPopen logs under `session_tmpdir`
+
+### Fix
+
+- improve teardown logic
+- **jtag**: `openocd` instance redirect stdout to pexpect proc
+
 ## v1.0.0b0 (2022-10-13)
 
 ### Feat
