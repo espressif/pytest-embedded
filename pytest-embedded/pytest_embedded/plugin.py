@@ -1047,6 +1047,7 @@ def _fixture_classes_and_options(
                         'openocd_prog_path': openocd_prog_path,
                         'openocd_cli_args': openocd_cli_args,
                         'port_offset': dut_index,
+                        'meta': _meta,
                     }
                 else:
                     from pytest_embedded_jtag import Gdb
@@ -1056,6 +1057,7 @@ def _fixture_classes_and_options(
                         'msg_queue': msg_queue,
                         'gdb_prog_path': gdb_prog_path,
                         'gdb_cli_args': gdb_cli_args,
+                        'meta': _meta,
                     }
         elif fixture == 'qemu':
             if 'qemu' in _services:
@@ -1069,6 +1071,7 @@ def _fixture_classes_and_options(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
+                    'meta': _meta,
                 }
         elif fixture == 'dut':
             classes[fixture] = Dut
