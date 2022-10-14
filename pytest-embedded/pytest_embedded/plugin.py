@@ -2,6 +2,7 @@ import contextlib
 import datetime
 import functools
 import importlib
+import io
 import logging
 import multiprocessing
 import os
@@ -369,21 +370,30 @@ def multi_dut_generator_fixture(
                 if isinstance(obj, subprocess.Popen):
                     obj.terminate()
                     obj.kill()
-                else:
-                    obj.close()
-            except OSError as e:
-                logging.debug(str(e))
-                pass
+                elif isinstance(obj, multiprocessing.Process):
+                    obj.terminate()
+                    obj.kill()
+                elif isinstance(obj, io.IOBase):
+                    try:
+                        obj.close()
+                    except Exception as e:
+                        logging.debug('file close failed')
+                        logging.debug(str(e))
+                        raise
+            except Exception as e:
+                logging.debug('%s: %s', obj, str(e))
+                return  # swallow up all error
+
+            try:
+                obj.close()
             except AttributeError:
                 try:
                     obj.terminate()
                 except AttributeError:
                     pass
             except Exception as e:
-                logging.debug(str(e))
-                pass  # swallow up all error
-            finally:
-                del obj
+                logging.debug('Not properly caught object %s: %s', obj, str(e))
+                return  # swallow up all error
 
         if _COUNT == 1:
             res = None
@@ -506,7 +516,7 @@ def dut_total():
 
 
 @pytest.fixture
-@multi_dut_generator_fixture
+@multi_dut_fixture
 def _pexpect_logfile(test_case_tempdir, dut_index, dut_total) -> str:
     if dut_total > 1:
         name = f'dut-{dut_index}'
@@ -577,7 +587,9 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
 
 @pytest.fixture
-@multi_dut_generator_fixture
+# here we use @multi_dut_fixture
+# The daemon process should be closed at the very last. would be auto closed.
+@multi_dut_fixture
 def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
     """
     The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
@@ -613,7 +625,10 @@ def _pexpect_fr(_pexpect_logfile, _listener) -> BinaryIO:
 
 
 @pytest.fixture
-@multi_dut_generator_fixture
+# here we use @multi_dut_fixture
+# otherwise the close() method would be called, and would raise the OSError
+# The file descriptor would be closed at `_pexpect_fr`
+@multi_dut_fixture
 def pexpect_proc(_pexpect_fr) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
     return PexpectProcess(_pexpect_fr)

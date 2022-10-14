@@ -185,9 +185,6 @@ class DuplicateStdoutPopen(subprocess.Popen):
             self._p = self.REDIRECT_CLS(msg_queue, _log_file)
             self._p.start()
 
-    def __del__(self):
-        self.close()
-
     def close(self):
         if self._p:
             self._p.terminate()
