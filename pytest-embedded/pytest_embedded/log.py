@@ -13,7 +13,7 @@ import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
 from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
-from .utils import to_bytes, to_str
+from .utils import Meta, to_bytes, to_str
 
 
 class MessageQueue(queues.Queue):
@@ -148,19 +148,21 @@ class DuplicateStdoutPopen(subprocess.Popen):
     SOURCE = 'POPEN'
     REDIRECT_CLS = _PopenRedirectProcess
 
-    def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], **kwargs):
+    def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], meta: Optional[Meta] = None, **kwargs):
         self._q = msg_queue
         self._p = None
 
+        if meta:
+            logdir = meta.logdir
+        else:
+            logdir = os.path.join(
+                tempfile.gettempdir(),
+                datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+            )
+            os.makedirs(logdir, exist_ok=True)
+
         # we use real log file to record output, pipe-like file object won't be non-blocking.
-        _log_file = os.path.join(
-            tempfile.gettempdir(),
-            datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
-            f'{uuid.uuid4()}.log',
-        )
-        parent_dir = os.path.dirname(_log_file)
-        if parent_dir:  # in case value is a single file under the current dir
-            os.makedirs(os.path.dirname(_log_file), exist_ok=True)
+        _log_file = os.path.join(logdir, f'{self.SOURCE}-{uuid.uuid4()}.log')
         self._fw = open(_log_file, 'w')
         self._logfile = _log_file
         self._logfile_offset = 0
@@ -182,9 +184,6 @@ class DuplicateStdoutPopen(subprocess.Popen):
         if self.REDIRECT_CLS:
             self._p = self.REDIRECT_CLS(msg_queue, _log_file)
             self._p.start()
-
-    def __del__(self):
-        self.close()
 
     def close(self):
         if self._p:
