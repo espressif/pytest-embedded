@@ -442,3 +442,21 @@ def test_idf_parse_test_menu():
     assert test_menu[2].subcases[0]['name'] == 'ledc_cpu_reset_test_first_stage'
     assert test_menu[2].subcases[1]['index'] == 2
     assert test_menu[2].subcases[1]['name'] == 'ledc_cpu_reset_test_second_stage'
+
+
+def test_idf_multi_hard_reset_and_expect(testdir):
+    testdir.makepyfile(r"""
+        def test_idf_hard_reset_and_expect(dut):
+            for _ in range(10):
+                dut.serial.hard_reset()
+                dut.expect_exact('Hello world!')
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--log-cli-level', 'DEBUG',
+    )
+
+    result.assert_outcomes(passed=1)
