@@ -185,10 +185,10 @@ class EspSerial(Serial):
             @functools.wraps(func)
             def wrapper(self, *args, **kwargs):
                 with self.disable_redirect_serial():
-                    _s = pyserial.serial_for_url(self.port, **self.port_config)
-                    settings = _s.get_settings()
-                    try:
-                        with contextlib.redirect_stdout(self._q):
+                    with contextlib.redirect_stdout(self._q):
+                        _s = pyserial.serial_for_url(self.port, **self.port_config)
+                        settings = _s.get_settings()
+                        try:
                             self.esp = esptool.detect_chip(_s, self.baud)
                             self.esp.connect('hard_reset')
 
@@ -196,12 +196,12 @@ class EspSerial(Serial):
                                 self.stub = self.esp.run_stub()
 
                             ret = func(self, *args, **kwargs)
-                    finally:
-                        if hard_reset_after:
-                            self.esp.hard_reset()
+                        finally:
+                            if hard_reset_after:
+                                self.esp.hard_reset()
 
-                        _s.apply_settings(settings)
-                        _s.close()
+                            _s.apply_settings(settings)
+                            _s.close()
 
                 return ret
 
