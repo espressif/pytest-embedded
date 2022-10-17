@@ -212,7 +212,7 @@ class EspSerial(Serial):
     def _start(self):
         self.hard_reset()
 
-    @use_esptool
+    @use_esptool()
     def hard_reset(self):
         """Hard reset your espressif device"""
         pass
