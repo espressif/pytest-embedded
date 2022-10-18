@@ -4,6 +4,7 @@ import inspect
 import logging
 import multiprocessing
 import queue
+import time
 from typing import Dict, Optional
 
 import serial as pyserial
@@ -185,6 +186,8 @@ class _SerialRedirectProcess(multiprocessing.Process):
                 getattr(_serial, _e)(*_args, **_kwargs)
             except Exception as e:
                 logging.error(e)
+
+        time.sleep(0.05)  # set interval
 
 
 def _mock_pyserial_method(name):
