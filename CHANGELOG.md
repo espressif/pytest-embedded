@@ -1,3 +1,12 @@
+## v1.0.0b2 (2022-10-18)
+
+### Fix
+
+- multi-dut \r\n messed-up the log
+- **serial**: event loop with interval seconds
+- **esp**: add missing redirect lines
+- **esp**: `hard_reset` not working
+
 ## v1.0.0b1 (2022-10-14)
 
 ### Feat
