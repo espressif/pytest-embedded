@@ -577,6 +577,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
         if not _added_prefix:
             _s = prefix + _s
             _added_prefix = True
+        _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
         _s = _s.replace('\n', '\n' + prefix)
         if prefix and _s.endswith(prefix):
             _s = _s.rsplit(prefix, maxsplit=1)[0]
