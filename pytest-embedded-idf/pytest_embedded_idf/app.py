@@ -57,7 +57,7 @@ class IdfApp(App):
             self.is_loadable_elf = False
 
         self.bin_file = None
-        self.flash_args, self.flash_files, self.flash_settings = None, None, None
+        self.flash_args, self.flash_files, self.flash_settings = {}, [], {}
 
         if not self.is_loadable_elf:
             self.bin_file = self._get_bin_file()

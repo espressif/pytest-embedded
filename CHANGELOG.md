@@ -1,103 +1,43 @@
 ## v1.0.0b3 (2022-10-20)
 
-### Fix
-
-- **serial**: use thread for serial
-
-## v1.0.0b2 (2022-10-18)
-
-### Fix
-
-- multi-dut \r\n messed-up the log
-- **serial**: event loop with interval seconds
-- **esp**: add missing redirect lines
-- **esp**: `hard_reset` not working
-
-## v1.0.0b1 (2022-10-14)
-
 ### Feat
 
-- make DuplicateStdoutPopen logs under `session_tmpdir`
-
-### Fix
-
-- improve teardown logic
-- **jtag**: `openocd` instance redirect stdout to pexpect proc
-
-## v1.0.0b0 (2022-10-13)
-
-### Feat
-
+- add fixture `msg_queue`
+- add fixture `session_root_logdir` and cli option `--root-logdir`
+- add fixture `dut_index` and `dut_total`
 - add fixture `port_target_cache`, `port_app_cache`
-
-### Fix
-
-- add micro second digits to `session_tempdir`
-- revert the breaking change to rename `dut.pexpect_proc` to `dut._p`
-
-## v1.0.0a2 (2022-10-12)
-
-### Feat
-
-- **esp**: add new argument `hard_reset_after` and `no_stub` to `EspSerial.use_esptool`
+- simplify import path by adding more object to `__all__`
+- improve logging in `DuplicateStdoutPopen` instances
+- `live_print_call` could accept kwargs `msg_queue` and `expect_returncode`
+- **idf**: Support panic handler output for RISC-V targets
+- **serial**: support bind ports by USB device location
+- **esp**: `EspSerial.use_esptool` could accept kwargs `hard_reset_after` and `no_stub` 
 - **esp**: add `EsptoolArgs`
 - **esp**: support bind ports by `esptool` `read_mac`
 - **esp**: support loadable elf
 - **jtag**: support flash via JTAG
 - **jtag**: support loadable elf
-- **serial**: support bind ports by USB device location
-- `live_print_call` could accept kwargs `msg_queue` and `expect_returncode`
-- add fixture `dut_index` and `dut_total`
-- improve logging in popen objects
-
-### Fix
-
-- **qemu**: pass wrong init args
-- kill processes generated inside popen afterwards
-
-### Breaking Changes
-
-- **serial**: rename `start_redirect_serial_process` to `start_redirect_process`
-- **jtag**: remove `JtagDut`. use `SerialDut` or its subclasses instead
-
-## v1.0.0a1 (2022-09-22)
-
-### Fix
-
-- **serial**: event loop for interacting with `serial.proc`
-
-## v1.0.0a0 (2022-09-20)
-
-### Feat
-
-- add fixture `msg_queue`
-- add fixture `session_root_logdir` and cli option `--root-logdir`
-- simplify import path by adding more object to `__all__`
-- **idf**: Support panic handler output for RISC-V targets
 
 ### Fix
 
 - remove `autouse=True` for fixture `session_tempdir`
+- add micro second digits to `session_tempdir`
+- make DuplicateStdoutPopen logs under `session_tmpdir`
+- multi-dut \r\n messed-up the log
 
 ### Refactor
 
-- use multiprocessing.Process with Queue. Now you may use `threading.Thread` safely in your scripts
+- use multiprocessing.Process with Queue. Only `serial` instance redirect with `threading.Thread` instance.
 
 ### Breaking Changes
 
-- **esp**: Support `esptool>4.0` only
-- `Dut` and all subclasses
-    - remove attribute `pexpect_proc`
-- `Serial` and all subclasses
-    - rename `disable_redirect_thread()` to `disable_redirect_serial()`
-    - remove `stop_redirect_thread()`
-    - add `start_redirect_serial_process()`
 - `DuplicateStdoutPopen` and all subclasses
     - remove `create_forward_io_thread()`, the redirect process would be auto-created
     - rename `send()` to `write()` in order to keep the consistency with other classes
-- remove `DuplicateStdout`. Now you may use `contextlib.redirect_stdout(msg_queue)` 
-instead
+- remove `DuplicateStdout`. Now you may use `contextlib.redirect_stdout(msg_queue)` instead
 - remove `DuplicateStdoutMixin`
+- **esp**: Support `esptool>4.0` only
+- **jtag**: remove `JtagDut`. use `SerialDut` or its subclasses instead
 
 ## v0.8.2 (2022-08-23)
 
