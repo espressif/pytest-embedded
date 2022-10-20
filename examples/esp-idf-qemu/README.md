@@ -2,6 +2,8 @@
 
 The example shows how to create idf app qemu flash image automatically and run this with qemu.
 
+The example code comes from ESP-IDF v5.0
+
 ## Prerequisites
 
 1. Prepare QEMU program which supports xtensa, name it `qemu-system-xtensa` and add its parent directory into `$PATH`

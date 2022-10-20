@@ -4,6 +4,8 @@ This example shows:
 1. how `pytest_embedded_serial_esp` auto-detect chip target and port
 2. how `pytest_embedded_idf` auto flash the app into the target chip
 
+The example code comes from ESP-IDF v5.0
+
 ## Prerequisites
 
 1. Connect to the target chips
