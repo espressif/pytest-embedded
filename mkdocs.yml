@@ -14,6 +14,15 @@ theme:
         icon: material/toggle-switch
         name: Switch to light mode
 
+watch:
+  - pytest-embedded
+  - pytest-embedded-arduino
+  - pytest-embedded-idf
+  - pytest-embedded-jtag
+  - pytest-embedded-qemu
+  - pytest-embedded-serial
+  - pytest-embedded-serial-esp
+
 markdown_extensions:
   # admonitions
   - admonition
@@ -43,16 +52,8 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          rendering:
+          options:
             show_root_heading: True
-      watch:
-        - pytest-embedded
-        - pytest-embedded-arduino
-        - pytest-embedded-idf
-        - pytest-embedded-jtag
-        - pytest-embedded-qemu
-        - pytest-embedded-serial
-        - pytest-embedded-serial-esp
 
 nav:
   - pytest-embedded: index.md

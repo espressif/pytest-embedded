@@ -1,11 +1,14 @@
 # Expecting
 
 While we're doing tests, most of our jobs is to expect a string or a pattern, and do assertions. This is supported by
-functions `expect()`, `expect_exact`, and `expect_unity_test_output`.
+functions `expect()`, `expect_exact()`, and `expect_unity_test_output()`.
 
-All of these functions share the same keyword arguments: `timeout`. The default value of `timeout` is 30 seconds.
+All of these functions share the same following keyword arguments:
 
-## `expect(pattern, timeout)`
+-  `timeout`. Set the timeout in seconds of this expect statement. Will throw an `pexpect.TIMEOUT` exception if it exceeded the specified value. (Default: 30 s)
+-  `expect_all`. Will match all specified patterns if this set to True. (Default: False)
+
+## `expect(pattern, **kwargs)`
 
 `pattern` could be a `str` or a `bytes`, or a compiled regex with byte string.
 
@@ -122,7 +125,9 @@ What's more, argument `pattern` could be a list of all supported types.
             dut.expect(pattern_list)
     ```
 
-## `expect_exact(pattern, timeout)`
+If you set `expect_all` to `True`, the `expect()` function would return with a list of returned values of each item.
+
+## `expect_exact(pattern, **kwargs)`
 
 `pattern` could be a `str` or a `bytes`.
 
@@ -138,7 +143,7 @@ If the pattern is `str`, would convert to `bytes` and then run the function.
         dut.expect_exact(b'be redirected')
     ```
 
-Same as [`expect()`][expectpattern-timeout], argument `pattern` could be a list of all supported types.
+Same as [`expect(pattern, **kwargs)`][expectpattern-kwargs], argument `pattern` could be a list of all supported types.
 
 !!! example
 
@@ -146,13 +151,16 @@ Same as [`expect()`][expectpattern-timeout], argument `pattern` could be a list 
     def test_expect_exact_from_list(dut):
         dut.write('this would be redirected')
     
-        pattern_list = ['this would', b'be redirected']
+        pattern_list = [
+            'this would',
+            b'be redirected',
+        ]
     
         for _ in range(2):
             dut.expect_exact(pattern_list)
     ```
 
-## `expect_unity_test_output(timeout)`
+## `expect_unity_test_output(**kwargs)`
 
 [Unity Test](https://github.com/ThrowTheSwitch/Unity) is a c test framework.
 

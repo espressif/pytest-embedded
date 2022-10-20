@@ -4,34 +4,50 @@
 
 Each test case would initialize a few fixtures. The most important fixtures are:
 
-- `pexpect_proc`, a pexpect process, that could run `pexpect.expect()` for testing purpose.
-  
+- `msg_queue`, a message queue. There's a background listener process to read all the messages from this queue, log them to the terminal with an optional timestamp, and record them to the pexpect process.
+- `pexpect_proc`, a pexpect process, that could run `pexpect.expect()` for testing purposes.
+- `app`, the built binary
+- `dut`, a DUT test unit
+
+    A DUT would contain several daemon processes/threads. The output of each of them would be redirected to the `msg_queue` fixture.
+
 !!! note
 
-    Each DUT would have a standalone pexpect process. in multi-DUT mode, they will not share their pexpect process.
+    you may redirect any output to the `msg_queue` fixture by `contextlib.redirect_stdout`.
 
-- `app`, the built binary
-- `dut`, a DUT test unit.
+    ```python
+    import contextlib
 
-    A DUT would contain several daemon threads. The output of each thread would be redirected to `pexpect_proc` and 
-    be printed with timestamp by default.
+    def test_redirect(dut, msg_queue):
+        with contextlib.redirect_stdout(msg_queue):
+            print('will be redirected')
 
-You can run `pytest --fixtures` to get all the fixtures defined with `pytest-embedded`.
-They are under the section `fixtures defined from pytest_embedded.plugin`.
+        dut.expect_exact('redirected')
+    ```
 
-## Parametrizing
+    Or you may redirect the output from a fixture `redirect`
 
-All the CLI options support parametrizing via `indirect=True`. Parametrizing is a feature provided by `pytest`,
-please refer to [Parametrizing tests](https://docs.pytest.org/en/latest/example/parametrize.html) for its documentation.
+    ```python
+    def test_redirect(dut, msg_queue, redirect):
+        with redirect():
+            print('will also be redirected')
 
-To support multi DUT and parametrizing, we use string to represent bool value.
-"y/yes/true" for `True` and "n/no/false" for `False`, case-insensitive.
+        dut.expect_exact('redirected')
+    ```
+
+You can run `pytest --fixtures` to get all the fixtures defined with `pytest-embedded`. They are under the section `fixtures defined from pytest_embedded.plugin`.
+
+## Parametrization
+
+All the CLI options support parametrization via `indirect=True`. Parametrization is a feature provided by `pytest`, please refer to [Parametrizing tests](https://docs.pytest.org/en/latest/example/parametrize.html) for its documentation.
 
 !!! example
 
+    Running a test script like:
+
     ```python
     @pytest.mark.parametrize(
-        'embedded_service,app_path',
+        'embedded_services, app_path',
         [
             ('idf', app_path_1),
             ('idf', app_path_2),
@@ -42,17 +58,29 @@ To support multi DUT and parametrizing, we use string to represent bool value.
         assert dut.app.target == 'esp32'
         dut.expect('Restart now')
     ```
+
+    with shell command `pytest`
+
+    is equivalent to running a test script like:
+
+    ```python
+    def test_serial_tcp(dut):
+        assert dut.app.target == 'esp32'
+        dut.expect('Restart now')
+    ```
+
+    with two shell commands `pytest --embedded-services idf --app-path <app_path_1>` and `pytest --embedded-services idf --app-path <app_path_2>`
+
 ## Services
 
-You can activate more services with `pytest --embedded-services service[, service]` to enable extra fixtures and functionalities.
-These services are provided by several optional dependencies. You can install them via `pip` as well.
+You can activate more services with `pytest --embedded-services service[, service]` to enable extra fixtures and functionalities. These services are provided by several optional dependencies. You can install them via `pip` as well.
 
 Available services:
 
 - `serial`: serial port utilities.
 - `esp`: auto-detect target/port by [esptool](https://github.com/espressif/esptool).
 - `idf`: auto-detect more app info with [ESP-IDF](https://github.com/espressif/esp-idf) specific rules, auto-flash the binary into the target.
-- `jtag`: openocd/gdb utilities
+- `jtag`: openocd/gdb utilities.
 - `qemu`: running test cases on QEMU instead of the real target.
 - `arduino`: auto-detect more app info with [arduino](https://github.com/arduino/Arduino) specific rules, auto-flash the binary into the target.
 
@@ -64,7 +92,7 @@ Here are a few examples of how to enable this. For detailed information, please 
 
 ### Enable multi DUTs by specifying `--count`
 
-In this way, all the fixtures would be a tuple with instances. Each configuration will use `|` as a separator for each instance.
+After you enabled the multi-dut mode, all the fixtures would be a tuple with instances. Each instance inside the tuple would be independent. For parametrization, each configuration will use `|` as a separator for each instance.
 
 !!! example
     
@@ -122,8 +150,7 @@ Sometimes one option is only useful when enabling specific services. You can set
 
 ## Logging
 
-`pytest-embedded` print all the DUT output with timestamp. If you want to remove the timestamp, please run pytest with
-`pytest --with-timestamp n` to disable this feature.
+`pytest-embedded` print all the DUT output with the timestamp. If you want to remove the timestamp, please run pytest with `pytest --with-timestamp n` to disable this feature.
 
 By default, `pytest` would swallow the stdout. If you want to check the live output, please run pytest with `pytest -s`.
 
