@@ -1,3 +1,9 @@
+## v1.0.0b3 (2022-10-20)
+
+### Fix
+
+- **serial**: use thread for serial
+
 ## v1.0.0b2 (2022-10-18)
 
 ### Fix
