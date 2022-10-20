@@ -188,7 +188,6 @@ def test_expect(testdir):
             dut.expect('[be]{2}')
             dut.expect(re.compile(b'redirected'))
 
-
         def test_expect_return_value(redirect, dut):
             # here we use fixture `redirect` to write the sys.stdout to dut
             with redirect():
@@ -199,8 +198,6 @@ def test_expect(testdir):
             assert res.group(1) == b'would'
             assert res.group(2).decode('utf-8') == 'redirected'
 
-
-        @pytest.mark.flaky(reruns=3, reruns_delay=2)
         def test_expect_from_timeout(msg_queue, dut):
             def write_bytes():
                 for _ in range(5):
@@ -213,7 +210,6 @@ def test_expect(testdir):
             res = dut.expect(pexpect.TIMEOUT, timeout=4)
             assert res == b'111'
 
-
         def test_expect_from_eof_at_first(dut):
             dut.write('this would be redirected')
 
@@ -222,7 +218,6 @@ def test_expect(testdir):
 
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b''
-
 
         def test_expect_from_eof_current_buffer(dut):
             dut.write('this would be redirected')
@@ -234,7 +229,6 @@ def test_expect(testdir):
             res = dut.expect(pexpect.EOF, timeout=None)
             assert res == b' would be redirected'
 
-
         def test_expect_from_list(dut):
             dut.write('this would be redirected')
 
@@ -243,13 +237,11 @@ def test_expect(testdir):
             for _ in range(4):
                 dut.expect(pattern_list)
 
-
         def test_expect_exact(dut):
             dut.write('this would be redirected')
 
             dut.expect_exact('this would')
             dut.expect_exact(b'be redirected')
-
 
         def test_expect_exact_from_list(dut):
             dut.write('this would be redirected')
