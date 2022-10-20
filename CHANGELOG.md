@@ -1,4 +1,4 @@
-## v1.0.0b3 (2022-10-20)
+## v1.0.0 (2022-10-20)
 
 ### Feat
 
@@ -24,6 +24,7 @@
 - add micro second digits to `session_tempdir`
 - make DuplicateStdoutPopen logs under `session_tmpdir`
 - multi-dut \r\n messed-up the log
+- **idf**: use empty list or dict for default values
 
 ### Refactor
 
