@@ -219,7 +219,7 @@ class IdfDut(SerialDut):
         else:
             raise ValueError(f'Invalid coredump format. Use _parse_b64_coredump for UART')
 
-        with self.serial.disable_redirect_serial():
+        with self.serial.disable_redirect_thread():
             coredump = CoreDump(
                 chip=self.target,
                 core_format=core_format,

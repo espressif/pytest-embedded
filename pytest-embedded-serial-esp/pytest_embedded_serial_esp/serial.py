@@ -5,7 +5,6 @@ import subprocess
 from typing import Optional
 
 import esptool
-import serial as pyserial
 from esptool import CHIP_DEFS, FatalError
 from esptool import __version__ as ESPTOOL_VERSION
 from esptool import detect_chip
@@ -134,15 +133,13 @@ class EspSerial(Serial):
                         raise
                     print(f'{each_port} failed to connect: {err}')
                     if _esp:
-                        # ensure port is closed.
+                        # ensure unused port is closed.
                         _esp._port.close()
                     _esp = None
             esp = _esp
 
         if not esp:
             raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
-        # ensure port is closed. The redirect instance would be opened later
-        esp._port.close()
 
         self.esp: esptool.ESPLoader = None  # type: ignore
         self.stub: esptool.ESPLoader = None  # type: ignore
@@ -155,7 +152,7 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
-        super().__init__(msg_queue=msg_queue, port=esp.serial_port, baud=baud, meta=meta, **kwargs)
+        super().__init__(msg_queue=msg_queue, port=esp._port, baud=baud, meta=meta, **kwargs)
 
     def _post_init(self):
         logging.debug('set port-target cache: %s - %s', self.port, self.target)
@@ -184,12 +181,11 @@ class EspSerial(Serial):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(self, *args, **kwargs):
-                with self.disable_redirect_serial():
+                with self.disable_redirect_thread():
                     with contextlib.redirect_stdout(self._q):
-                        _s = pyserial.serial_for_url(self.port, **self.port_config)
-                        settings = _s.get_settings()
+                        settings = self.proc.get_settings()
                         try:
-                            self.esp = esptool.detect_chip(_s, self.baud)
+                            self.esp = esptool.detect_chip(self.proc, self.baud)
                             self.esp.connect('hard_reset')
 
                             if not no_stub:
@@ -200,8 +196,7 @@ class EspSerial(Serial):
                             if hard_reset_after:
                                 self.esp.hard_reset()
 
-                            _s.apply_settings(settings)
-                            _s.close()
+                            self.proc.apply_settings(settings)
 
                 return ret
 
