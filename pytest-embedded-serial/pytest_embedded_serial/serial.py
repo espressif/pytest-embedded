@@ -179,7 +179,10 @@ class _SerialRedirectThread(threading.Thread):
                 except OSError:
                     return
                 except Exception as e:
-                    logging.error(e)
+                    logging.warning(
+                        'unknown error: %s.\n' 'Recommend to close the serial process by `dut.serial.close()`', str(e)
+                    )
+                    return
 
             elif _e == 'stop':
                 self._block_reading = True
