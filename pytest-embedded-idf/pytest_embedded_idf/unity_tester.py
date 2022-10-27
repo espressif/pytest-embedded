@@ -5,8 +5,11 @@ from threading import Semaphore, Thread
 from typing import List, Union
 
 from pexpect.exceptions import TIMEOUT
-from pytest_embedded import Dut, unity, utils
-from pytest_embedded_idf.dut import UnittestMenuCase
+from pytest_embedded import unity, utils
+from pytest_embedded_idf.dut import IdfDut, UnittestMenuCase
+
+DEFAULT_START_RETRY = 3
+DEFAULT_TIMEOUT = 90
 
 
 class BaseTester:
@@ -14,29 +17,26 @@ class BaseTester:
     The base class that providing shared methods
 
     Attributes:
-        dut (Dut): Object of the Device under test
+        dut (IdfDut): Object of the Device under test
         test_menu (List[UnittestMenuCase]): The list of the cases
-        retry_times (int): The retry times when failed to start a case
-        args (Any): Not used
     """
 
     # The patterns that indicate the runner is ready come from 'unity_runner.c'
-    ready_pattern_list = ['Press ENTER to see the list of tests',
-                          'Enter test for running',
-                          'Enter next test, or \'enter\' to see menu']
+    ready_pattern_list = [
+        'Press ENTER to see the list of tests',
+        'Enter test for running',
+        'Enter next test, or \'enter\' to see menu',
+    ]
 
-    def __init__(self, dut: Union[Dut, List[Dut]], **kwargs) -> None:     # type: ignore
-        self.retry_times = 30
+    def __init__(self, dut: Union[IdfDut, List[IdfDut]], **kwargs) -> None:  # type: ignore
         if isinstance(dut, List):
-            for item in dut:
-                if isinstance(item, Dut):
-                    self.dut = item
-                    break
+            self.dut = dut[0]
         else:
             self.dut = dut
         for k, v in kwargs.items():
             setattr(self, k, v)
         if 'test_menu' not in kwargs:
+            self.test_menu = None
             self.get_test_menu()
 
     def get_test_menu(self) -> None:
@@ -58,24 +58,35 @@ class NormalCaseTester(BaseTester):
     Tester of normal type case
 
     Attributes:
-        dut (Dut): Object of the Device under test
+        dut (IdfDut): Object of the Device under test
         test_menu (List[UnittestMenuCase]): The list of the cases
-        retry_times (int): The retry times when failed to start a case
-        args (Any): Not used
+        start_retry (int): number of retries for a single case when it is failed to start
     """
 
-    def run_all_normal_cases(self, reset: bool = False, timeout: int = 90) -> None:
+    def run_all_normal_cases(
+        self,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run all normal cases
 
         Args:
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         for case in self.test_menu:
-            self.run_normal_case(case, reset, timeout=timeout)
+            self.run_normal_case(case, reset, timeout=timeout, start_retry=start_retry)
 
-    def run_normal_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+    def run_normal_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run a specific normal case
 
@@ -84,23 +95,25 @@ class NormalCaseTester(BaseTester):
 
         Args:
             case: the specific case that parsed in test menu
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         if case.type == 'normal':
+            case_start_time = time.perf_counter()
             if reset:
                 self.dut.serial.hard_reset()
             self.dut.expect(self.ready_pattern_list, timeout=timeout)
-            # Retry if write not success
-            for retry in range(self.retry_times):
-                self.dut.write(str(case.index))
+            for retry in range(start_retry):
                 try:
-                    self.dut.expect('Running {}...'.format(case.name), timeout=1)
+                    self.dut.write(str(case.index))
+                    self.dut.expect_exact(f'Running {case.name}...', timeout=1)
+                    self.dut.expect_unity_test_output(timeout=timeout, case_start_time=case_start_time)
                     break
+
                 except TIMEOUT as e:
-                    if retry >= self.retry_times - 1:
+                    if retry >= start_retry - 1:
                         raise e
-            self.dut.expect_unity_test_output(timeout=timeout)
 
 
 class MultiStageCaseTester(BaseTester):
@@ -108,24 +121,35 @@ class MultiStageCaseTester(BaseTester):
     Tester of multiple stage type case
 
     Attributes:
-        dut (Dut): Object of the Device under test
+        dut (IdfDut): Object of the Device under test
         test_menu (List[UnittestMenuCase]): The list of the cases
-        retry_times (int): The retry times when failed to start a case
-        args (Any): Not used
+        start_retry (int): number of retries for a single case when it is failed to start
     """
 
-    def run_all_multi_stage_cases(self, reset: bool = False, timeout: int = 90) -> None:
+    def run_all_multi_stage_cases(
+        self,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run all multi_stage cases
 
         Args:
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         for case in self.test_menu:
-            self.run_multi_stage_case(case, reset, timeout=timeout)
+            self.run_multi_stage_case(case, reset, timeout=timeout, start_retry=start_retry)
 
-    def run_multi_stage_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+    def run_multi_stage_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run a specific multi_stage case
 
@@ -134,26 +158,28 @@ class MultiStageCaseTester(BaseTester):
 
         Args:
             case: the specific case that parsed in test menu
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry(int): number of retries for a single case when it is failed to start
         """
         if case.type == 'multi_stage':
+            case_start_time = time.perf_counter()
             if reset:
                 self.dut.serial.hard_reset()
             for sub_case in case.subcases:
                 self.dut.expect(self.ready_pattern_list, timeout=timeout)
                 # Retry if write not success
-                for retry in range(self.retry_times):
+                for retry in range(start_retry):
                     self.dut.write(str(case.index))
                     try:
                         self.dut.expect_exact(case.name, timeout=1)
                         break
                     except TIMEOUT as e:
-                        if retry >= self.retry_times - 1:
+                        if retry >= start_retry - 1:
                             raise e
                 self.dut.write(str(sub_case['index']))
 
-            self.dut.expect_unity_test_output(timeout=timeout)
+            self.dut.expect_unity_test_output(timeout=timeout, case_start_time=case_start_time)
 
 
 class MultiDevResource:
@@ -161,17 +187,17 @@ class MultiDevResource:
     Resources of multi_dev dut
 
     Attributes:
-        dut (Dut): Object of the Device under test
+        dut (IdfDut): Object of the Device under test
         sem (Semaphore): Semaphore of monitoring whether the case finished
         recv_sig (List[str]): The list of received signals from other dut
         thread (Thread): The thread of monitoring the signals
     """
 
-    def __init__(self, dut: Dut) -> None:
+    def __init__(self, dut: IdfDut) -> None:
         self.dut = dut
         self.sem = Semaphore()
         self.recv_sig: List[str] = []
-        self.thread: Thread = None          # type: ignore
+        self.thread: Thread = None  # type: ignore
 
 
 class MultiDevCaseTester(BaseTester):
@@ -180,9 +206,9 @@ class MultiDevCaseTester(BaseTester):
 
     Attributes:
         group (List[MultiDevResource]): The group of the devices' resources
-        dut (Dut): The first dut, mainly used to get the test menu only
+        dut (IdfDut): The first dut, mainly used to get the test menu only
         test_menu (List[UnittestMenuCase]): The list of the cases
-        retry_times (int): The retry times when failed to start a case
+        start_retry (int): number of retries for a single case when it is failed to start
     """
 
     # The signal pattens come from 'test_utils.c'
@@ -191,7 +217,7 @@ class MultiDevCaseTester(BaseTester):
     UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
     UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
 
-    def __init__(self, dut: Union[Dut, List[Dut]], **kwargs) -> None:     # type: ignore
+    def __init__(self, dut: Union[IdfDut, List[IdfDut]], **kwargs) -> None:  # type: ignore
         """
         Create the object for every dut and put them into the group
         """
@@ -199,14 +225,14 @@ class MultiDevCaseTester(BaseTester):
         self.group: List[MultiDevResource] = []
         if isinstance(dut, List):
             for item in dut:
-                if isinstance(item, Dut):
+                if isinstance(item, IdfDut):
                     dev_res = MultiDevResource(item)
                     self.group.append(dev_res)
         else:
             dev_res = MultiDevResource(dut)
             self.group.append(dev_res)
 
-    def _wait_multi_dev_case_finish(self, timeout: int = 90) -> None:
+    def _wait_multi_dev_case_finish(self, timeout: int = DEFAULT_TIMEOUT) -> None:
         """
         Wait until all the sub-cases of this multi_device case finished
         """
@@ -216,7 +242,14 @@ class MultiDevCaseTester(BaseTester):
             else:
                 raise TimeoutError('Wait case to finish timeout')
 
-    def _start_sub_case_thread(self, dev_res: MultiDevResource, case: UnittestMenuCase, sub_case_index: int) -> None:
+    def _start_sub_case_thread(
+        self,
+        dev_res: MultiDevResource,
+        case: UnittestMenuCase,
+        sub_case_index: int,
+        case_start_time: float,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Start the thread monitoring on the corresponding dut of the sub-case
         """
@@ -226,6 +259,8 @@ class MultiDevCaseTester(BaseTester):
         _kwargs['dev_res'] = dev_res
         _kwargs['case'] = case
         _kwargs['sub_case_index'] = sub_case_index
+        _kwargs['start_retry'] = start_retry
+        _kwargs['case_start_time'] = case_start_time
 
         # Create the thread of the sub-case
         dev_res.thread = Thread(target=self._run, kwargs=_kwargs, daemon=True)
@@ -246,24 +281,26 @@ class MultiDevCaseTester(BaseTester):
             - If the dut finished running the case, it will quite the loop and terminate the thread
         """
         signal_pattern_list = [
-            self.UNITY_SEND_SIGNAL_REGEX,           # The dut send a signal
-            self.UNITY_WAIT_SIGNAL_REGEX,           # The dut is blocked and waiting for a signal
-            unity.UNITY_SUMMARY_LINE_REGEX,         # Means the case finished
+            self.UNITY_SEND_SIGNAL_REGEX,  # The dut send a signal
+            self.UNITY_WAIT_SIGNAL_REGEX,  # The dut is blocked and waiting for a signal
+            unity.UNITY_SUMMARY_LINE_REGEX,  # Means the case finished
         ]
         dut = kwargs['dut']
         dev_res = kwargs['dev_res']
         case = kwargs['case']
         sub_case_index = kwargs['sub_case_index']
+        start_retry = kwargs['start_retry']
+        case_start_time = kwargs['case_start_time']
         # Start the case
         dut.expect(self.ready_pattern_list)
-        # Retry at most 30 times if not write successfully
-        for retry in range(self.retry_times):
+        # Retry at defined number of times if not write successfully
+        for retry in range(start_retry):
             dut.write(str(case.index))
             try:
                 dut.expect_exact(case.name, timeout=1)
                 break
             except TIMEOUT as e:
-                if retry >= self.retry_times - 1:
+                if retry >= start_retry - 1:
                     dev_res.sem.release()
                     raise e
 
@@ -276,13 +313,13 @@ class MultiDevCaseTester(BaseTester):
                 match_str = pat.group().decode('utf-8')
 
                 # Send a signal
-                if match_str.find(self.SEND_SIGNAL_PREFIX) >= 0:
+                if self.SEND_SIGNAL_PREFIX in match_str:
                     send_sig = pat.group(1).decode('utf-8')
                     for d in self.group:
                         d.recv_sig.append(send_sig)
 
                 # Waiting for a signal
-                elif match_str.find(self.WAIT_SIGNAL_PREFIX) >= 0:
+                elif self.WAIT_SIGNAL_PREFIX in match_str:
                     wait_sig = pat.group(1).decode('utf-8')
                     while True:
                         if wait_sig in dev_res.recv_sig:
@@ -294,27 +331,42 @@ class MultiDevCaseTester(BaseTester):
                             time.sleep(0.1)
 
                 # Case finished
-                elif match_str.find('Tests') >= 0:
+                elif 'Tests' in match_str:
+                    case_end_time = time.perf_counter()
+                    case_duration = case_end_time - case_start_time
+                    additional_attrs = {'time': round(case_duration, 3)}
                     log = utils.remove_asci_color_code(dut.pexpect_proc.before)
-                    dut.testsuite.add_unity_test_cases(log)
+                    dut.testsuite.add_unity_test_cases(log, additional_attrs=additional_attrs)
                     break
 
         # The case finished, release the semaphore to unblock the '_wait_multi_dev_case_finish'
         dev_res.sem.release()
 
-    def run_all_multi_dev_cases(self, reset: bool = False, timeout: int = 90) -> None:
+    def run_all_multi_dev_cases(
+        self,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run only multi_device cases
 
         Args:
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         for case in self.test_menu:
             # Run multi_device case on every device
-            self.run_multi_dev_case(case, reset, timeout)
+            self.run_multi_dev_case(case, reset, timeout, start_retry)
 
-    def run_multi_dev_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+    def run_multi_dev_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run a specific multi_device case
 
@@ -323,10 +375,12 @@ class MultiDevCaseTester(BaseTester):
 
         Args:
             case: the specific case that parsed in test menu
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         if case.type == 'multi_device' and len(self.group) > 1:
+            case_start_time = time.perf_counter()
             if reset:
                 for dev_res in self.group:
                     dev_res.dut.serial.hard_reset()
@@ -335,8 +389,13 @@ class MultiDevCaseTester(BaseTester):
                     index = int(sub_case['index'], 10)
                 else:
                     index = sub_case['index']
-                self._start_sub_case_thread(dev_res=self.group[index - 1],
-                                            case=case, sub_case_index=index)
+                self._start_sub_case_thread(
+                    dev_res=self.group[index - 1],
+                    case=case,
+                    sub_case_index=index,
+                    case_start_time=case_start_time,
+                    start_retry=start_retry,
+                )
             # Waiting all the devices to finish their test cases
             self._wait_multi_dev_case_finish(timeout=timeout)
 
@@ -347,33 +406,46 @@ class CaseTester(NormalCaseTester, MultiStageCaseTester, MultiDevCaseTester):
 
     Attributes:
         group (List[MultiDevResource]): The group of the devices' resources
-        dut (Dut): The first dut if there is more than one
+        dut (IdfDut): The first dut if there is more than one
         test_menu (List[UnittestMenuCase]): The list of the cases
     """
 
-    def run_all_cases(self, reset: bool = False, timeout: int = 90) -> None:
+    def run_all_cases(
+        self,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run all cases
 
         Args:
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         for case in self.test_menu:
-            self.run_case(case, reset, timeout=timeout)
+            self.run_case(case, reset, timeout=timeout, start_retry=start_retry)
 
-    def run_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+    def run_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+        start_retry: int = DEFAULT_START_RETRY,
+    ) -> None:
         """
         Run a specific case
 
         Args:
             case: the specific case that parsed in test menu
-            reset: whether do a hardware reset before running the case
+            reset: whether to perform a hardware reset before running a case
             timeout: timeout in second
+            start_retry (int): number of retries for a single case when it is failed to start
         """
         if case.type == 'normal':
-            self.run_normal_case(case, reset, timeout=timeout)
+            self.run_normal_case(case, reset, timeout=timeout, start_retry=start_retry)
         elif case.type == 'multi_stage':
-            self.run_multi_stage_case(case, reset, timeout=timeout)
+            self.run_multi_stage_case(case, reset, timeout=timeout, start_retry=start_retry)
         elif case.type == 'multi_device':
-            self.run_multi_dev_case(case, reset, timeout=timeout)
+            self.run_multi_dev_case(case, reset, timeout=timeout, start_retry=start_retry)
