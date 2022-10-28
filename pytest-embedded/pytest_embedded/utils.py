@@ -108,3 +108,4 @@ class Meta:
     logdir: str
     port_target_cache: Dict[str, str]
     port_app_cache: Dict[str, str]
+    logfile_extension: str = '.log'
