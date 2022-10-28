@@ -13,7 +13,7 @@ Each test case would initialize a few fixtures. The most important fixtures are:
 
 !!! note
 
-    you may redirect any output to the `msg_queue` fixture by `contextlib.redirect_stdout`.
+    You may redirect any output to the `msg_queue` fixture by `contextlib.redirect_stdout`.
 
     ```python
     import contextlib
@@ -103,7 +103,7 @@ After you enabled the multi-dut mode, all the fixtures would be a tuple with ins
     --app-path <master_bin>|<slave_bin>
     ```
   
-    In this example, `app` would be a tuple of 2 `App` instances, `dut` would be a tuple of 2 `Dut` Instances.
+    In this example, `app` would be a tuple of 2 `App` instances, and `dut` would be a tuple of 2 `Dut` Instances.
   
     You can test with:
   

@@ -3,16 +3,16 @@
 While we're doing tests, most of our jobs is to expect a string or a pattern, and do assertions. This is supported by
 functions `expect()`, `expect_exact()`, and `expect_unity_test_output()`.
 
-All of these functions share the same following keyword arguments:
+All of these functions share these possible keyword arguments:
 
--  `timeout`. Set the timeout in seconds of this expect statement. Will throw an `pexpect.TIMEOUT` exception if it exceeded the specified value. (Default: 30 s)
--  `expect_all`. Will match all specified patterns if this set to True. (Default: False)
+-  `timeout`. Set the timeout in seconds for this expect statement. Will throw an `pexpect.TIMEOUT` exception if it exceeded the specified value. (Default: 30 s)
+-  `expect_all`. Will match all specified patterns if this is set to True. (Default: False)
 
 ## `expect(pattern, **kwargs)`
 
-`pattern` could be a `str` or a `bytes`, or a compiled regex with byte string.
+`pattern` can be `str` or `bytes`, or a compiled regex with `bytes`.
 
-If the pattern is `str` or `bytes`, would convert to compiled regex with `bytes` and then run the function.
+If the pattern is `str` or `bytes`, it will convert to compiled regex with `bytes` and then run the function.
 
 !!! example
 
@@ -87,7 +87,7 @@ You can also get all bytes in the pexpect process buffer by expecting a `pexpect
 !!! note
 
     pexpect process would only read from the process into the buffer when running expecting functions.
-    If you're expecting `pexpect.EOF` as the first statement, would return an empty byte string
+    If you're expecting `pexpect.EOF` as the first statement, it would return an empty byte string
 
     !!! example
     
@@ -129,7 +129,7 @@ If you set `expect_all` to `True`, the `expect()` function would return with a l
 
 ## `expect_exact(pattern, **kwargs)`
 
-`pattern` could be a `str` or a `bytes`.
+`pattern` can be `str` or `bytes`.
 
 If the pattern is `str`, would convert to `bytes` and then run the function.
 
@@ -164,7 +164,7 @@ Same as [`expect(pattern, **kwargs)`][expectpattern-kwargs], argument `pattern` 
 
 [Unity Test](https://github.com/ThrowTheSwitch/Unity) is a c test framework.
 
-This function would parse the output with unity output. The default value of `timeout` is 60 seconds.
+This function would parse the output as the unity output. The default value of `timeout` is 60 seconds.
 
 When the test script ends, the DUT object would raise `AssertionError` if any unity test case's result is "FAIL".
 

@@ -1,6 +1,6 @@
 # pytest-embedded [![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest) [![Python 3.7+](https://img.shields.io/pypi/pyversions/pytest-embedded)]()
 
-A pytest plugin that has multiple services available for various functionalities. Designed for the embedded testing.
+A pytest plugin that has multiple services available for various functionalities. Designed for embedded testing.
 
 ## Installation
 
@@ -42,7 +42,7 @@ test_basic.py .                                                        [100%]
 ============================= 1 passed in 0.01s =============================
 ```
 
-- if run with `pytest -s`, would get output like:
+- if run with `pytest -s`, the output would be as follows:
 
 ```shell
 collected 1 item                                                                                                  
