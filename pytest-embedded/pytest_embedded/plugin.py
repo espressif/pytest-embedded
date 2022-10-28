@@ -486,16 +486,17 @@ def port_app_cache() -> Dict[str, str]:
     return {}
 
 
-@pytest.fixture(scope='session')
-def _meta(session_tempdir, port_target_cache, port_app_cache) -> Meta:
-    """Session scoped _meta info"""
-    return Meta(session_tempdir, port_target_cache, port_app_cache)
-
-
 @pytest.fixture
 def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
     """Function scoped temp dir for pytest-embedded"""
     return os.path.join(session_tempdir, test_case_name)
+
+
+@pytest.fixture
+@multi_dut_fixture
+def _meta(test_case_tempdir, port_target_cache, port_app_cache) -> Meta:
+    """function scoped _meta info"""
+    return Meta(test_case_tempdir, port_target_cache, port_app_cache)
 
 
 @pytest.fixture

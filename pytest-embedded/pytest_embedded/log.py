@@ -162,7 +162,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
             os.makedirs(logdir, exist_ok=True)
 
         # we use real log file to record output, pipe-like file object won't be non-blocking.
-        _log_file = os.path.join(logdir, f'{self.SOURCE}-{uuid.uuid4()}.log')
+        _log_file = os.path.join(logdir, f'{self.SOURCE.lower()}-{uuid.uuid4()}.log')
         self._fw = open(_log_file, 'w')
         self._logfile = _log_file
         self._logfile_offset = 0
