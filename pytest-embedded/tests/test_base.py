@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
@@ -441,3 +442,28 @@ def test_duplicate_stdout_popen(testdir):
     result = testdir.runpytest('-s')
 
     result.assert_outcomes(passed=1)
+
+
+def test_set_log_extension(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        @pytest.mark.parametrize('logfile_extension', [
+            '.log|.txt',
+        ], indirect=True)
+        def test_set_log_extension(dut):
+            dut[0].write('foo')
+            dut[0].expect_exact('foo')
+
+            dut[1].write('bar')
+            dut[1].expect_exact('bar')
+    """)
+    result = testdir.runpytest('--root-logdir', testdir.tmpdir)
+    result.assert_outcomes(passed=1)
+
+    for logfile in Path(testdir.tmpdir).glob('**/*.log'):
+        assert logfile.parts[-1] == 'dut-0.log'
+
+    for txtfile in Path(testdir.tmpdir).glob('**/*.txt'):
+        assert txtfile.parts[-1] == 'dut-1.txt'

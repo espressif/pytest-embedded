@@ -87,6 +87,7 @@ def pytest_addoption(parser):
         type=_gte_one_int,
         help='Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)',
     )
+    base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
     base_group.addoption(
         '--embedded-services',
         default='',
@@ -107,7 +108,9 @@ def pytest_addoption(parser):
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to enable print with timestamp. (Default: True)',
     )
-    base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
+    base_group.addoption(
+        '--logfile-extension', default='.log', help='set the extension format of the log files. (Default: ".log")'
+    )
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
@@ -462,6 +465,13 @@ def session_root_logdir(request: FixtureRequest) -> str:
     return os.path.realpath(_request_param_or_config_option_or_default(request, 'root_logdir', tempfile.gettempdir()))
 
 
+@pytest.fixture
+@multi_dut_argument
+def logfile_extension(request: FixtureRequest) -> str:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'logfile_extension', '.log')
+
+
 @pytest.fixture(scope='session')
 def session_tempdir(session_root_logdir) -> str:
     """Session scoped temp dir for pytest-embedded"""
@@ -494,9 +504,9 @@ def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
 
 @pytest.fixture
 @multi_dut_fixture
-def _meta(test_case_tempdir, port_target_cache, port_app_cache) -> Meta:
+def _meta(test_case_tempdir, port_target_cache, port_app_cache, logfile_extension) -> Meta:
     """function scoped _meta info"""
-    return Meta(test_case_tempdir, port_target_cache, port_app_cache)
+    return Meta(test_case_tempdir, port_target_cache, port_app_cache, logfile_extension)
 
 
 @pytest.fixture
@@ -513,13 +523,13 @@ def dut_total():
 
 @pytest.fixture
 @multi_dut_fixture
-def _pexpect_logfile(test_case_tempdir, dut_index, dut_total) -> str:
+def _pexpect_logfile(test_case_tempdir, logfile_extension, dut_index, dut_total) -> str:
     if dut_total > 1:
         name = f'dut-{dut_index}'
     else:
         name = 'dut'
 
-    return os.path.join(test_case_tempdir, f'{name}.log')
+    return os.path.join(test_case_tempdir, f'{name}{logfile_extension}')
 
 
 # Suppress UserWarning on resource_tracker.py
@@ -536,7 +546,7 @@ def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixtur
     return MessageQueue(ctx=_ctx)
 
 
-@pytest.fixture()
+@pytest.fixture
 @multi_dut_argument
 def with_timestamp(request: FixtureRequest) -> bool:
     """Enable parametrization for the same cli option"""

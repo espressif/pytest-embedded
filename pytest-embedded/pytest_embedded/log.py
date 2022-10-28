@@ -154,15 +154,17 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
         if meta:
             logdir = meta.logdir
+            logfile_extension = meta.logfile_extension
         else:
             logdir = os.path.join(
                 tempfile.gettempdir(),
                 datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
             )
             os.makedirs(logdir, exist_ok=True)
+            logfile_extension = '.log'
 
         # we use real log file to record output, pipe-like file object won't be non-blocking.
-        _log_file = os.path.join(logdir, f'{self.SOURCE.lower()}-{uuid.uuid4()}.log')
+        _log_file = os.path.join(logdir, f'{self.SOURCE.lower()}-{uuid.uuid4()}{logfile_extension}')
         self._fw = open(_log_file, 'w')
         self._logfile = _log_file
         self._logfile_offset = 0
