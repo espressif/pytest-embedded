@@ -1,3 +1,14 @@
+## v1.0.1 (2022-10-28)
+
+### Feat
+
+- support set file extension of the log file
+
+### Fix
+
+- `_meta.logdir` should be the `test_case_tempdir`, change to function-scope
+- remove unused cli option "--reorder-by-app-path"
+
 ## v1.0.0 (2022-10-20)
 
 ### Feat
