@@ -73,3 +73,7 @@ Available services:
 
 - Documentation is hosted at [https://docs.espressif.com/projects/pytest-embedded/en/latest/](https://docs.espressif.com/projects/pytest-embedded/en/latest/)
 - More examples under [examples](https://github.com/espressif/pytest-embedded/tree/main/examples)
+
+## Versioning
+
+Packages under this repo mainly use semantic versioning. Sometimes a bug fix version may contain some non-breaking new features as well. It is recommended to use `pytest-embdded~=1.0` to get rid of breaking changes, and use the latest new features.
