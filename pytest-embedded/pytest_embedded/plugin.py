@@ -107,11 +107,6 @@ def pytest_addoption(parser):
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to enable print with timestamp. (Default: True)',
     )
-    base_group.addoption(
-        '--reorder-by-app-path',
-        action='store_true',
-        help='Reorder the test sequence according to the [app_path] and [build_dir]. (Default: False)',
-    )
     base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
 
     serial_group = parser.getgroup('embedded-serial')
