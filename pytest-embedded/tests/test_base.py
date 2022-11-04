@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -165,7 +166,14 @@ def test_default_app_path(testdir):
 def test_parallel_run(parallel_count, parallel_index, res):
     from pytest_embedded.plugin import PytestEmbedded
 
-    fake_items = [1, 2, 3, 4, 5]
+    @dataclass
+    class _FakeItem:
+        name: str
+        path = Path('.')
+
+    # _Fake instances are used in order to pass `pytest_collection_modifyitems` hook
+    fake_items = [_FakeItem(name='1'), _FakeItem(name='2'), _FakeItem(name='3'),
+                  _FakeItem(name='4'), _FakeItem(name='5')]
     fake_plugin = PytestEmbedded(parallel_count, parallel_index)
     fake_plugin.pytest_collection_modifyitems(fake_items)  # noqa
     assert len(fake_items) == res
@@ -478,3 +486,33 @@ def test_set_log_extension(testdir):
 
     for txtfile in Path(testdir.tmpdir).glob('**/*.txt'):
         assert txtfile.parts[-1] == 'dut-1.txt'
+
+
+def test_duplicate_case_name(testdir, capsys):
+    testdir.makepyfile(test_duplicate_name_one=r"""
+        def test_duplicate_case():
+            pass
+    """)
+    testdir.makepyfile(test_duplicate_name_two="""
+            def test_duplicate_case():
+                pass
+        """)
+    testdir.runpytest()
+
+    assert "ValueError: Duplicated items: {'test_duplicate_case'}" in capsys.readouterr().out
+
+
+def test_duplicate_module_name(testdir, capsys):
+    test_sub_dir = str(testdir.mkpydir('test_dir'))
+    dup_module_path = testdir.makepyfile(test_duplicate_module=r"""
+            def test_duplicate_one():
+                pass
+        """)
+    os.rename(f'{dup_module_path}', os.path.join(test_sub_dir, dup_module_path.basename))
+    testdir.makepyfile(test_duplicate_module=r"""
+                    def test_duplicate_two():
+                        pass
+                """)
+    testdir.runpytest()
+
+    assert "ValueError: Duplicated items: {'test_duplicate_module.py'}" in capsys.readouterr().out

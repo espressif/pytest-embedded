@@ -1347,6 +1347,15 @@ class PytestEmbedded:
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, items: List[Function]):
+        def _check_duplicate_items(names_list: List[str]):
+            if len(names_list) != len(set(names_list)):
+                duplicates = set([name for name in names_list if names_list.count(name) > 1])
+                if duplicates:
+                    raise ValueError(f'Duplicated items: {duplicates}')
+
+        _check_duplicate_items([test.name for test in items])
+        _check_duplicate_items([os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])])
+
         if self.parallel_index == 1 and self.parallel_count == 1:
             return
 
