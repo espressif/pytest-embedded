@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 30
     runs-on:
       - self-hosted
       - ESP32
@@ -27,14 +28,33 @@ jobs:
         run: |
           apt update && apt install -y socat
           pip install -U pip
-          export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
+          pip install cryptography -i https://dl.espressif.com/pypi  # temp workaround for dl.espressif.com/pypi esptool version is broken
           pip install -r requirements.txt
           bash foreach.sh install
       - name: Run Tests
+        if: ${{ matrix.python-version != '3.10' }}
+        run: pytest
+      - name: Run Tests with coverage
+        if: ${{ matrix.python-version == '3.10' }}
         run: |
-          pytest
+          pytest \
+            --junitxml=pytest.xml \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov=pytest-embedded/pytest_embedded/ \
+            --cov=pytest-embedded-arduino/pytest_embedded_arduino/ \
+            --cov=pytest-embedded-idf/pytest_embedded_idf/ \
+            --cov=pytest-embedded-jtag/pytest_embedded_jtag/ \
+            --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
+            --cov=pytest-embedded-serial/pytest_embedded_serial/ \
+            --cov=pytest-embedded-serial-es/pytest_embedded_serial_esp/
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
           name: test_logs
           path: /tmp/pytest-embedded/
+      - name: Pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: ./coverage.xml
+          junitxml-path: ./pytest.xml

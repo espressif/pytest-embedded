@@ -57,9 +57,6 @@ class ArduinoSerial(EspSerial):
             'chip': self.app.target,
         }
 
-        if self.erase_all:
-            default_kwargs['erase_all'] = True
-
         default_kwargs.update(self.app.flash_settings)
         flash_args = EsptoolArgs(**default_kwargs)
 

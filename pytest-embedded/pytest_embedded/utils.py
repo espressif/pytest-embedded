@@ -1,7 +1,10 @@
 import dataclasses
+import logging
 import os
 import re
 from typing import AnyStr, Dict, List, Optional, TypeVar
+
+from pytest_embedded import App
 
 
 def to_str(bytes_str: AnyStr) -> str:
@@ -109,3 +112,39 @@ class Meta:
     port_target_cache: Dict[str, str]
     port_app_cache: Dict[str, str]
     logfile_extension: str = '.log'
+
+    def hit_port_target_cache(self, port: str, target: str) -> bool:
+        if self.port_target_cache.get(port, None) == target:
+            logging.debug('hit port-target cache: %s - %s', port, target)
+            return True
+
+        return False
+
+    def set_port_target_cache(self, port: str, target: str) -> None:
+        self.port_target_cache[port] = target
+        logging.debug('set port-target cache: %s - %s', port, target)
+
+    def drop_port_target_cache(self, port: str) -> None:
+        try:
+            self.port_target_cache.pop(port)
+            logging.debug('drop port-target cache with port %s', port)
+        except KeyError:
+            logging.warning('no port-target cache with port %s', port)
+
+    def hit_port_app_cache(self, port: str, app: App) -> bool:
+        if self.port_app_cache.get(port, None) == app.binary_path:
+            logging.debug('hit port-app cache: %s - %s', port, app.binary_path)
+            return True
+
+        return False
+
+    def set_port_app_cache(self, port: str, app: App) -> None:
+        self.port_app_cache[port] = app.binary_path
+        logging.debug('set port-app cache: %s - %s', port, app.binary_path)
+
+    def drop_port_app_cache(self, port: str) -> None:
+        try:
+            self.port_app_cache.pop(port)
+            logging.debug('drop port-app cache with port %s', port)
+        except KeyError:
+            logging.warning('no port-app cache with port %s', port)

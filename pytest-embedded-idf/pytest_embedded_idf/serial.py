@@ -45,23 +45,21 @@ class IdfSerial(EspSerial):
         )
 
     def _post_init(self):
-        if self._meta and self.port in self._meta.port_app_cache:
-            if self.app.binary_path == self._meta.port_app_cache[self.port]:  # hit the cache
-                logging.debug('hit port-app cache: %s - %s', self.port, self.app.binary_path)
-                if self.confirm_target_elf_sha256:
-                    if self.is_target_flashed_same_elf():
-                        logging.info('Confirmed target elf file sha256 the same as your local one.')
-                        self.skip_autoflash = True
-                    else:
-                        logging.info('target elf file is different from your local one. Flash the binary again.')
-                        self.skip_autoflash = False
-                else:
-                    logging.info(
-                        'App is the same according to the session cache. '
-                        'you can use flag "--confirm-target-elf-sha256" to make sure '
-                        'that the target elf file is the same as your local one.'
-                    )
+        if self._meta and self._meta.hit_port_app_cache(self.port, self.app):
+            if self.confirm_target_elf_sha256:
+                if self.is_target_flashed_same_elf():
+                    logging.info('Confirmed target elf file sha256 the same as your local one.')
                     self.skip_autoflash = True
+                else:
+                    logging.info('target elf file is different from your local one. Flash the binary again.')
+                    self.skip_autoflash = False
+            else:
+                logging.info(
+                    'App is the same according to the session cache. '
+                    'you can use flag "--confirm-target-elf-sha256" to make sure '
+                    'that the target elf file is the same as your local one.'
+                )
+                self.skip_autoflash = True
 
         super()._post_init()
 
@@ -146,9 +144,6 @@ class IdfSerial(EspSerial):
                 'force': False,
             }
 
-            if self.erase_all:
-                default_kwargs['erase_all'] = True
-
             default_kwargs.update(self.app.flash_settings)
             default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
             args = EsptoolArgs(**default_kwargs)
@@ -158,8 +153,8 @@ class IdfSerial(EspSerial):
             esptool.write_flash(self.stub, args)
             self.stub.change_baud(self.baud)
 
-            logging.debug('set port-app cache: %s - %s', self.port, self.app.binary_path)
-            self._meta.port_app_cache[self.port] = self.app.binary_path
+            if self._meta:
+                self._meta.set_port_app_cache(self.port, self.app)
         finally:
             if nvs_file:
                 nvs_file.close()
@@ -232,14 +227,6 @@ class IdfSerial(EspSerial):
             self.stub.erase_region(address, size)
         else:
             raise ValueError(f'partition name "{partition_name}" not found in app partition table')
-
-    @EspSerial.use_esptool()
-    def erase_flash(self) -> None:
-        """
-        Erase the complete flash
-        """
-        logging.info('Erasing the flash')
-        self.stub.erase_flash()
 
     @EspSerial.use_esptool()
     def read_flash_elf_sha256(self) -> bytes:
