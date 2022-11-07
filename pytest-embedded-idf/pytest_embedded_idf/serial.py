@@ -144,9 +144,6 @@ class IdfSerial(EspSerial):
                 'force': False,
             }
 
-            if self.erase_all:
-                default_kwargs['erase_all'] = True
-
             default_kwargs.update(self.app.flash_settings)
             default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
             args = EsptoolArgs(**default_kwargs)

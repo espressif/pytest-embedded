@@ -155,6 +155,9 @@ class EspSerial(Serial):
         if self._meta:
             self._meta.set_port_target_cache(self.port, self.target)
 
+        if self.erase_all:
+            self.erase_flash()
+
         super()._post_init()
 
     def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):

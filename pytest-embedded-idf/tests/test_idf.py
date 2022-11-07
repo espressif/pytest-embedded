@@ -320,7 +320,8 @@ def test_no_elf_file(testdir):
 def test_erase_all(testdir):
     testdir.makepyfile(r"""
         def test_detect_port(dut):
-            dut.expect(r'Chip erase completed successfully in [\d.]+s', timeout=5)
+            for _ in range(3):
+                dut.expect(r'Flash will be erased from 0x\d+ to 0x\d+')
             dut.expect('Hash of data verified.', timeout=5)
             dut.expect_exact('Hello world!', timeout=5)
     """)
