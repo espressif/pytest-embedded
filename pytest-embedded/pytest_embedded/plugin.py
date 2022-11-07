@@ -180,6 +180,11 @@ def pytest_addoption(parser):
         '--gdb-cli-args',
         help='GDB cli arguments. (Default: "--quiet"',
     )
+    jtag_group.addoption(
+        '--no-gdb',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to skip create gdb instance automatically. (Default: False)',
+    )
     jtag_group.addoption('--openocd-prog-path', help='openocd program path. (Default: "openocd")')
     jtag_group.addoption(
         '--openocd-cli-args',
@@ -835,6 +840,12 @@ def gdb_cli_args(request: FixtureRequest) -> Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
+def no_gdb(request: FixtureRequest) -> bool:
+    return _request_param_or_config_option_or_default(request, 'no_gdb', False)
+
+
+@pytest.fixture
+@multi_dut_argument
 def openocd_prog_path(request: FixtureRequest) -> Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'openocd_prog_path', None)
@@ -937,6 +948,7 @@ def _fixture_classes_and_options(
     openocd_cli_args,
     gdb_prog_path,
     gdb_cli_args,
+    no_gdb,
     qemu_image_path,
     qemu_prog_path,
     qemu_cli_args,
@@ -1071,7 +1083,7 @@ def _fixture_classes_and_options(
                         'port_offset': dut_index,
                         'meta': _meta,
                     }
-                else:
+                elif not no_gdb:
                     from pytest_embedded_jtag import Gdb
 
                     classes[fixture] = Gdb
