@@ -28,7 +28,7 @@ jobs:
         run: |
           apt update && apt install -y socat
           pip install -U pip
-          export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
+          pip install cryptography -i https://dl.espressif.com/pypi  # temp workaround for dl.espressif.com/pypi esptool version is broken
           pip install -r requirements.txt
           bash foreach.sh install
       - name: Run Tests
