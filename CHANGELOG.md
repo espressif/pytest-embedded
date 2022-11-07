@@ -1,3 +1,15 @@
+## v1.0.2 (2022-11-07)
+
+### Fix
+
+- **jtag**: stop redirecting openocd output to pexpect process
+- **esp**: drop port-app cache when `erase_flash`
+- **esp**: erase flash before `flash` when set `--erase-all`
+
+### Refactor
+
+- rewrite set/drop/hit cache code
+
 ## v1.0.1 (2022-10-28)
 
 ### Feat
