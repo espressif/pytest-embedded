@@ -361,7 +361,6 @@ class IdfDut(SerialDut):
             if _f.encrypted:
                 raise ValueError('Encrypted files can\'t be flashed in via JTAG')
             self.openocd.write(f'program_esp {_f.file_path} {hex(_f.offset)} verify')
-            self.expect_exact('** Verify OK **')
 
         if self._meta:
             self._meta.set_port_app_cache(self.serial.port, self.app)

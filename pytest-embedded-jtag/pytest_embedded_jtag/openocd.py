@@ -15,6 +15,7 @@ class OpenOcd(DuplicateStdoutPopen):
     """
 
     SOURCE = 'OPENOCD'
+    REDIRECT_CLS = None
 
     OPENOCD_PROG_PATH = 'openocd'
     OPENOCD_DEFAULT_ARGS = '-f board/esp32-wrover-kit-3.3v.cfg'
@@ -68,13 +69,16 @@ class OpenOcd(DuplicateStdoutPopen):
         else:
             raise ConnectionRefusedError
 
-    def write(self, cmd: AnyStr) -> str:
+    def write(self, s: AnyStr) -> str:
         # read all output already sent
         resp = self.telnet.read_very_eager()
+        if resp:
+            logging.debug(f'{self.SOURCE} <-: {to_str(resp)}')
 
-        logging.debug(f'TELNET ->: {cmd}')
-        self.telnet.write(to_bytes(cmd, '\n'))
+        logging.debug(f'{self.SOURCE} ->: {to_str(s)}')
+        self.telnet.write(to_bytes(s, '\n'))
 
         resp = self.telnet.read_until(b'>')
 
+        logging.debug(f'{self.SOURCE} <-: {to_str(resp)}')
         return to_str(resp)
