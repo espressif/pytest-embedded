@@ -340,11 +340,8 @@ class IdfDut(SerialDut):
         self.gdb.write(f'file {self.app.elf_file}')
 
         run_flash = True
-        if self.serial.port in self._meta.port_app_cache:
-            if self.app.binary_path == self._meta.port_app_cache[self.serial.port]:  # hit the cache
-                logging.debug('hit port-app cache: %s - %s', self.serial.port, self.app.binary_path)
-                logging.info('App is the same according to the session cache')
-                run_flash = False
+        if self._meta and self._meta.hit_port_app_cache(self.serial.port, self.app):
+            run_flash = False
 
         if run_flash:
             self.flash_via_jtag()
@@ -366,5 +363,5 @@ class IdfDut(SerialDut):
             self.openocd.write(f'program_esp {_f.file_path} {hex(_f.offset)} verify')
             self.expect_exact('** Verify OK **')
 
-        logging.debug('set port-app cache: %s - %s', self.serial.port, self.app.binary_path)
-        self._meta.port_app_cache[self.serial.port] = self.app.binary_path
+        if self._meta:
+            self._meta.set_port_app_cache(self.serial.port, self.app)

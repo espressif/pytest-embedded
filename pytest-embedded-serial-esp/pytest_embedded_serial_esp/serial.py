@@ -80,12 +80,8 @@ class EspSerial(Serial):
                     raise ValueError(f'The specified MAC address {port_mac} cannot be found.')
 
             # prioritize the cache recorded target port
-            if esptool_target:
-                if self._meta:
-                    for _port, _target in self._meta.port_target_cache.items():
-                        if _target == esptool_target and _port in ports:
-                            ports.sort(key=lambda x: x == _port)
-                            logging.debug('hit port-target cache: %s - %s', _port, _target)
+            if esptool_target and self._meta:
+                ports.sort(key=lambda x: self._meta.hit_port_target_cache(x, esptool_target))
 
             logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
@@ -152,12 +148,13 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
+
         super().__init__(msg_queue=msg_queue, port=esp._port, baud=baud, meta=meta, **kwargs)
 
     def _post_init(self):
-        logging.debug('set port-target cache: %s - %s', self.port, self.target)
         if self._meta:
-            self._meta.port_target_cache[self.port] = self.target
+            self._meta.set_port_target_cache(self.port, self.target)
+
         super()._post_init()
 
     def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):
