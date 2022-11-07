@@ -54,6 +54,7 @@ jobs:
           name: test_logs
           path: /tmp/pytest-embedded/
       - name: Pytest coverage comment
+        if: ${{ matrix.python-version == '3.10' }}
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-xml-coverage-path: ./coverage.xml
