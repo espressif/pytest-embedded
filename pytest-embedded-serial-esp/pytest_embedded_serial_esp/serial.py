@@ -211,3 +211,12 @@ class EspSerial(Serial):
     def hard_reset(self):
         """Hard reset your espressif device"""
         pass
+
+    @use_esptool()
+    def erase_flash(self):
+        """Erase the complete flash"""
+        logging.info('Erasing the flash')
+        self.stub.erase_flash()
+
+        if self._meta:
+            self._meta.drop_port_app_cache(self.port)

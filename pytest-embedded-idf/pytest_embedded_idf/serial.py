@@ -229,14 +229,6 @@ class IdfSerial(EspSerial):
             raise ValueError(f'partition name "{partition_name}" not found in app partition table')
 
     @EspSerial.use_esptool()
-    def erase_flash(self) -> None:
-        """
-        Erase the complete flash
-        """
-        logging.info('Erasing the flash')
-        self.stub.erase_flash()
-
-    @EspSerial.use_esptool()
     def read_flash_elf_sha256(self) -> bytes:
         """
         Read the sha256 digest of the flashed elf file
