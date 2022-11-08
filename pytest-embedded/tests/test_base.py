@@ -174,8 +174,6 @@ def test_parallel_run(parallel_count, parallel_index, res):
 def test_expect(testdir):
     testdir.makepyfile(r"""
         import re
-        import threading
-        import time
         import pexpect
         import inspect
         import pytest
@@ -198,18 +196,6 @@ def test_expect(testdir):
             assert res.group() == b'this would be redirected'
             assert res.group(1) == b'would'
             assert res.group(2).decode('utf-8') == 'redirected'
-
-        def test_expect_from_timeout(msg_queue, dut):
-            def write_bytes():
-                for _ in range(5):
-                    msg_queue.write('1')
-                    time.sleep(1.5)
-
-            write_thread = threading.Thread(target=write_bytes, daemon=True)
-            write_thread.start()
-
-            res = dut.expect(pexpect.TIMEOUT, timeout=4)
-            assert res == b'111'
 
         def test_expect_from_eof_at_first(dut):
             dut.write('this would be redirected')
@@ -287,7 +273,32 @@ def test_expect(testdir):
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=11)
+    result.assert_outcomes(passed=10)
+
+
+@pytest.mark.xfail(reason='unstable')
+def test_expect_from_timeout(testdir):
+    testdir.makepyfile(r"""
+        import threading
+        import time
+        import pexpect
+
+        def test_expect_from_timeout(msg_queue, dut):
+            def write_bytes():
+                for _ in range(5):
+                    msg_queue.write('1')
+                    time.sleep(1.5)
+
+            write_thread = threading.Thread(target=write_bytes, daemon=True)
+            write_thread.start()
+
+            res = dut.expect(pexpect.TIMEOUT, timeout=4)
+            assert res == b'111'
+    """)
+
+    result = testdir.runpytest('-s')
+
+    result.assert_outcomes(passed=1)
 
 
 def test_expect_unity_test_ouput(testdir, capsys):
