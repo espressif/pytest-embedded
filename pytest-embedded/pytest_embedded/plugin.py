@@ -1234,10 +1234,10 @@ def qemu(_fixture_classes_and_options: ClassCliOptions) -> Optional['Qemu']:
 @multi_dut_generator_fixture
 def dut(
     _fixture_classes_and_options: ClassCliOptions,
-    app: App,
-    serial: Optional['Serial'],
     openocd: Optional['OpenOcd'],
     gdb: Optional['Gdb'],
+    app: App,
+    serial: Optional['Serial'],
     qemu: Optional['Qemu'],
 ) -> Dut:
     """
