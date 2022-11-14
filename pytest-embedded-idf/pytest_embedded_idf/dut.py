@@ -337,7 +337,8 @@ class IdfDut(SerialDut):
 
     def setup_jtag(self):
         super().setup_jtag()
-        self.gdb.write(f'file {self.app.elf_file}')
+        if self.gdb:
+            self.gdb.write(f'file {self.app.elf_file}')
 
         run_flash = True
         if self._meta and self._meta.hit_port_app_cache(self.serial.port, self.app):
@@ -347,6 +348,10 @@ class IdfDut(SerialDut):
             self.flash_via_jtag()
 
     def flash_via_jtag(self):
+        if not self.openocd:
+            logging.warning('no openocd instance created. can\'t flash via openocd `program_esp`')
+            return
+
         if self.app.is_loadable_elf:
             # loadable elf flash to ram. no cache.
             # load via test script.
