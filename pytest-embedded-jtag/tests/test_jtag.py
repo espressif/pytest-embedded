@@ -18,9 +18,8 @@ def test_pexpect_by_jtag(testdir):
             dut.gdb.write('mon reset halt')
             dut.gdb.write('thb app_main')
             dut.gdb.write('c')
-            dut.expect('hit Temporary breakpoint')
-            dut.gdb.write('c')
-            dut.expect('Hello world!')
+            dut.gdb.write('c', non_blocking=True)
+            dut.expect('Hello world')
     """)
 
     result = testdir.runpytest(
