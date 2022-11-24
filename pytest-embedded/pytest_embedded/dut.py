@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 import os.path
 import textwrap
+import time
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
@@ -149,6 +150,7 @@ class Dut:
         remove_asci_escape_code: bool = True,
         timeout: int = 60,
         extra_before: Optional[AnyStr] = None,
+        case_start_time: Optional[float] = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -160,11 +162,19 @@ class Dut:
             timeout: timeout. (default: 60 seconds)
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
-
+            case_start_time: the time at which a test case began execution
         Notes:
             Would raise AssertionError at the end of the test if any unity test case result is "FAIL"
+            Would raise TIMEOUT exception at the end of the test if any unity test case execution took longer
+            than timeout value
         """
         self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
+
+        additional_attrs = dict()
+        if case_start_time:
+            case_end_time = time.perf_counter()
+            case_duration = case_end_time - case_start_time
+            additional_attrs['time'] = round(case_duration, 3)
 
         if extra_before:
             log = to_bytes(extra_before) + self.pexpect_proc.before
@@ -174,4 +184,4 @@ class Dut:
         if remove_asci_escape_code:
             log = remove_asci_color_code(log)
 
-        self.testsuite.add_unity_test_cases(log)
+        self.testsuite.add_unity_test_cases(log, additional_attrs=additional_attrs)

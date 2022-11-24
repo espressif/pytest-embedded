@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+import xml.etree.ElementTree as ET
 
 import pytest
 from pytest_embedded_idf.dut import IdfDut
@@ -461,3 +462,52 @@ def test_idf_multi_hard_reset_and_expect(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_unity_test_case_runner(testdir):
+    testdir.makepyfile(r"""
+        import pexpect
+        import pytest
+
+        from pytest_embedded_idf.unity_tester import CaseTester
+        def test_unity_test_case_runner(dut):
+            case_tester = CaseTester(dut)
+            case_tester.run_all_cases()
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--count', 2,
+        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
+                      f'|'
+                      f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml'
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '0'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '5'
+
+    case_names_one_dev = [
+        'normal_case1',
+        'normal_case2',
+        'multiple_stages_test',
+    ]
+    case_names_multi_dev = [
+        'multiple_devices_test',
+    ]
+
+    one_dev_dut = ['dut-0']
+    multi_dev_duts = ['dut-0', 'dut-1']
+
+    required_names_one_dev = [f'{case_name} [{dut}]' for dut in one_dev_dut for case_name in case_names_one_dev]
+    required_names_multi_dev = [f'{case_name} [{dut}]' for dut in multi_dev_duts for case_name in case_names_multi_dev]
+
+    junit_case_names = [item.attrib['name'] for item in junit_report]
+
+    assert sorted(required_names_one_dev + required_names_multi_dev) == sorted(junit_case_names)
