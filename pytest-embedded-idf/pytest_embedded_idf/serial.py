@@ -11,7 +11,7 @@ from pytest_embedded_serial_esp.serial import EspSerial, EsptoolArgs
 from .app import IdfApp
 
 
-class IdfSerial(EspSerial):
+class IdfSerial(EspSerial):  # test
     """
     IDF serial Dut class
 
