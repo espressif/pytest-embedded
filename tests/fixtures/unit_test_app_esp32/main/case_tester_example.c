@@ -22,8 +22,12 @@ TEST_CASE("normal_case1", "[normal_case]")
 
 TEST_CASE("normal_case2", "[normal_case][timeout=10]")
 {
-    ESP_LOGI("normal case2", "delay 100 ms");
+    ESP_LOGI("normal case2", "delay 3s");
     vTaskDelay(pdMS_TO_TICKS(3000));
+
+    // cause a crash
+    volatile uint8_t *test = (uint8_t*)0x0;
+    *test = 1;
 
     TEST_ASSERT(true);
 }

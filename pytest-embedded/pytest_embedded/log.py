@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import subprocess
 import tempfile
+import textwrap
 import uuid
 from multiprocessing import queues
 from typing import AnyStr, List, Optional, Union
@@ -13,7 +14,7 @@ import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
 from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
-from .utils import Meta, to_bytes, to_str
+from .utils import Meta, remove_asci_color_code, to_bytes, to_str
 
 
 class MessageQueue(queues.Queue):
@@ -46,6 +47,14 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
     Use a temp file to gather multiple inputs into one output, and do `pexpect.expect()` from one place.
     """
 
+    @property
+    def buffer_debug_str(self):
+        return textwrap.shorten(
+            remove_asci_color_code(to_str(self.buffer)),
+            width=200,
+            placeholder=f'... (total {len(self.buffer)} bytes)',
+        )
+
     def read_nonblocking(self, size=1, timeout=-1) -> bytes:
         """
         Since we're using real file stream, here we only raise an EOF error when the file stream has been closed.
@@ -55,7 +64,7 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
 
         Args:
             size (int): Read at most *size* bytes.
-            timeout (int): Wait timeout seconds for file descriptor to be
+            timeout (float): Wait timeout seconds for file descriptor to be
                 ready to read. When -1 (default), use self.timeout. When 0, poll.
 
         Returns:

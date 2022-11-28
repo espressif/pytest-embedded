@@ -464,6 +464,40 @@ def test_idf_multi_hard_reset_and_expect(testdir):
     result.assert_outcomes(passed=1)
 
 
+def test_dut_run_all_single_board_cases(testdir):
+    testdir.makepyfile(r"""
+        def test_dut_run_all_single_board_cases(dut):
+            dut.run_all_single_board_cases(timeout=10)
+    """)
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '1'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'
+
+    testcases = junit_report.findall('.//testcase')
+    succeed = testcases[0]
+    failed = testcases[1]
+    multi_stage = testcases[2]
+
+    assert succeed.attrib['name'] == 'normal_case1'
+
+    assert failed.attrib['name'] == 'normal_case2'
+    assert 10 < float(failed.attrib['time']) < 10.1
+    assert failed[0].attrib['message']
+
+    assert multi_stage.attrib['name'] == 'multiple_stages_test'
+
+
 def test_unity_test_case_runner(testdir):
     testdir.makepyfile(r"""
         import pexpect
@@ -489,9 +523,9 @@ def test_unity_test_case_runner(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '0'
+    assert junit_report.attrib['failures'] == '1'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '5'
+    assert junit_report.attrib['tests'] == '4'
 
     case_names_one_dev = [
         'normal_case1',

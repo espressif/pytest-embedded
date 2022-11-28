@@ -481,10 +481,10 @@ def test_set_log_extension(testdir):
     result = testdir.runpytest('--root-logdir', testdir.tmpdir)
     result.assert_outcomes(passed=1)
 
-    for logfile in Path(testdir.tmpdir).glob('**/*.log'):
+    for logfile in Path(testdir.tmpdir).glob('**/dut*.log'):
         assert logfile.parts[-1] == 'dut-0.log'
 
-    for txtfile in Path(testdir.tmpdir).glob('**/*.txt'):
+    for txtfile in Path(testdir.tmpdir).glob('**/dut*.txt'):
         assert txtfile.parts[-1] == 'dut-1.txt'
 
 
