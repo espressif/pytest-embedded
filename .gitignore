@@ -9,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-#/build/
 develop-eggs/
 dist/
 downloads/
@@ -69,3 +68,14 @@ venv/
 
 # IDE
 .idea/
+
+# built binaries
+tests/fixtures/unit_test_app*/build/
+!tests/fixtures/**/bootloader.bin
+!tests/fixtures/**/partition-table.bin
+!tests/fixtures/**/sdkconfig.json
+!tests/fixtures/**/flasher_args.json
+!tests/fixtures/unit_test_app_*/build/**/case_tester_example.bin
+
+sdkconfig
+sdkconfig.old
