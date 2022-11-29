@@ -148,3 +148,7 @@ class Meta:
             logging.debug('drop port-app cache with port %s', port)
         except KeyError:
             logging.warning('no port-app cache with port %s', port)
+
+
+class UserHint(Warning):
+    pass

@@ -2,8 +2,6 @@ import functools
 import logging
 import multiprocessing
 import os.path
-import textwrap
-import time
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
@@ -11,7 +9,7 @@ import pexpect
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import Meta, remove_asci_color_code, to_bytes, to_list, to_str
+from .utils import Meta, remove_asci_color_code, to_bytes, to_list
 
 
 class Dut:
@@ -76,14 +74,9 @@ class Dut:
                 try:
                     index = func(self, pattern, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
-                    wrapped_buffer_bytes = textwrap.shorten(
-                        remove_asci_color_code(to_str(self.pexpect_proc.buffer)),
-                        width=200,
-                        placeholder=f'... (total {len(self.pexpect_proc.buffer)} bytes)',
-                    )
                     debug_str = (
                         f'Not found "{str(pattern)}"\n'
-                        f'Bytes in current buffer (color code eliminated): {wrapped_buffer_bytes}\n'
+                        f'Bytes in current buffer (color code eliminated): {self.pexpect_proc.buffer_debug_str}\n'
                         f'Please check the full log here: {self.logfile}'
                     )
                     raise e.__class__(debug_str) from e
@@ -114,7 +107,7 @@ class Dut:
             pattern: string, or compiled regex, or a list of string and compiled regex.
 
         Keyword Args:
-            timeout (str): would raise `pexpect.TIMEOUT` exception when pattern is not matched
+            timeout (float): would raise `pexpect.TIMEOUT` exception when pattern is not matched after timeout
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
 
@@ -134,7 +127,7 @@ class Dut:
             pattern: string, or a list of string
 
         Keyword Args:
-            timeout (str): would raise `pexpect.TIMEOUT` exception when pattern is not matched
+            timeout (float): would raise `pexpect.TIMEOUT` exception when pattern is not matched after timeout
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
 
@@ -148,9 +141,9 @@ class Dut:
     def expect_unity_test_output(
         self,
         remove_asci_escape_code: bool = True,
-        timeout: int = 60,
+        timeout: float = 60,
         extra_before: Optional[AnyStr] = None,
-        case_start_time: Optional[float] = None,
+        start_time: Optional[float] = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -162,19 +155,17 @@ class Dut:
             timeout: timeout. (default: 60 seconds)
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
-            case_start_time: the time at which a test case began execution
+            start_time: the time at which a test case began execution
+
         Notes:
-            Would raise AssertionError at the end of the test if any unity test case result is "FAIL"
-            Would raise TIMEOUT exception at the end of the test if any unity test case execution took longer
-            than timeout value
+            - Would raise AssertionError at the end of the test if any unity test case result is "FAIL"
+            - Would raise TIMEOUT exception at the end of the test if any unity test case execution took longer
+                than timeout value
+
+        Warnings:
+            - All unity test cases record would be missed if the final report block is uncaught.
         """
         self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
-
-        additional_attrs = dict()
-        if case_start_time:
-            case_end_time = time.perf_counter()
-            case_duration = case_end_time - case_start_time
-            additional_attrs['time'] = round(case_duration, 3)
 
         if extra_before:
             log = to_bytes(extra_before) + self.pexpect_proc.before
@@ -184,4 +175,4 @@ class Dut:
         if remove_asci_escape_code:
             log = remove_asci_color_code(log)
 
-        self.testsuite.add_unity_test_cases(log, additional_attrs=additional_attrs)
+        self.testsuite.add_unity_test_cases(log)

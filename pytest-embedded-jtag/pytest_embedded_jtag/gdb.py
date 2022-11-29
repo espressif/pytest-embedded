@@ -29,7 +29,7 @@ class Gdb(DuplicateStdoutPopen):
 
         super().__init__(msg_queue, cmd, **kwargs)
 
-    def write(self, s: AnyStr, non_blocking: bool = False, timeout: int = 30) -> Optional[str]:
+    def write(self, s: AnyStr, non_blocking: bool = False, timeout: float = 30) -> Optional[str]:
         super().write(s)
         _buffer = ''
         _t_start = time.time()

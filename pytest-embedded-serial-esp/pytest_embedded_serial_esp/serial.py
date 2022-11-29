@@ -141,7 +141,7 @@ class EspSerial(Serial):
         self.stub: esptool.ESPLoader = None  # type: ignore
 
         target = esp.CHIP_NAME.lower().replace('-', '')
-        logging.info(f'Target: %s, Port: %s', target, esp.serial_port)
+        logging.info('Target: %s, Port: %s', target, esp.serial_port)
 
         self.target = target
 

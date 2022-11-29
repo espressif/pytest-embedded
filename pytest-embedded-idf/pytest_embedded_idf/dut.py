@@ -1,41 +1,26 @@
+import functools
 import logging
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import time
+import typing as t
+import warnings
 from contextlib import redirect_stdout
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 
+from pytest_embedded.unity import (
+    UNITY_BASIC_REGEX,
+    UNITY_FIXTURE_REGEX,
+    UNITY_SUMMARY_LINE_REGEX,
+    TestCase,
+)
+from pytest_embedded.utils import UserHint, remove_asci_color_code, to_str
 from pytest_embedded_serial.dut import SerialDut
 
 from .app import IdfApp
-
-
-@dataclass
-class UnittestMenuCase:
-    """
-    Dataclass of esp-idf unit test cases parsed from test menu
-
-    Attributes:
-        index: The index of the case, which can be used to run this case.
-        name: The name of the case.
-        type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
-        keywords: List of additional keywords of this case. For now, we have `disable` and `ignored`.
-        groups: List of groups of this case, this is usually the component which this case belongs to.
-        attributes: Dict of attributes of this case, which is used to describe timeout duration,
-            test environment, etc.
-        subcases: List of dict of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
-    """
-
-    index: int
-    name: str
-    type: str
-    keywords: List[str]
-    groups: List[str]
-    attributes: Dict[str, Any]
-    subcases: List[Dict[str, Any]]
+from .unity_tester import READY_PATTERN_LIST, UnittestMenuCase
 
 
 class IdfDut(SerialDut):
@@ -70,6 +55,7 @@ class IdfDut(SerialDut):
         self.target = app.target
         self.skip_check_coredump = skip_check_coredump
         self._panic_output_decode_script = panic_output_decode_script
+        self._test_menu: t.List[UnittestMenuCase] = None  # type: ignore
 
         super().__init__(app=app, **kwargs)
 
@@ -87,7 +73,7 @@ class IdfDut(SerialDut):
             raise ValueError(f'Unknown target: {self.target}')
 
     @property
-    def panic_output_decode_script(self) -> Optional[str]:
+    def panic_output_decode_script(self) -> t.Optional[str]:
         """
         Returns:
             Panic output decode script path
@@ -217,7 +203,7 @@ class IdfDut(SerialDut):
         elif self.app.sdkconfig['ESP_COREDUMP_DATA_FORMAT_BIN']:
             core_format = 'raw'
         else:
-            raise ValueError(f'Invalid coredump format. Use _parse_b64_coredump for UART')
+            raise ValueError('Invalid coredump format. Use _parse_b64_coredump for UART')
 
         with self.serial.disable_redirect_thread():
             coredump = CoreDump(
@@ -226,7 +212,7 @@ class IdfDut(SerialDut):
                 port=self.serial.port,
                 prog=self.app.elf_file,
             )
-            with open(os.path.join(self._meta.logdir, f'coredump_output'), 'w') as fw:
+            with open(os.path.join(self._meta.logdir, 'coredump_output'), 'w') as fw:
                 with redirect_stdout(fw):
                     coredump.info_corefile()
 
@@ -238,12 +224,15 @@ class IdfDut(SerialDut):
                 logging.debug(e)
         super().close()
 
-    def parse_test_menu(
+    #####################
+    # IDF-unity related #
+    #####################
+    def _parse_test_menu(
         self,
         ready_line: str = 'Press ENTER to see the list of tests',
         pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
         trigger: str = '',
-    ) -> List[UnittestMenuCase]:
+    ) -> t.List[UnittestMenuCase]:
         """
         Get test case list from test menu via UART print.
 
@@ -260,12 +249,36 @@ class IdfDut(SerialDut):
         self.write(trigger)
         menu_block = self.expect(pattern).group(1)
         s = str(menu_block, encoding='UTF-8')
-        return self.parse_unity_menu_from_str(s)
+        return self._parse_unity_menu_from_str(s)
+
+    def parse_test_menu(
+        self,
+        ready_line: str = 'Press ENTER to see the list of tests',
+        pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
+        trigger: str = '',
+    ) -> t.List[UnittestMenuCase]:
+        warnings.warn(
+            'Use `dut.test_menu` property directly, '
+            'will rename this function to `_parse_test_menu` in release 2.0.0',
+            DeprecationWarning,
+        )
+
+        return self._parse_test_menu(ready_line, pattern, trigger)
 
     @staticmethod
-    def parse_unity_menu_from_str(s: str) -> List[UnittestMenuCase]:
+    def parse_unity_menu_from_str(s: str) -> t.List[UnittestMenuCase]:
+        warnings.warn(
+            'Please use `dut.test_menu` property directly, '
+            'will rename this function to `_parse_unity_menu_from_str` in release 2.0.0',
+            DeprecationWarning,
+        )
+
+        return IdfDut._parse_unity_menu_from_str(s)
+
+    @staticmethod
+    def _parse_unity_menu_from_str(s: str) -> t.List[UnittestMenuCase]:
         """
-        Parse test case mcnu from string to list of `UnittestMenuCase`.
+        Parse test case menu from string to list of `UnittestMenuCase`.
 
         Args:
             s: string include test case menu.
@@ -273,7 +286,6 @@ class IdfDut(SerialDut):
         Returns:
             A `list` of `UnittestMenuCase`, which includes info for each test case.
         """
-        print(s)
         cases = s.splitlines()
 
         case_regex = re.compile(r'\((\d+)\)\s\"(.+)\"\s(\[.+\])+')
@@ -335,6 +347,205 @@ class IdfDut(SerialDut):
 
         return test_menu
 
+    @property
+    def test_menu(self) -> t.List[UnittestMenuCase]:
+        if self._test_menu is None:
+            self._test_menu = self._parse_test_menu()
+            logging.debug('Successfully parsed unity test menu')
+            self.serial.hard_reset()
+
+        return self._test_menu
+
+    def _record_single_unity_test_case(func):
+        """
+        The first argument of the function that is using this decorator must be `case`. passing with args.
+
+        Notes:
+            This function is better than `dut.expect_unity_output()` since it will record the test case even it core
+                dumped during running the test case or other reasons that cause the final result block is uncaught.
+        """
+
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            _start_at = time.perf_counter()  # declare here in case hard reset failed
+            _timeout = kwargs.get('timeout', 30)
+            _case = args[0]
+
+            try:
+                # do it here since the first hard reset before test case shouldn't be counted in duration time
+                if 'reset' in kwargs:
+                    if kwargs.pop('reset'):
+                        self.serial.hard_reset()
+
+                _start_at = time.perf_counter()
+                func(self, *args, **kwargs)
+            finally:
+                _timestamp = time.perf_counter()
+                _log = ''
+                try:
+                    _timeout = _timeout - _timestamp + _start_at
+                    if _timeout < 0:  # pexpect process would expect 30s if < 0
+                        _timeout = 0
+                    self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=_timeout)
+                except Exception:  # result block missing # noqa
+                    pass
+                else:  # result block exists
+                    _log = remove_asci_color_code(self.pexpect_proc.before)
+                finally:
+                    _end_at = time.perf_counter()
+                    self._add_single_unity_test_case(
+                        _case, _log, additional_attrs={'time': round(_end_at - _start_at, 3)}
+                    )
+
+        return wrapper
+
+    def _add_single_unity_test_case(
+        self, case: UnittestMenuCase, log: t.Optional[t.AnyStr], additional_attrs: t.Optional[t.Dict[str, t.Any]] = None
+    ):
+        if log:
+            # check format
+            check = UNITY_FIXTURE_REGEX.search(log)
+            if check:
+                regex = UNITY_FIXTURE_REGEX
+            else:
+                regex = UNITY_BASIC_REGEX
+
+            res = list(regex.finditer(log))
+        else:
+            res = []
+
+        # real parsing
+        if len(res) == 0:
+            logging.warning(f'unity test case not found, use case {case.name} instead')
+            attrs = {'name': case.name, 'result': 'FAIL', 'message': self.pexpect_proc.buffer_debug_str}
+        elif len(res) == 1:
+            attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
+        else:
+            warnings.warn('This function is for recording single unity test case only. Use the last matched one')
+            attrs = {k: v for k, v in res[-1].groupdict().items() if v is not None}
+
+        if additional_attrs:
+            attrs.update(additional_attrs)
+
+        testcase = TestCase(**attrs)
+        self.testsuite.testcases.append(testcase)
+        if testcase.result == 'FAIL':
+            self.testsuite.attrs['failures'] += 1
+        elif testcase.result == 'IGNORE':
+            self.testsuite.attrs['skipped'] += 1
+        else:
+            self.testsuite.attrs['tests'] += 1
+
+    @_record_single_unity_test_case
+    def _run_normal_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: float = 30,
+    ) -> None:
+        """
+        Run a specific normal case
+
+        Notes:
+            Will skip with a warning if the case type is not "normal"
+
+        Args:
+            case: the specific case that parsed in test menu
+            reset: whether to perform a hardware reset before running a case
+            timeout: timeout. (Default: 30 seconds)
+        """
+        if case.type != 'normal':
+            logging.warning('case %s is not a normal case', case.name)
+            return
+
+        self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
+        self.write(str(case.index))
+        self.expect_exact(f'Running {case.name}...', timeout=1)
+
+    @_record_single_unity_test_case
+    def _run_multi_stage_case(
+        self,
+        case: UnittestMenuCase,
+        reset: bool = False,
+        timeout: float = 30,
+    ) -> None:
+        """
+        Run a specific multi_stage case
+
+        Notes:
+            Will skip with a warning if the case type is not "multi_stage"
+
+        Args:
+            case: the specific case that parsed in test menu
+            reset: whether to perform a hardware reset before running a case
+            timeout: timeout. (Default: 30 seconds)
+        """
+        if case.type != 'multi_stage':
+            logging.warning('case %s is not a multi stage case', case.name)
+            return
+
+        _start_at = time.perf_counter()
+        _timestamp = _start_at
+        for sub_case in case.subcases:
+            _timeout = timeout - _timestamp + _start_at
+            if _timeout < 0:  # pexpect process would expect 30s if < 0
+                _timeout = 0
+            self.expect_exact(READY_PATTERN_LIST, timeout=_timeout)
+            self.write(str(case.index))
+            self.expect_exact(case.name, timeout=1)
+            self.write(str(sub_case['index']))
+            _timestamp = time.perf_counter()
+
+    def run_all_single_board_cases(
+        self,
+        group: t.Optional[str] = None,
+        reset: bool = False,
+        timeout: float = 30,
+        run_ignore_cases: bool = False,
+    ):
+        """
+        Run all multi_stage cases
+
+        Args:
+            group: test case group
+            reset: whether to perform a hardware reset before running a case
+            timeout: timeout. (Default: 30 seconds)
+            run_ignore_cases: run ignored test cases or not
+        """
+        for case in self.test_menu:
+            if not group or group in case.groups:
+                if not case.is_ignored or run_ignore_cases:
+                    if case.type == 'normal':
+                        self._run_normal_case(case, reset=reset, timeout=timeout)
+                    elif case.type == 'multi_stage':
+                        self._run_multi_stage_case(case, reset=reset, timeout=timeout)
+
+    def write(self, data: t.AnyStr) -> None:
+        data_str = to_str(data).strip('\n') or ''
+        if data_str == '*':
+            warnings.warn(
+                'if you\'re using `dut.expect_exact("Press ENTER to see the list of tests"); '
+                'dut.write("*"); dut.expect_unity_test_output()` to run esp-idf unity tests, '
+                'please consider using `dut.run_all_single_board_cases()` instead. '
+                'It could help record the duration time and the error messages even for crashed test cases.',
+                UserHint,
+            )
+
+        if data_str and data_str[0] == '[' and data_str[-1] == ']':
+            group_name = data_str[1:-1]
+            warnings.warn(
+                f'if you\'re using `dut.expect_exact("Press ENTER to see the list of tests"); '
+                f'dut.write("{data_str}"); dut.expect_unity_test_output()` to run esp-idf unity tests, '
+                f'please consider using `dut.run_all_single_board_cases(group="{group_name}")` instead. '
+                f'It could help record the duration time and the error messages even for crashed test cases.',
+                UserHint,
+            )
+
+        super().write(data)
+
+    ################
+    # JTAG related #
+    ################
     def setup_jtag(self):
         super().setup_jtag()
         if self.gdb:
