@@ -68,7 +68,7 @@ class IdfDut(SerialDut):
         if self.target in self.XTENSA_TARGETS:
             return f'xtensa-{self.target}-elf-'
         elif self.target in self.RISCV32_TARGETS:
-            return f'riscv32-{self.target}-elf-'
+            return f'riscv32-esp-elf-'
         else:
             raise ValueError(f'Unknown target: {self.target}')
 
@@ -104,10 +104,9 @@ class IdfDut(SerialDut):
         with tempfile.NamedTemporaryFile(mode='wb', delete=False) as panic_output_file:
             panic_output_file.write(panic_output)
             panic_output_file.flush()
-        toolchain_common = self.toolchain_prefix.replace(self.target, 'esp') + 'gdb'
         try:
             cmd = [
-                toolchain_common,
+                f'{self.toolchain_prefix}-gdb',
                 '--command',
                 f'{self.app.app_path}/build/prefix_map_gdbinit',
                 '--batch',
