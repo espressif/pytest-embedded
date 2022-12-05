@@ -500,13 +500,8 @@ def test_dut_run_all_single_board_cases(testdir):
 
 def test_unity_test_case_runner(testdir):
     testdir.makepyfile(r"""
-        import pexpect
-        import pytest
-
-        from pytest_embedded_idf.unity_tester import CaseTester
-        def test_unity_test_case_runner(dut):
-            case_tester = CaseTester(dut)
-            case_tester.run_all_cases()
+        def test_unity_test_case_runner(unity_tester):
+            unity_tester.run_all_cases()
     """)
 
     testdir.runpytest(

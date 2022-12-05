@@ -87,7 +87,7 @@ class CaseTester:
     UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
     UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
 
-    def __init__(self, dut: t.Union['IdfDut', t.List['IdfDut']], **kwargs) -> None:  # type: ignore
+    def __init__(self, dut: t.Union['IdfDut', t.List['IdfDut']]) -> None:  # type: ignore
         """
         Create the object for every dut and put them into the group
         """
@@ -131,13 +131,14 @@ class CaseTester:
         Start the thread monitoring on the corresponding dut of the sub-case
         """
         # Allocate the kwargs that pass to '_run'
-        _kwargs = {}
-        _kwargs['dut'] = dev_res.dut
-        _kwargs['dev_res'] = dev_res
-        _kwargs['case'] = case
-        _kwargs['sub_case_index'] = sub_case_index
-        _kwargs['start_retry'] = start_retry
-        _kwargs['start_time'] = case_start_time
+        _kwargs = {
+            'dut': dev_res.dut,
+            'dev_res': dev_res,
+            'case': case,
+            'sub_case_index': sub_case_index,
+            'start_retry': start_retry,
+            'start_time': case_start_time,
+        }
 
         # Create the thread of the sub-case
         dev_res.thread = Thread(target=self._run, kwargs=_kwargs, daemon=True)
