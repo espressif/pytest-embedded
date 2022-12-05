@@ -9,7 +9,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from collections import defaultdict, namedtuple
+from collections import Counter, defaultdict, namedtuple
 from operator import itemgetter
 from pathlib import Path
 from typing import (
@@ -23,6 +23,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -50,6 +51,9 @@ if TYPE_CHECKING:
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
     from pytest_embedded_serial.serial import Serial
+
+
+_T = TypeVar('_T')
 
 
 def pytest_addoption(parser):
@@ -87,6 +91,13 @@ def pytest_addoption(parser):
         type=_gte_one_int,
         help='Index (1-based) of the job, out of the number specified by --parallel-count. (Default: 1)',
     )
+    base_group.addoption(
+        '--check-duplicates',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to check if there were test cases or test scripts with the same name. (Default: False)',
+    )
+
+    # supports parametrization
     base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
     base_group.addoption(
         '--embedded-services',
@@ -1277,6 +1288,7 @@ def pytest_configure(config: Config) -> None:
     config.stash[_pytest_embedded_key] = PytestEmbedded(
         parallel_count=config.getoption('parallel_count'),
         parallel_index=config.getoption('parallel_index'),
+        check_duplicates=config.getoption('check_duplicates', False),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
@@ -1293,9 +1305,11 @@ class PytestEmbedded:
         self,
         parallel_count: int = 1,
         parallel_index: int = 1,
+        check_duplicates: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
+        self.check_duplicates = check_duplicates
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1345,16 +1359,28 @@ class PytestEmbedded:
             request.config.stash[_session_tempdir_key] = val
             return val
 
+    @staticmethod
+    def _duplicate_items(items: List[_T]) -> List[_T]:
+        duplicates = []
+        counter = Counter(items)
+        for elem, cnt in counter.items():
+            if cnt > 1:
+                duplicates.append(elem)
+
+        return duplicates
+
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, items: List[Function]):
-        def _check_duplicate_items(names_list: List[str]):
-            if len(names_list) != len(set(names_list)):
-                duplicates = set([name for name in names_list if names_list.count(name) > 1])
-                if duplicates:
-                    raise ValueError(f'Duplicated items: {duplicates}')
+        if self.check_duplicates:
+            duplicated_test_cases = self._duplicate_items([test.name for test in items])
+            if duplicated_test_cases:
+                raise ValueError(f'Duplicated test function names: {duplicated_test_cases}')
 
-        _check_duplicate_items([test.name for test in items])
-        _check_duplicate_items([os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])])
+            duplicated_test_script_paths = self._duplicate_items(
+                [os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])]
+            )
+            if duplicated_test_script_paths:
+                raise ValueError(f'Duplicated test scripts: {duplicated_test_script_paths}')
 
         if self.parallel_index == 1 and self.parallel_count == 1:
             return

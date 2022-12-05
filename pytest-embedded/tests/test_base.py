@@ -497,9 +497,9 @@ def test_duplicate_case_name(testdir, capsys):
             def test_duplicate_case():
                 pass
         """)
-    testdir.runpytest()
+    testdir.runpytest('--check-duplicates', 'y')
 
-    assert "ValueError: Duplicated items: {'test_duplicate_case'}" in capsys.readouterr().out
+    assert "ValueError: Duplicated test function names: ['test_duplicate_case']" in capsys.readouterr().out
 
 
 def test_duplicate_module_name(testdir, capsys):
@@ -513,6 +513,6 @@ def test_duplicate_module_name(testdir, capsys):
                     def test_duplicate_two():
                         pass
                 """)
-    testdir.runpytest()
+    testdir.runpytest('--check-duplicates', 'y')
 
-    assert "ValueError: Duplicated items: {'test_duplicate_module.py'}" in capsys.readouterr().out
+    assert "ValueError: Duplicated test scripts: ['test_duplicate_module.py']" in capsys.readouterr().out
