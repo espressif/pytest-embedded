@@ -1,3 +1,18 @@
+## v1.1.0 (2022-12-05)
+
+### Feat
+
+- add "--check-duplicates" cli option to check if there were duplicated test case names or test script names.
+- **idf**: add `run_all_single_board_cases()` to `IdfDut`. This function would record duration time for each unity test case even it's unfinished.
+- **idf**: add fixture `unity_tester` to test multi device unity test cases (beta)
+- **jtag**: add cli option `--no-gdb` to stop create gdb instance automatically
+
+### Fix
+
+- **idf**: erase_all when hit the port-app cache cause no binary got flashed
+- **idf**: set correct toolchain prefix for RISC-V targets
+- **jtag**: initialize openocd/gdb processes earlier than app/serial
+
 ## v1.0.2 (2022-11-07)
 
 ### Fix
