@@ -45,7 +45,9 @@ class IdfSerial(EspSerial):
         )
 
     def _post_init(self):
-        if self._meta and self._meta.hit_port_app_cache(self.port, self.app):
+        if self.erase_all:
+            self.skip_autoflash = False
+        elif self._meta and self._meta.hit_port_app_cache(self.port, self.app):
             if self.confirm_target_elf_sha256:
                 if self.is_target_flashed_same_elf():
                     logging.info('Confirmed target elf file sha256 the same as your local one.')

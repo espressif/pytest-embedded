@@ -545,3 +545,25 @@ def test_unity_test_case_runner(testdir):
     junit_case_names = [item.attrib['name'] for item in junit_report]
 
     assert sorted(required_names_one_dev + required_names_multi_dev) == sorted(junit_case_names)
+
+
+def test_erase_all_with_port_cache(testdir):
+    testdir.makepyfile(r"""
+        def test_erase_all_with_port_cache_case1(dut):
+            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect_exact('Hello world!', timeout=5)
+
+        def test_erase_all_with_port_cache_case2(dut):
+            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect_exact('Hello world!', timeout=5)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target', 'esp32',
+        '--erase-all', 'y',
+    )
+
+    result.assert_outcomes(passed=2)
