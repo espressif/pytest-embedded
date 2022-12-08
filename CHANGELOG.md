@@ -1,3 +1,9 @@
+## v1.1.1 (2022-12-08)
+
+### Fix
+
+- **idf**: load_ram could use `flash_project_args` file as well
+
 ## v1.1.0 (2022-12-05)
 
 ### Feat
