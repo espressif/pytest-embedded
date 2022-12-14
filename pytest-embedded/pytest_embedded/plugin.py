@@ -49,6 +49,7 @@ from .utils import Meta, find_by_suffix, to_list, to_str
 
 if TYPE_CHECKING:
     from pytest_embedded_idf.dut import IdfDut
+    from pytest_embedded_idf.serial import LinuxSerial
     from pytest_embedded_jtag.gdb import Gdb
     from pytest_embedded_jtag.openocd import OpenOcd
     from pytest_embedded_qemu.qemu import Qemu
@@ -1195,8 +1196,18 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def serial(_fixture_classes_and_options, app) -> Optional['Serial']:
+def serial(_fixture_classes_and_options, msg_queue, app) -> Optional[Union['Serial', 'LinuxSerial']]:
     """A serial subprocess that could read/redirect/write"""
+    if hasattr(app, 'target') and app.target == 'linux':
+        from pytest_embedded_idf import LinuxSerial
+
+        cls = LinuxSerial
+        kwargs = {
+            'app': app,
+            'msg_queue': msg_queue,
+        }
+        return cls(**kwargs)
+
     if 'serial' not in _fixture_classes_and_options.classes:
         return None
 
@@ -1250,13 +1261,22 @@ def dut(
     openocd: Optional['OpenOcd'],
     gdb: Optional['Gdb'],
     app: App,
-    serial: Optional['Serial'],
+    serial: Optional[Union['Serial', 'LinuxSerial']],
     qemu: Optional['Qemu'],
 ) -> Dut:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
     """
+    if hasattr(app, 'target') and app.target == 'linux':
+        from pytest_embedded_idf import LinuxDut
+
+        cls = LinuxDut
+        kwargs = {'serial': serial}
+        kwargs |= _fixture_classes_and_options.kwargs['dut']
+
+        return cls(**kwargs)
+
     cls = _fixture_classes_and_options.classes['dut']
     kwargs = _fixture_classes_and_options.kwargs['dut']
 

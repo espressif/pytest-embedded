@@ -1,8 +1,11 @@
 import os
+import platform
 import re
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
+import pkg_resources
 import pytest
 from pytest_embedded_idf.dut import IdfDut
 
@@ -10,6 +13,17 @@ toolchain_required = pytest.mark.skipif(
     os.getenv('PATH') is None or os.path.join('riscv32-esp-elf-gdb', 'bin') not in os.getenv('PATH'),
     reason="'riscv32-esp-elf-gdb' is not found in $PATH. The test execution will be skipped",
 )
+
+
+@pytest.fixture
+def remove_serial(monkeypatch):
+    for name in list(sys.modules):
+        if name == 'pytest_embedded_serial' or name.startswith('pytest_embedded_serial.'):
+            monkeypatch.setitem(sys.modules, name, None)
+    _path = pkg_resources.get_distribution('pytest_embedded_serial').location
+    sys.path.remove(_path)
+    yield
+    sys.path.append(_path)
 
 
 def test_idf_serial_flash(testdir):
@@ -352,6 +366,23 @@ def test_erase_flash(testdir):
         '--embedded-services', 'esp,idf',
         '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
         '--target', 'esp32',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@pytest.mark.skipif(platform.machine() != 'x86_64', reason='The test is intended to be run on an x86_64 machine.')
+def test_hello_world_linux(testdir, remove_serial):
+    testdir.makepyfile(r"""
+        def test_hello_world_linux(dut):
+            dut.expect('Hello world!')
+            dut.expect('Restarting')
+    """)
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_linux")}',
+        '--target', 'linux',
     )
 
     result.assert_outcomes(passed=1)
