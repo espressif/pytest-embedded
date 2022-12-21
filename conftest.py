@@ -1,4 +1,5 @@
 import os
+from distutils.dir_util import copy_tree
 from typing import List, Pattern
 
 import pytest
@@ -10,7 +11,7 @@ pytest_plugins = [
 
 @pytest.fixture(autouse=True)
 def copy_fixtures(testdir):
-    testdir.copy_example(os.path.join(os.path.dirname(__file__), 'tests', 'fixtures'))
+    copy_tree(os.path.join(os.path.dirname(__file__), 'tests', 'fixtures'), str(testdir.tmpdir))
     yield
 
 
