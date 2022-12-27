@@ -68,7 +68,7 @@ class IdfDut(SerialDut):
         if self.target in self.XTENSA_TARGETS:
             return f'xtensa-{self.target}-elf-'
         elif self.target in self.RISCV32_TARGETS:
-            return f'riscv32-esp-elf-'
+            return 'riscv32-esp-elf-'
         else:
             raise ValueError(f'Unknown target: {self.target}')
 
