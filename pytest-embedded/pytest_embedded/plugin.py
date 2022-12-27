@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import xml.dom.minidom
 from collections import Counter, defaultdict, namedtuple
 from operator import itemgetter
 from pathlib import Path
@@ -98,6 +99,11 @@ def pytest_addoption(parser):
         '--check-duplicates',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to check if there were test cases or test scripts with the same name. (Default: False)',
+    )
+    base_group.addoption(
+        '--prettify-junit-report',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to prettify XML junit report. (Default: False)',
     )
 
     # supports parametrization
@@ -262,6 +268,13 @@ def _str_bool(v: str) -> Union[bool, str, None]:
 
 def _drop_none_kwargs(kwargs: Dict[Any, Any]):
     return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def _prettify_xml(file_path: str):
+    dom = xml.dom.minidom.parse(file_path)
+    pretty_xml_as_string = dom.toprettyxml()
+    with open(file_path, 'w') as f:
+        f.write(pretty_xml_as_string)
 
 
 @pytest.fixture(autouse=True)
@@ -1312,15 +1325,18 @@ def unity_tester(dut: Union['IdfDut', Tuple['IdfDut']]) -> Optional[CaseTester]:
 _junit_merger_key = pytest.StashKey['JunitMerger']()
 _pytest_embedded_key = pytest.StashKey['PytestEmbedded']()
 _session_tempdir_key = pytest.StashKey['session_tempdir']()
+_junit_report_path_key = pytest.StashKey[str]()
 
 
 def pytest_configure(config: Config) -> None:
     config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
+    config.stash[_junit_report_path_key] = config.option.xmlpath
 
     config.stash[_pytest_embedded_key] = PytestEmbedded(
         parallel_count=config.getoption('parallel_count'),
         parallel_index=config.getoption('parallel_index'),
         check_duplicates=config.getoption('check_duplicates', False),
+        prettify_junit_report=_str_bool(config.getoption('prettify_junit_report', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
@@ -1338,10 +1354,12 @@ class PytestEmbedded:
         parallel_count: int = 1,
         parallel_index: int = 1,
         check_duplicates: bool = False,
+        prettify_junit_report: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
         self.check_duplicates = check_duplicates
+        self.prettify_junit_report = prettify_junit_report
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: Iterable[Dut]) -> None:
@@ -1447,6 +1465,9 @@ class PytestEmbedded:
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
         _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, None)
+        _stash_junit_report_path = session.config.stash.get(_junit_report_path_key, None)
         if _stash_session_tempdir is not None:
             modifier.merge(find_by_suffix('.xml', _stash_session_tempdir))
+        if _stash_junit_report_path and self.prettify_junit_report:
+            _prettify_xml(_stash_junit_report_path)
         exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
