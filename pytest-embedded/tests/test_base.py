@@ -516,3 +516,38 @@ def test_duplicate_module_name(testdir, capsys):
     testdir.runpytest('--check-duplicates', 'y')
 
     assert "ValueError: Duplicated test scripts: ['test_duplicate_module.py']" in capsys.readouterr().out
+
+
+@pytest.mark.temp_disable_packages('pytest_embedded_serial', 'pytest_embedded_idf')
+def test_temp_disable_packages():
+    with pytest.raises(ImportError):
+        import pytest_embedded_serial.serial  # noqa
+
+    with pytest.raises(ImportError):
+        import pytest_embedded_serial  # noqa
+
+    with pytest.raises(ImportError):
+        import pytest_embedded_idf  # noqa
+
+
+@pytest.mark.temp_disable_packages('pytest_embedded_serial',
+                                   'pytest_embedded_serial_esp',
+                                   'pytest_embedded_idf',
+                                   'pytest_embedded_qemu',
+                                   'pytest_embedded_jtag',
+                                   'pytest_embedded_arduino')
+def test_quick_example(testdir):
+    testdir.makepyfile(r"""
+    from pytest_embedded import Dut
+
+    def test_quick_example(redirect, dut: Dut):
+        with redirect():
+            print('this would be redirected')
+
+        dut.expect('this')
+        dut.expect_exact('would')
+        dut.expect('[be]{2}')
+        dut.expect_exact('redirected')
+    """)
+    result = testdir.runpytest('--root-logdir', testdir.tmpdir)
+    result.assert_outcomes(passed=1)
