@@ -1,3 +1,13 @@
+## v1.2.0 (2022-12-29)
+
+### Feat
+
+- **idf**: support running tests on linux targets
+
+### Fix
+
+- ImportError when install `pytest_embedded` only
+
 ## v1.1.1 (2022-12-08)
 
 ### Fix
