@@ -40,7 +40,6 @@ from _pytest.fixtures import (
 from _pytest.main import Session
 from _pytest.outcomes import TEST_OUTCOME
 from _pytest.python import Function
-from pytest_embedded_idf import CaseTester
 
 from .app import App
 from .dut import Dut
@@ -49,12 +48,10 @@ from .unity import JunitMerger
 from .utils import Meta, find_by_suffix, to_list, to_str
 
 if TYPE_CHECKING:
-    from pytest_embedded_idf.dut import IdfDut
-    from pytest_embedded_idf.serial import LinuxSerial
-    from pytest_embedded_jtag.gdb import Gdb
-    from pytest_embedded_jtag.openocd import OpenOcd
-    from pytest_embedded_qemu.qemu import Qemu
-    from pytest_embedded_serial.serial import Serial
+    from pytest_embedded_idf import CaseTester, IdfDut, LinuxSerial
+    from pytest_embedded_jtag import Gdb, OpenOcd
+    from pytest_embedded_qemu import Qemu
+    from pytest_embedded_serial import Serial
 
 
 _T = TypeVar('_T')
@@ -1310,13 +1307,18 @@ def dut(
 
 
 @pytest.fixture
-def unity_tester(dut: Union['IdfDut', Tuple['IdfDut']]) -> Optional[CaseTester]:
-    # all dut instance must be IdfDut to use this fixture
-    for _dut in to_list(dut):
-        if _dut.__class__.__name__ != 'IdfDut':  # hard code string to avoid ImportError
-            yield None
+def unity_tester(dut: Union['IdfDut', Tuple['IdfDut']]) -> Optional['CaseTester']:
+    try:
+        from pytest_embedded_idf import CaseTester, IdfDut
+    except ImportError:
+        yield None
+    else:
+        # all dut instance must be IdfDut to use this fixture
+        for _dut in to_list(dut):
+            if not isinstance(_dut, IdfDut):
+                yield None
 
-    yield CaseTester(to_list(dut))
+        yield CaseTester(to_list(dut))
 
 
 ##################

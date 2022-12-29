@@ -1,8 +1,13 @@
 import os
+import sys
+from copy import deepcopy
 from distutils.dir_util import copy_tree
 from typing import List, Pattern
 
+import pkg_resources
 import pytest
+from _pytest.config import Config
+from _pytest.fixtures import FixtureRequest
 
 pytest_plugins = [
     'pytester',
@@ -25,3 +30,25 @@ def first_index_of_messages():
         raise AssertionError(f'Not found {_pattern.pattern}')
 
     return _fake
+
+
+@pytest.fixture(autouse=True)
+def temp_disable_packages(monkeypatch, request: FixtureRequest):
+    temp_marker = request.node.get_closest_marker('temp_disable_packages')
+    if not temp_marker:
+        return
+
+    packages = temp_marker.args
+    for name in list(sys.modules):
+        if name in packages or name.split('.')[0] in packages:
+            monkeypatch.setitem(sys.modules, name, None)
+
+    deepcopy_sys_path = deepcopy(sys.path)
+    for package in packages:
+        deepcopy_sys_path.remove(pkg_resources.get_distribution(package).location)
+    monkeypatch.setattr(sys, 'path', deepcopy_sys_path)
+
+
+def pytest_configure(config: Config) -> None:
+    for name, description in {'temp_disable_packages': 'disable packages in function scope'}.items():
+        config.addinivalue_line('markers', f'{name}: {description}')

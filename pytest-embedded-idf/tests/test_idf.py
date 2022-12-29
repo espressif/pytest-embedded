@@ -1,11 +1,9 @@
 import os
 import platform
 import re
-import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
-import pkg_resources
 import pytest
 from pytest_embedded_idf.dut import IdfDut
 
@@ -13,17 +11,6 @@ toolchain_required = pytest.mark.skipif(
     os.getenv('PATH') is None or os.path.join('riscv32-esp-elf-gdb', 'bin') not in os.getenv('PATH'),
     reason="'riscv32-esp-elf-gdb' is not found in $PATH. The test execution will be skipped",
 )
-
-
-@pytest.fixture
-def remove_serial(monkeypatch):
-    for name in list(sys.modules):
-        if name == 'pytest_embedded_serial' or name.startswith('pytest_embedded_serial.'):
-            monkeypatch.setitem(sys.modules, name, None)
-    _path = pkg_resources.get_distribution('pytest_embedded_serial').location
-    sys.path.remove(_path)
-    yield
-    sys.path.append(_path)
 
 
 def test_idf_serial_flash(testdir):
@@ -372,7 +359,8 @@ def test_erase_flash(testdir):
 
 
 @pytest.mark.skipif(platform.machine() != 'x86_64', reason='The test is intended to be run on an x86_64 machine.')
-def test_hello_world_linux(testdir, remove_serial):
+@pytest.mark.temp_disable_packages('pytest_embedded_serial')
+def test_hello_world_linux(testdir):
     testdir.makepyfile(r"""
         def test_hello_world_linux(dut):
             dut.expect('Hello world!')
