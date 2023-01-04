@@ -2,12 +2,60 @@ import dataclasses
 import logging
 import os
 import re
-from typing import AnyStr, Dict, List, Optional, TypeVar
+import typing as t
 
-from pytest_embedded import App
+from . import App
+
+#############
+# Constants #
+#############
+BASE_LIB_NAME = 'pytest-embedded'
+
+SERVICE_LIB_NAMES = {
+    'serial': f'{BASE_LIB_NAME}-serial',
+    'esp': f'{BASE_LIB_NAME}-serial-esp',
+    'idf': f'{BASE_LIB_NAME}-idf',
+    'jtag': f'{BASE_LIB_NAME}-jtag',
+    'qemu': f'{BASE_LIB_NAME}-qemu',
+    'arduino': f'{BASE_LIB_NAME}-arduino',
+}
+
+FIXTURES_SERVICES = {
+    'app': ['base', 'idf', 'qemu', 'arduino'],
+    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino'],
+    'openocd': ['jtag'],
+    'gdb': ['jtag'],
+    'qemu': ['qemu'],
+    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf'],
+}
+
+_T = t.TypeVar('_T')
 
 
-def to_str(bytes_str: AnyStr) -> str:
+#######################
+# Errors and Warnings #
+#######################
+class UserHint(Warning):
+    pass
+
+
+class UnknownServiceError(SystemExit):
+    def __init__(self, service: str) -> None:
+        super().__init__(f'Unknown service "{service}". Valid options: {",".join(SERVICE_LIB_NAMES.keys())} ')
+
+
+class PackageNotInstalledError(SystemExit):
+    def __init__(self, service: str) -> None:
+        super().__init__(
+            f'Package {SERVICE_LIB_NAMES[service]} is not found but required by service {service}. '
+            f'Please run "pip install -U {SERVICE_LIB_NAMES[service]}"'
+        )
+
+
+#####################
+# Utility Functions #
+#####################
+def to_str(bytes_str: t.AnyStr) -> str:
     """
     Turn `bytes` or `str` to `str`
 
@@ -22,7 +70,7 @@ def to_str(bytes_str: AnyStr) -> str:
     return bytes_str
 
 
-def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
+def to_bytes(bytes_str: t.AnyStr, ending: t.Optional[t.AnyStr] = None) -> bytes:
     """
     Turn `bytes` or `str` to `bytes`
 
@@ -45,10 +93,7 @@ def to_bytes(bytes_str: AnyStr, ending: Optional[AnyStr] = None) -> bytes:
     return bytes_str
 
 
-_T = TypeVar('_T')
-
-
-def to_list(s: _T) -> List[_T]:
+def to_list(s: _T) -> t.List[_T]:
     """
     Args:
         s: Anything
@@ -70,7 +115,7 @@ def to_list(s: _T) -> List[_T]:
         return [s]
 
 
-def find_by_suffix(suffix: str, path: str) -> List[str]:
+def find_by_suffix(suffix: str, path: str) -> t.List[str]:
     res = []
     for root, _, files in os.walk(path):
         for file in files:
@@ -96,7 +141,7 @@ _ANSI_COLOR_CODE_RE = re.compile(
 )
 
 
-def remove_asci_color_code(s: AnyStr) -> str:
+def remove_asci_color_code(s: t.AnyStr) -> str:
     if isinstance(s, bytes):
         s = s.decode('utf-8', errors='ignore')
     return _ANSI_COLOR_CODE_RE.sub('', s)
@@ -109,8 +154,8 @@ class Meta:
     """
 
     logdir: str
-    port_target_cache: Dict[str, str]
-    port_app_cache: Dict[str, str]
+    port_target_cache: t.Dict[str, str]
+    port_app_cache: t.Dict[str, str]
     logfile_extension: str = '.log'
 
     def hit_port_target_cache(self, port: str, target: str) -> bool:
@@ -148,7 +193,3 @@ class Meta:
             logging.debug('drop port-app cache with port %s', port)
         except KeyError:
             logging.warning('no port-app cache with port %s', port)
-
-
-class UserHint(Warning):
-    pass

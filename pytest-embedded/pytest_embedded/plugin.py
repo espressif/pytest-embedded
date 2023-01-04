@@ -45,7 +45,16 @@ from .app import App
 from .dut import Dut
 from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger
-from .utils import Meta, find_by_suffix, to_list, to_str
+from .utils import (
+    FIXTURES_SERVICES,
+    SERVICE_LIB_NAMES,
+    Meta,
+    PackageNotInstalledError,
+    UnknownServiceError,
+    find_by_suffix,
+    to_list,
+    to_str,
+)
 
 if TYPE_CHECKING:
     from pytest_embedded_idf import CaseTester, IdfDut, LinuxSerial
@@ -692,30 +701,6 @@ def redirect(msg_queue: MessageQueue) -> Callable[..., contextlib.redirect_stdou
     return _inner
 
 
-#####################
-# General Variables #
-#####################
-BASE_LIB_NAME = 'pytest-embedded'
-
-SERVICE_LIB_NAMES = {
-    'serial': f'{BASE_LIB_NAME}-serial',
-    'esp': f'{BASE_LIB_NAME}-serial-esp',
-    'idf': f'{BASE_LIB_NAME}-idf',
-    'jtag': f'{BASE_LIB_NAME}-jtag',
-    'qemu': f'{BASE_LIB_NAME}-qemu',
-    'arduino': f'{BASE_LIB_NAME}-arduino',
-}
-
-FIXTURES_SERVICES = {
-    'app': ['base', 'idf', 'qemu', 'arduino'],
-    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino'],
-    'openocd': ['jtag'],
-    'gdb': ['jtag'],
-    'qemu': ['qemu'],
-    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf'],
-}
-
-
 ###############################
 # CLI Option Related Fixtures #
 ###############################
@@ -934,17 +919,16 @@ def _services(embedded_services: Optional[str]) -> List[str]:
     if not embedded_services:
         return ['base']
 
-    services = [s for s in embedded_services.split(',') if s]
+    services = [s.strip() for s in embedded_services.split(',') if s]
 
     for s in services:
         if s not in SERVICE_LIB_NAMES.keys():
-            raise ValueError(f'service "{s}" not available, please run "--help" for more information')
+            raise UnknownServiceError(s)
 
         try:
             importlib.import_module(SERVICE_LIB_NAMES[s].replace('-', '_'))
         except ModuleNotFoundError:
-            logging.error(f'Please install {SERVICE_LIB_NAMES[s]} to enable service {s}')
-            sys.exit(1)
+            raise PackageNotInstalledError(s)
 
     return ['base'] + services
 
@@ -1012,7 +996,7 @@ def _fixture_classes_and_options(
     classes: Dict[str, type] = {}
     kwargs: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
-    for fixture, _ in FIXTURES_SERVICES.items():
+    for fixture in FIXTURES_SERVICES.keys():
         if fixture == 'app':
             kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
             if 'idf' in _services:
