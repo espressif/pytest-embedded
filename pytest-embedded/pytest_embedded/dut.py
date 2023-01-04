@@ -143,7 +143,6 @@ class Dut:
         remove_asci_escape_code: bool = True,
         timeout: float = 60,
         extra_before: Optional[AnyStr] = None,
-        start_time: Optional[float] = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -155,7 +154,6 @@ class Dut:
             timeout: timeout. (default: 60 seconds)
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
-            start_time: the time at which a test case began execution
 
         Notes:
             - Would raise AssertionError at the end of the test if any unity test case result is "FAIL"

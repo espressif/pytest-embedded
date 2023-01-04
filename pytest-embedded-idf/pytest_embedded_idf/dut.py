@@ -257,7 +257,7 @@ class IdfDut(SerialDut):
         trigger: str = '',
     ) -> t.List[UnittestMenuCase]:
         warnings.warn(
-            'Use `dut.test_menu` property directly, '
+            'Please use `dut.test_menu` property directly, '
             'will rename this function to `_parse_test_menu` in release 2.0.0',
             DeprecationWarning,
         )
