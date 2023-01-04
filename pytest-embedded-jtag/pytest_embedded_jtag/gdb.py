@@ -4,7 +4,7 @@ import shlex
 import time
 from typing import AnyStr, Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
+from pytest_embedded.log import DuplicateStdoutPopen
 
 
 class Gdb(DuplicateStdoutPopen):
@@ -16,18 +16,13 @@ class Gdb(DuplicateStdoutPopen):
 
     _GDB_RESPONSE_FINISHED_RE = re.compile(r'^\(gdb\)\s*$')
 
-    def __init__(
-        self, msg_queue: MessageQueue, gdb_prog_path: Optional[str] = None, gdb_cli_args: Optional[str] = None, **kwargs
-    ):
+    def __init__(self, gdb_prog_path: Optional[str] = None, gdb_cli_args: Optional[str] = None, **kwargs):
         gdb_prog_path = gdb_prog_path or self.GDB_PROG_PATH
         gdb_cli_args = shlex.split(gdb_cli_args or self.GDB_DEFAULT_ARGS)
 
-        cmd = [gdb_prog_path] + gdb_cli_args
-        logging.info(' '.join(cmd))
-
         self._gdb_first_prompt_matched = False
 
-        super().__init__(msg_queue, cmd, **kwargs)
+        super().__init__(cmd=[gdb_prog_path] + gdb_cli_args, **kwargs)
 
     def write(self, s: AnyStr, non_blocking: bool = False, timeout: float = 30) -> Optional[str]:
         super().write(s)

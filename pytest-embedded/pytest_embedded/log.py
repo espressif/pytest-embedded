@@ -188,6 +188,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
             }
         )
 
+        self._cmd = cmd
+        logging.info('Executing %s', ' '.join(cmd) if isinstance(cmd, list) else cmd)
         super().__init__(cmd, **kwargs)
 
         # some sub classes does not need to redirect to the message queue, they use blocking-IO instead and
