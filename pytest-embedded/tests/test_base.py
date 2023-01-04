@@ -22,8 +22,7 @@ def test_services(testdir):
         import pexpect
 
         def class_names(services):
-            classes = services[0]
-            return set([cls.__name__ for cls in classes.values()])
+            return set([cls.__name__ for cls in services.classes.values()])
 
         @pytest.fixture
         def _classes(request):
