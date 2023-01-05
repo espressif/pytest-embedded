@@ -1,3 +1,9 @@
+## v1.2.1 (2023-01-05)
+
+### Fix
+
+- **idf**: `LinuxDut.write` failed since `serial` is `None`
+
 ## v1.2.0 (2022-12-29)
 
 ### Feat
