@@ -1282,8 +1282,8 @@ def dut(
         from pytest_embedded_idf import LinuxDut
 
         cls = LinuxDut
-        kwargs = {'serial': serial}
-        kwargs |= _fixture_classes_and_options.kwargs['dut']
+        kwargs = _fixture_classes_and_options.kwargs['dut']
+        kwargs['serial'] = serial
 
         return cls(**kwargs)
 
