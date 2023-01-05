@@ -12,9 +12,7 @@ jobs:
     timeout-minutes: 30
     runs-on:
       - self-hosted
-      - ESP32
-      - ESP32-S2
-      - ESP32-C3
+      - multiboard
     permissions:
       pull-requests: write
     strategy:
