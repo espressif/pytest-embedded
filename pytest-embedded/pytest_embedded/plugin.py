@@ -393,34 +393,34 @@ def multi_dut_generator_fixture(
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         def _close_or_terminate(obj):
+            if obj is None:
+                del obj
+                return
+
             try:
-                if isinstance(obj, subprocess.Popen):
-                    obj.terminate()
-                    obj.kill()
-                elif isinstance(obj, multiprocessing.Process):
+                if isinstance(obj, (subprocess.Popen, multiprocessing.process.BaseProcess)):
                     obj.terminate()
                     obj.kill()
                 elif isinstance(obj, io.IOBase):
                     try:
                         obj.close()
                     except Exception as e:
-                        logging.debug('file close failed')
-                        logging.debug(str(e))
-                        raise
+                        logging.debug('file %s closed failed with error: %s', obj, str(e))
+                else:
+                    try:
+                        obj.close()
+                    except AttributeError:
+                        try:
+                            obj.terminate()
+                        except AttributeError:
+                            pass
+                    except Exception as e:
+                        logging.debug('Not properly caught object %s: %s', obj, str(e))
             except Exception as e:
                 logging.debug('%s: %s', obj, str(e))
                 return  # swallow up all error
-
-            try:
-                obj.close()
-            except AttributeError:
-                try:
-                    obj.terminate()
-                except AttributeError:
-                    pass
-            except Exception as e:
-                logging.debug('Not properly caught object %s: %s', obj, str(e))
-                return  # swallow up all error
+            finally:
+                del obj
 
         if _COUNT == 1:
             res = None
@@ -623,9 +623,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
 
 @pytest.fixture
-# here we use @multi_dut_fixture
-# The daemon process should be closed at the very last. would be auto closed.
-@multi_dut_fixture
+@multi_dut_generator_fixture
 def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
     """
     The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
@@ -648,7 +646,6 @@ def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total)
             _pexpect_logfile,
         ),
         kwargs=_drop_none_kwargs(kwargs),
-        daemon=True,
     )
 
 
