@@ -23,7 +23,7 @@ jobs:
       image: python:${{ matrix.python-version }}-bullseye
       options: --privileged
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           apt update && apt install -y socat
@@ -32,6 +32,8 @@ jobs:
           pip install cryptography --only-binary :all:
           pip install -r requirements.txt
           bash foreach.sh install
+      - name: Check ports
+        run: ls -la /dev/ttyUSB*
       - name: Run Tests
         if: ${{ matrix.python-version != '3.10' }}
         run: pytest
@@ -49,7 +51,7 @@ jobs:
             --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
             --cov=pytest-embedded-serial/pytest_embedded_serial/ \
             --cov=pytest-embedded-serial-es/pytest_embedded_serial_esp/
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: test_logs

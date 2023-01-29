@@ -551,3 +551,28 @@ def test_quick_example(testdir):
     """)
     result = testdir.runpytest('--root-logdir', testdir.tmpdir)
     result.assert_outcomes(passed=1)
+
+
+def test_unclosed_file_handler(testdir):
+    """
+    select only support fd < FD_SETSIZE (1024)
+
+    Related Links:
+        - https://github.com/python/cpython/blob/v3.11.1/Include/fileobject.h#L37
+        - https://man7.org/linux/man-pages/man2/select.2.html
+    """
+    testdir.makepyfile(r"""
+    import pytest
+
+    @pytest.mark.parametrize("test_input", range(0, 1024))
+    def test_unclosed_file_handler(test_input, dut):
+        dut[0].write("foo")
+        assert test_input == test_input
+    """)
+    result = testdir.runpytest(
+        '--embedded-services', 'serial',
+        '--count', '3',
+        '--port', '/dev/ttyUSB0|/dev/ttyUSB1|/dev/ttyUSB2',
+        '-x',  # fail at the first fail
+    )
+    result.assert_outcomes(passed=1024)

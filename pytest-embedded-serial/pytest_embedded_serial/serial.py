@@ -131,7 +131,7 @@ class Serial:
         kill the redirect thread, and start a new one after got yield back
 
         Yields:
-            True if redirect serial thread is been terminated
+            True if redirect serial thread has been terminated
         """
         killed = self.stop_redirect_thread()
 
