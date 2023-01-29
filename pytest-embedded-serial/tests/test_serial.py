@@ -28,3 +28,26 @@ def test_serial_port(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_teardown_called_for_multi_dut(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+
+        @pytest.mark.parametrize('count, embedded_services, port', [
+            ('3', 'serial', '/dev/ttyUSB0|/dev/ttyUSB1|/dev/ttyUSB100'),  # set up failure
+        ], indirect=True)
+        def test_teardown_called_for_multi_dut_fail(dut):
+            assert len(dut) == 3
+
+        @pytest.mark.parametrize('count, embedded_services, port', [
+            ('3', 'serial', '/dev/ttyUSB0|/dev/ttyUSB1|/dev/ttyUSB2'),  # set up succeeded
+        ], indirect=True)
+        def test_teardown_called_for_multi_dut_succeeded(dut):
+            assert dut[0].serial.port == '/dev/ttyUSB0'
+            assert dut[1].serial.port == '/dev/ttyUSB1'
+            assert dut[2].serial.port == '/dev/ttyUSB2'
+    """)
+
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1, errors=1)

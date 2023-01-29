@@ -441,7 +441,15 @@ def multi_dut_generator_fixture(
                     else:
                         current_kwargs[k] = v
 
-                res.append(func(*args, **current_kwargs))
+                try:
+                    i_res = func(*args, **current_kwargs)
+                    res.append(i_res)
+                except Exception:  # noqa
+                    for item in res:  # close the earlier succeeded set up items
+                        _close_or_terminate(item)
+
+                    raise
+
             try:
                 yield res
             finally:
