@@ -23,7 +23,7 @@ jobs:
       image: python:${{ matrix.python-version }}-bullseye
       options: --privileged
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           apt update && apt install -y socat
@@ -49,7 +49,7 @@ jobs:
             --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
             --cov=pytest-embedded-serial/pytest_embedded_serial/ \
             --cov=pytest-embedded-serial-es/pytest_embedded_serial_esp/
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: test_logs
