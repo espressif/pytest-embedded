@@ -52,7 +52,8 @@ class IdfApp(App):
         self.elf_file = self._get_elf_file()
 
         # loadable elf file skip the rest of these
-        if self.sdkconfig.get('APP_BUILD_TYPE_ELF_RAM'):
+        # TODO to be improved in #186
+        if self.sdkconfig.get('APP_BUILD_TYPE_ELF_RAM') or self.sdkconfig.get('APP_BUILD_TYPE_RAM'):
             self.is_loadable_elf = True
         else:
             self.is_loadable_elf = False
