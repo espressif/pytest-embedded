@@ -1,3 +1,10 @@
+## v1.2.2 (2023-01-29)
+
+### Fix
+
+- teardown skipped when setting up period failed for multi-dut
+- leaking file descriptors
+
 ## v1.2.1 (2023-01-05)
 
 ### Fix
