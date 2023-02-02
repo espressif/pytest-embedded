@@ -57,7 +57,7 @@ class Serial:
 
         self.baud = baud
 
-        if isinstance(port, pyserial.Serial):
+        if isinstance(port, pyserial.SerialBase):
             self.proc = port
             self.proc.timeout = self.DEFAULT_PORT_CONFIG['timeout']  # set read timeout
             self.port = self.proc.port
