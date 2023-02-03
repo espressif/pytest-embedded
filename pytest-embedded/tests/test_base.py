@@ -389,10 +389,6 @@ def test_expect_unity_test_output_multi_dut(testdir):
             FAIL
         ''')
 
-        def test_expect_unity_test_output(dut):
-            dut.write(output)
-            dut.expect_unity_test_output()
-
         @pytest.mark.parametrize('count', [2], indirect=True)
         def test_expect_unity_test_output_multi_dut(dut):
             dut_0 = dut[0]
@@ -413,16 +409,16 @@ def test_expect_unity_test_output_multi_dut(testdir):
     result = testdir.runpytest('--junitxml', 'report.xml')
 
     try:
-        result.assert_outcomes(failed=3)
+        result.assert_outcomes(failed=2)
     except ValueError:
         pass
 
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '12'
+    assert junit_report.attrib['failures'] == '9'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '16'
+    assert junit_report.attrib['tests'] == '12'
 
     case_names = [
         'test_case',
@@ -430,10 +426,57 @@ def test_expect_unity_test_output_multi_dut(testdir):
         'test case 3',
         'test case 4',
     ]
-    required_names = case_names[:]
+    required_names = []
     for dut in ['dut-0', 'dut-1', 'dut-1']:
         required_names.extend([f'{case_name} [{dut}]' for case_name in case_names])
 
+    all_case_names = [item.attrib['name'] for item in junit_report]
+
+    assert sorted(required_names) == sorted(all_case_names)
+
+
+def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+        import inspect
+
+        output = inspect.cleandoc(
+                u'''
+            TEST(group, test_case)foo.c:100::FAIL:Expected 2 \x00 was 1
+            -------------------
+            4 Tests 3 Failures 0 Ignored
+            FAIL
+        ''')
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_expect_unity_test_output_multi_dut_with_illegal_chars(dut):
+            dut_0 = dut[0]
+            dut_1 = dut[1]
+
+            dut_0.write(output)
+            dut_1.write(output)
+            dut_0.expect_unity_test_output()
+            dut_1.expect_unity_test_output()
+    """)
+
+    result = testdir.runpytest('--junitxml', 'report.xml')
+
+    try:
+        result.assert_outcomes(failed=1)
+    except ValueError:
+        pass
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'
+
+    required_names = [
+        'test_case [dut-0]',
+        'test_case [dut-1]',
+    ]
     all_case_names = [item.attrib['name'] for item in junit_report]
 
     assert sorted(required_names) == sorted(all_case_names)
