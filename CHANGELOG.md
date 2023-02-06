@@ -1,3 +1,10 @@
+## v1.2.3 (2023-02-06)
+
+### Fix
+
+- illegal xml chars
+- **serial**: support rfc2217 connections
+
 ## v1.2.2 (2023-01-29)
 
 ### Fix
