@@ -2,6 +2,10 @@ name: Test Build Docs
 
 on:
   pull_request:
+    paths:
+      - '**.py'
+      - 'docs/**'
+      - '*.md'
 
 jobs:
   test-build-docs:

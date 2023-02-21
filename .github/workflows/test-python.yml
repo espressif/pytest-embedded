@@ -1,4 +1,4 @@
-name: Python Packages Tests
+name: Test Python Packages
 
 on:
   pull_request:
@@ -8,16 +8,14 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-python:
     timeout-minutes: 30
     runs-on:
       - self-hosted
       - multiboard
-    permissions:
-      pull-requests: write
     strategy:
       matrix:
-        python-version: ['3.7', '3.10']
+        python-version: ['3.7', '3.11']
       fail-fast: false
     container:
       image: python:${{ matrix.python-version }}-bullseye
@@ -34,31 +32,20 @@ jobs:
           bash foreach.sh install
       - name: Check ports
         run: ls -la /dev/ttyUSB*
-      - name: Run Tests
-        if: ${{ matrix.python-version != '3.10' }}
-        run: pytest
       - name: Run Tests with coverage
-        if: ${{ matrix.python-version == '3.10' }}
         run: |
           pytest \
             --junitxml=pytest.xml \
             --cov-report=term-missing \
-            --cov-report=xml:coverage.xml \
             --cov=pytest-embedded/pytest_embedded/ \
             --cov=pytest-embedded-arduino/pytest_embedded_arduino/ \
             --cov=pytest-embedded-idf/pytest_embedded_idf/ \
             --cov=pytest-embedded-jtag/pytest_embedded_jtag/ \
             --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
             --cov=pytest-embedded-serial/pytest_embedded_serial/ \
-            --cov=pytest-embedded-serial-es/pytest_embedded_serial_esp/
+            --cov=pytest-embedded-serial-esp/pytest_embedded_serial_esp/
       - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: test_logs
           path: /tmp/pytest-embedded/
-      - name: Pytest coverage comment
-        if: ${{ matrix.python-version == '3.10' && startsWith(github.ref, 'refs/pull/') }}
-        uses: MishaKav/pytest-coverage-comment@main
-        with:
-          pytest-xml-coverage-path: ./coverage.xml
-          junitxml-path: ./pytest.xml
