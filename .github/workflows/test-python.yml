@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          apt update && apt install -y socat
+          apt update && apt install -y socat zip
           pip install -U pip
           export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
           pip install cryptography --only-binary :all:
@@ -44,8 +44,12 @@ jobs:
             --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
             --cov=pytest-embedded-serial/pytest_embedded_serial/ \
             --cov=pytest-embedded-serial-esp/pytest_embedded_serial_esp/
+      - name: Zip log files
+        if: failure()
+        run: |
+          zip -r logs.zip /tmp/pytest-embedded
       - uses: actions/upload-artifact@v3
         if: failure()
         with:
-          name: test_logs
-          path: /tmp/pytest-embedded/
+          name: logs
+          path: logs.zip
