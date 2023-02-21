@@ -5,7 +5,7 @@ import telnetlib
 import time
 from typing import AnyStr, Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
+from pytest_embedded.log import DuplicateStdoutPopen
 from pytest_embedded.utils import to_bytes, to_str
 
 
@@ -26,7 +26,6 @@ class OpenOcd(DuplicateStdoutPopen):
 
     def __init__(
         self,
-        msg_queue: MessageQueue,
         openocd_prog_path: Optional[str] = None,
         openocd_cli_args: Optional[str] = None,
         port_offset: int = 0,
@@ -54,10 +53,7 @@ class OpenOcd(DuplicateStdoutPopen):
             ]
         )
 
-        cmd = [openocd_prog_path] + openocd_cli_args
-        logging.info(' '.join(cmd))
-
-        super().__init__(msg_queue, cmd, **kwargs)
+        super().__init__(cmd=[openocd_prog_path] + openocd_cli_args, **kwargs)
 
         # open telnet port to interact with openocd
         for i in range(30):

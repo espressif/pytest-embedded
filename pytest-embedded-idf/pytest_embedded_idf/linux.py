@@ -1,4 +1,3 @@
-import logging
 import typing as t
 
 from pytest_embedded.dut import Dut
@@ -45,6 +44,4 @@ class LinuxSerial(DuplicateStdoutPopen):
         if self.app.target != 'linux':
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: "linux".')
 
-        logging.info(f'executing {self.app.elf_file}')
-
-        super().__init__(cmd=self.app.elf_file, **kwargs)
+        super().__init__(cmd=[self.app.elf_file], **kwargs)

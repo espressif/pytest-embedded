@@ -1,8 +1,8 @@
-import logging
 import os
+import shlex
 from typing import Optional
 
-from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
+from pytest_embedded.log import DuplicateStdoutPopen
 
 from . import DEFAULT_IMAGE_FN
 
@@ -22,7 +22,6 @@ class Qemu(DuplicateStdoutPopen):
 
     def __init__(
         self,
-        msg_queue: MessageQueue,
         qemu_image_path: Optional[str] = None,
         qemu_prog_path: Optional[str] = None,
         qemu_cli_args: Optional[str] = None,
@@ -41,13 +40,10 @@ class Qemu(DuplicateStdoutPopen):
             raise ValueError(f'QEMU image path doesn\'t exist: {image_path}')
 
         qemu_prog_path = qemu_prog_path or self.QEMU_PROG_PATH
-        qemu_cli_args = qemu_cli_args or self.QEMU_DEFAULT_ARGS
+        qemu_cli_args = shlex.split(qemu_cli_args or self.QEMU_DEFAULT_ARGS)
+        qemu_extra_args = shlex.split(qemu_extra_args or '')
 
-        qemu_extra_args = qemu_extra_args.replace('"', '') if qemu_extra_args else qemu_extra_args
-        qemu_extra_args = [qemu_extra_args] if qemu_extra_args else []
-        qemu_extra_args.append(f'-drive file={image_path},if=mtd,format=raw')
-
-        cmd = f'{qemu_prog_path} {qemu_cli_args} {" ".join(qemu_extra_args)}'
-        logging.debug(cmd)
-
-        super().__init__(msg_queue, cmd, shell=True, **kwargs)
+        super().__init__(
+            cmd=[qemu_prog_path, *qemu_cli_args, *qemu_extra_args] + ['-drive', f'file={image_path},if=mtd,format=raw'],
+            **kwargs,
+        )
