@@ -197,7 +197,7 @@ class TestSuite:
 
     def dump(self, path: str) -> None:
         with open(path, 'w') as fw:
-            fw.write(ET.tostring(self.to_xml(), encoding='unicode'))
+            fw.write(escape_illegal_xml_chars(ET.tostring(self.to_xml(), encoding='unicode')))
 
 
 class JunitMerger:
@@ -244,8 +244,7 @@ class JunitMerger:
                 _data = None
                 for _junit_file in _junit_files:
                     logging.info(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
-                    with open(_junit_file) as fr:
-                        _junit = ET.ElementTree(ET.fromstring(escape_illegal_xml_chars(fr.read())))
+                    _junit = ET.parse(_junit_file)
                     _root = _junit.getroot()
                     for case in _root:  # one level down
                         case.attrib['name'] += f' [{os.path.splitext(os.path.basename(_junit_file))[0]}]'
