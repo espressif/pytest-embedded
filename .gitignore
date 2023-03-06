@@ -65,6 +65,7 @@ target/
 
 # venv
 venv/
+.venv/
 
 # IDE
 .idea/
