@@ -53,16 +53,17 @@ class IdfApp(App):
 
         # loadable elf file skip the rest of these
         # TODO to be improved in #186
+        # 5.1 changed from APP_BUILD_TYPE_ELF_RAM to APP_BUILD_TYPE_RAM
+        # keep backward compatibility
         if self.sdkconfig.get('APP_BUILD_TYPE_ELF_RAM') or self.sdkconfig.get('APP_BUILD_TYPE_RAM'):
             self.is_loadable_elf = True
         else:
             self.is_loadable_elf = False
 
-        self.bin_file = None
+        self.bin_file = self._get_bin_file()
         self.flash_args, self.flash_files, self.flash_settings = {}, [], {}
 
         if not self.is_loadable_elf:
-            self.bin_file = self._get_bin_file()
             self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args_json()
 
     @property
@@ -161,11 +162,12 @@ class IdfApp(App):
 
         return None
 
-    def _get_bin_file(self) -> str:
+    def _get_bin_file(self) -> Optional[str]:
         for fn in os.listdir(self.binary_path):
             if os.path.splitext(fn)[-1] == '.bin':
                 return os.path.realpath(os.path.join(self.binary_path, fn))
-        raise ValueError(f'Bin file under {self.binary_path} not found')
+
+        return None
 
     def _parse_flash_args(self) -> List[str]:
         flash_args_filepath = None
