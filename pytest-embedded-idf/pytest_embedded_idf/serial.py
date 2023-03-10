@@ -79,17 +79,24 @@ class IdfSerial(EspSerial):
         if not self.app.is_loadable_elf:
             raise ValueError('elf should be loadable elf')
 
-        live_print_call(
-            [
-                'esptool.py',
-                '--chip',
-                self.app.target,
-                'elf2image',
-                self.app.elf_file,
-                *self.app._parse_flash_args(),
-            ],
-            msg_queue=self._q,
-        )
+        # 5.1 or earlier with sdkconfig APP_BUILD_TYPE_ELF_RAM, would build elf file only
+        # 5.1 or later with sdkconfig renamed APP_BUILD_TYPE_RAM, would build bin file only
+        if self.app.bin_file:
+            bin_file = self.app.bin_file
+        else:
+            live_print_call(
+                [
+                    'esptool.py',
+                    '--chip',
+                    self.app.target,
+                    'elf2image',
+                    self.app.elf_file,
+                    *self.app._parse_flash_args(),
+                ],
+                msg_queue=self._q,
+            )
+            bin_file = self.app.elf_file.replace('.elf', '.bin')
+
         live_print_call(
             [
                 'esptool.py',
@@ -97,7 +104,7 @@ class IdfSerial(EspSerial):
                 self.app.target,
                 '--no-stub',
                 'load_ram',
-                self.app.elf_file.replace('.elf', '.bin'),
+                bin_file,
             ],
             msg_queue=self._q,
         )
