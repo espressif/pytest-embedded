@@ -1,3 +1,19 @@
+## v1.2.4 (2023-03-10)
+
+### Feat
+
+- **idf**: support loadable app with bin file
+
+### Fix
+
+- illegal xml chars for all types of test cases
+- remove 1.1 added unused argument `start_time`
+
+### Refactor
+
+- improve logging and use "shell=False" in `DuplicateStdoutPopen`
+- refine errors and warnings
+
 ## v1.2.3 (2023-02-06)
 
 ### Fix
