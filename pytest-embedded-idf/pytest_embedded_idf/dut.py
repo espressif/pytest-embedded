@@ -91,6 +91,10 @@ class IdfDut(SerialDut):
         return os.path.realpath(script_filepath)
 
     def _check_panic_decode_trigger(self):  # type: () -> None
+        if not self.app.elf_file:
+            logging.warning('No elf file found. Skipping decode panic output...')
+            return
+
         with open(self.logfile, 'rb') as output_file:
             output = output_file.read()
         # get the panic output by looking for the indexes
@@ -101,6 +105,7 @@ class IdfDut(SerialDut):
         panic_output = panic_output_res if panic_output_res else None
         if panic_output is None:
             return
+
         with tempfile.NamedTemporaryFile(mode='wb', delete=False) as panic_output_file:
             panic_output_file.write(panic_output)
             panic_output_file.flush()
@@ -219,7 +224,7 @@ class IdfDut(SerialDut):
         if not self.skip_check_coredump:
             try:
                 self._check_coredump()
-            except ValueError as e:
+            except Exception as e:
                 logging.debug(e)
         super().close()
 
