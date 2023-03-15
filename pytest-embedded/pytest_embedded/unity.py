@@ -54,7 +54,9 @@ _avoid_compatibility_chars = [
     (0xFFFFE, 0xFFFFF),
     (0x10FFFE, 0x10FFFF),
 ]
-ILLEGAL_XML_CHAR_REGEX = re.compile(f"[{''.join([f'{chr(l)}-{chr(r)}' for l, r in _avoid_compatibility_chars])}]")
+ILLEGAL_XML_CHAR_REGEX = re.compile(
+    f"[{''.join([f'{chr(lower)}-{chr(upper)}' for lower, upper in _avoid_compatibility_chars])}]"
+)
 
 
 def escape_illegal_xml_chars(s: str) -> str:

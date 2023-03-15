@@ -25,7 +25,7 @@ from pytest_embedded import Dut
 def test_basic_expect(redirect, dut: Dut):
     with redirect():
         print('this would be redirected')
-  
+
     dut.expect('this')
     dut.expect_exact('would')
     dut.expect('[be]{2}')
@@ -45,7 +45,7 @@ test_basic.py .                                                        [100%]
 - if run with `pytest -s`, the output would be as follows:
 
 ```shell
-collected 1 item                                                                                                  
+collected 1 item
 
 test_basic.py 2022-01-01 12:34:56 this would be redirected
 .

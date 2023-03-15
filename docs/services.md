@@ -2,11 +2,11 @@
 
 ## Fixtures
 
-Please refer to instructions under the "fixtures defined from pytest_embedded.plugin" chapter of the output of `pytest --fixtures`. 
+Please refer to instructions under the "fixtures defined from pytest_embedded.plugin" chapter of the output of `pytest --fixtures`.
 
 ## CLI Options
 
-Please refer to the instructions under the "embedded" or "embedded-[SERVICE]" groups of the output of `pytest --help`. 
+Please refer to the instructions under the "embedded" or "embedded-[SERVICE]" groups of the output of `pytest --help`.
 
 ## Services
 

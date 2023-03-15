@@ -95,23 +95,23 @@ Here are a few examples of how to enable this. For detailed information, please 
 After you enabled the multi-dut mode, all the fixtures would be a tuple with instances. Each instance inside the tuple would be independent. For parametrization, each configuration will use `|` as a separator for each instance.
 
 !!! example
-    
+
     ```shell
     pytest \
     --embedded-services serial|serial \
     --count 2 \
     --app-path <master_bin>|<slave_bin>
     ```
-  
+
     In this example, `app` would be a tuple of 2 `App` instances, and `dut` would be a tuple of 2 `Dut` Instances.
-  
+
     You can test with:
-  
+
     ```python
     def test(dut):
         master = dut[0]
         slave = dut[1]
-  
+
         master.expect('sent')
         slave.expect('received')
     ```
@@ -121,7 +121,7 @@ After you enabled the multi-dut mode, all the fixtures would be a tuple with ins
 If all DUTs share the same configuration value, you can specify only once.
 
 !!! example
-      
+
     ```shell
     pytest \
     --embedded-services serial \
@@ -136,7 +136,7 @@ If all DUTs share the same configuration value, you can specify only once.
 Sometimes one option is only useful when enabling specific services. You can set a vacant value if this config is only useful for certain DUTs.
 
 !!! example
-      
+
     ```shell
     pytest \
     --embedded-services qemu|serial \
@@ -145,7 +145,7 @@ Sometimes one option is only useful when enabling specific services. You can set
     --qemu-cli-args "<args>|" \
     --port "|<port>" \
     ```
-  
+
     `--qemu-cli-args` would apply to the first DUT with `qemu` service and `--port` would apply to the second DUT with `serial` service.
 
 ## Logging

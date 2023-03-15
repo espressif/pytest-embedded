@@ -68,5 +68,5 @@ class ArduinoSerial(EspSerial):
         except Exception:
             raise
         finally:
-            for (_, f) in flash_files:
+            for _, f in flash_files:
                 f.close()

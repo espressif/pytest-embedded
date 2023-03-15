@@ -101,7 +101,7 @@
 - `live_print_call` could accept kwargs `msg_queue` and `expect_returncode`
 - **idf**: Support panic handler output for RISC-V targets
 - **serial**: support bind ports by USB device location
-- **esp**: `EspSerial.use_esptool` could accept kwargs `hard_reset_after` and `no_stub` 
+- **esp**: `EspSerial.use_esptool` could accept kwargs `hard_reset_after` and `no_stub`
 - **esp**: add `EsptoolArgs`
 - **esp**: support bind ports by `esptool` `read_mac`
 - **esp**: support loadable elf

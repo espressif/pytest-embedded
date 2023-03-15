@@ -33,4 +33,3 @@ $ pytest examples/arduino -k test_hello_arduino
 
 This will parse the `build` directory created earlier, flash the chip and
 expect the `Hello Arduino!` text to be printed.
-
