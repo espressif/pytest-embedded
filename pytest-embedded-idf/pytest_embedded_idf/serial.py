@@ -171,9 +171,9 @@ class IdfSerial(EspSerial):
                     os.remove(nvs_file.name)
                 except OSError:
                     pass
-            for (_, f) in flash_files:
+            for _, f in flash_files:
                 f.close()
-            for (_, f) in encrypt_files:
+            for _, f in encrypt_files:
                 f.close()
 
     @EspSerial.use_esptool()

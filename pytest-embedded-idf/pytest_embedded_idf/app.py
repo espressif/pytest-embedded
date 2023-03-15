@@ -211,7 +211,7 @@ class IdfApp(App):
             return False
 
         flash_files = []
-        for (offset, file_path) in flash_args['flash_files'].items():
+        for offset, file_path in flash_args['flash_files'].items():
             flash_files.append(
                 FlashFile(
                     int(offset, 0),

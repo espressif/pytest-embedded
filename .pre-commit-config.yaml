@@ -11,31 +11,19 @@ repos:
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
-        exclude: &whitespace_excludes |
-          (?x)^(
-            .+\.(md|rst|map|bin)|
-            .+test.*\/.*expected.*|
-          )$
       - id: end-of-file-fixer
-        exclude: *whitespace_excludes
       - id: mixed-line-ending
         args: [ '-f=lf' ]
       - id: double-quote-string-fixer
-  - repo: https://github.com/ikamensh/flynt/
-    rev: '0.77'
-    hooks:
-      - id: flynt
-  - repo: https://github.com/psf/black
-    rev: 22.12.0
-    hooks:
-      - id: black
-        args: [ '--skip-string-normalization' ]
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
       - id: isort
-        name: isort (python)
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.0.255'
+    hooks:
+      - id: ruff
