@@ -1,10 +1,12 @@
 import dataclasses
+import importlib
 import logging
 import os
 import re
 import typing as t
 
-from . import App
+if t.TYPE_CHECKING:
+    from . import App
 
 #############
 # Constants #
@@ -176,14 +178,14 @@ class Meta:
         except KeyError:
             logging.warning('no port-target cache with port %s', port)
 
-    def hit_port_app_cache(self, port: str, app: App) -> bool:
+    def hit_port_app_cache(self, port: str, app: 'App') -> bool:
         if self.port_app_cache.get(port, None) == app.binary_path:
             logging.debug('hit port-app cache: %s - %s', port, app.binary_path)
             return True
 
         return False
 
-    def set_port_app_cache(self, port: str, app: App) -> None:
+    def set_port_app_cache(self, port: str, app: 'App') -> None:
         self.port_app_cache[port] = app.binary_path
         logging.debug('set port-app cache: %s - %s', port, app.binary_path)
 
@@ -193,3 +195,53 @@ class Meta:
             logging.debug('drop port-app cache with port %s', port)
         except KeyError:
             logging.warning('no port-app cache with port %s', port)
+
+
+_ModuleType = type(importlib)
+
+
+def lazy_load(
+    base_module: _ModuleType, name_obj_dict: t.Dict[str, t.Any], obj_module_dict: t.Dict[str, str]
+) -> t.Callable[[str], t.Any]:
+    """
+    use __getattr__ in the __init__.py file to lazy load some objects
+
+    Args:
+        base_module (ModuleType): base package module
+        name_obj_dict (dict[str, any]): name, real object dict, used to store real objects,
+            no need to add lazy-load objects
+        obj_module_dict (dict[str, str]): dict of object name and module name
+
+    Returns:
+        __getattr__ function
+
+    Examples:
+        ```python
+        __getattr__ = lazy_load(
+            importlib.import_module(__name__),
+            {
+                'IdfApp': IdfApp,
+                'LinuxDut': LinuxDut,
+                'LinuxSerial': LinuxSerial,
+                'CaseTester': CaseTester,
+            },
+            {
+                'IdfSerial': '.serial',
+                'IdfDut': '.dut',
+            },
+        )
+        ```
+    """
+
+    def __getattr__(object_name):
+        if object_name in name_obj_dict:
+            return name_obj_dict[object_name]
+        elif object_name in obj_module_dict:
+            module = importlib.import_module(obj_module_dict[object_name], base_module.__name__)
+            imported = getattr(module, object_name)
+            name_obj_dict[object_name] = imported
+            return imported
+        else:
+            raise AttributeError('Attribute %s not found in module %s', object_name, base_module.__name__)
+
+    return __getattr__
