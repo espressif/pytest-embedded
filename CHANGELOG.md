@@ -1,3 +1,14 @@
+## v1.2.5 (2023-04-11)
+
+### Feat
+
+- add log in system-out of the junit report
+
+### Fix
+
+- **idf**: lazy import optional dependencies
+- **idf**: skip decode panic output when no elf file
+
 ## v1.2.4 (2023-03-10)
 
 ### Feat
