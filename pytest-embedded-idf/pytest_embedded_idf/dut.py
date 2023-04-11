@@ -431,6 +431,9 @@ class IdfDut(SerialDut):
         if additional_attrs:
             attrs.update(additional_attrs)
 
+        if log:
+            attrs.update({'stdout': log})
+
         testcase = TestCase(**attrs)
         self.testsuite.testcases.append(testcase)
         if testcase.result == 'FAIL':
