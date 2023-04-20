@@ -6,7 +6,7 @@ from typing import Optional
 from pytest_embedded.log import MessageQueue, live_print_call
 from pytest_embedded_idf.app import IdfApp
 
-from . import DEFAULT_IMAGE_FN
+from . import DEFAULT_IMAGE_FN, ENCRYPTED_IMAGE_FN
 
 
 class IdfFlashImageMaker:
@@ -31,10 +31,12 @@ class IdfFlashImageMaker:
         if self.app.flash_files[0][0] != 0x0:
             self._write_empty_bin(count=self.app.flash_files[0][0])
         for offset, file_path, encrypted in self.app.flash_files:
-            if encrypted:
-                raise NotImplementedError('will implement later')
-            else:
-                self._write_bin(file_path, seek=offset)
+            self._write_bin(file_path, seek=offset)
+
+        if self.app.encrypt:
+            if self.app.keyfile is None or not os.path.exists(self.app.keyfile):
+                raise ValueError('Flash Encryption key file doesn\'t exist')
+            self._write_encrypted_bin(self.image_path)
 
     def _write_empty_bin(self, count: int, bs: int = 1024, seek: int = 0):
         live_print_call(
@@ -50,15 +52,10 @@ class IdfFlashImageMaker:
 
     def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
         live_print_call(
-            'dd if=/dev/zero bs=1 count=32 of=key.bin',
-            shell=True,
-        )  # generate a fake key bin
-        live_print_call(
-            f'espsecure.py encrypt_flash_data --keyfile key.bin --output decrypted.bin --address {seek} '
-            f'{binary_filepath}',
+            f'espsecure.py encrypt_flash_data --keyfile {self.app.keyfile} '
+            f'--output {self.app.encrypted_image_path} --address {seek} {binary_filepath}',
             shell=True,
         )
-        self._write_bin('decrypted.bin', bs=bs, seek=seek)
 
     def _burn_efuse(self):
         pass
@@ -77,6 +74,8 @@ class QemuApp(IdfApp):
         msg_queue: MessageQueue,
         qemu_image_path: Optional[str] = None,
         skip_regenerate_image: Optional[bool] = False,
+        encrypt: Optional[bool] = False,
+        keyfile: Optional[str] = None,
         **kwargs,
     ):
         self._q = msg_queue
@@ -85,6 +84,11 @@ class QemuApp(IdfApp):
 
         self.image_path = qemu_image_path or os.path.join(self.binary_path, DEFAULT_IMAGE_FN)
         self.skip_regenerate_image = skip_regenerate_image
+        self.encrypt = encrypt
+        self.keyfile = keyfile
+
+        if self.encrypt:
+            self.encrypted_image_path = os.path.join(self.binary_path, ENCRYPTED_IMAGE_FN)
 
         if self.target != 'esp32':
             raise ValueError('For now on QEMU we only support ESP32')

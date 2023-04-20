@@ -15,7 +15,7 @@ class Qemu(DuplicateStdoutPopen):
     SOURCE = 'QEMU'
 
     QEMU_PROG_PATH = 'qemu-system-xtensa'
-    QEMU_DEFAULT_ARGS = '-nographic -no-reboot -machine esp32'
+    QEMU_DEFAULT_ARGS = '-nographic -machine esp32'
 
     QEMU_STRAP_MODE_FMT = '-global driver=esp32.gpio,property=strap_mode,value={}'
     QEMU_SERIAL_TCP_FMT = '-serial tcp::{},server,nowait'
