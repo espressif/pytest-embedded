@@ -1,5 +1,6 @@
 import os
 import shutil
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -82,3 +83,29 @@ def test_pre_flash_enc_qemu(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+@qemu_bin_required
+def test_qemu_use_idf_mixin_methods(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_qemu_use_idf_mixin_methods(dut):
+            dut.run_all_single_board_cases()
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf,qemu',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}',
+        '--junitxml', 'report.xml',
+    )
+
+    result.assert_outcomes(failed=1)
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '1'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'

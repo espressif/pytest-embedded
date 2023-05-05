@@ -9,10 +9,10 @@ import pexpect
 from .app import App
 from .log import PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
-from .utils import Meta, remove_asci_color_code, to_bytes, to_list
+from .utils import Meta, _InjectMixinCls, remove_asci_color_code, to_bytes, to_list
 
 
-class Dut:
+class Dut(_InjectMixinCls):
     """
     Device under test (DUT) base class
 
@@ -160,7 +160,7 @@ class Dut:
             - Would raise TIMEOUT exception at the end of the test if any unity test case execution took longer
                 than timeout value
 
-        Warnings:
+        Warning:
             - All unity test cases record would be missed if the final report block is uncaught.
         """
         self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=timeout)
@@ -174,3 +174,25 @@ class Dut:
             log = remove_asci_color_code(log)
 
         self.testsuite.add_unity_test_cases(log)
+
+    @_InjectMixinCls.require_services('idf')
+    def run_all_single_board_cases(
+        self,
+        group: Optional[str] = None,
+        reset: bool = False,
+        timeout: float = 30,
+        run_ignore_cases: bool = False,
+    ):
+        """
+        Run all multi_stage cases
+
+        Args:
+            group: test case group
+            reset: whether to perform a hardware reset before running a case
+            timeout: timeout. (Default: 30 seconds)
+            run_ignore_cases: run ignored test cases or not
+
+        Warning:
+            requires enable service `idf`
+        """
+        pass

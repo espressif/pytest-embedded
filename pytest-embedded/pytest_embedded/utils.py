@@ -33,6 +33,12 @@ FIXTURES_SERVICES = {
 
 _T = t.TypeVar('_T')
 
+_MIXIN_REQUIRED_SERVICES = {
+    'IdfUnityMixin': ['idf'],
+}
+
+_MIXIN_REQUIRED_SERVICES_KEY = '_based_on_services'
+
 
 #######################
 # Errors and Warnings #
@@ -51,6 +57,16 @@ class PackageNotInstalledError(SystemExit):
         super().__init__(
             f'Package {SERVICE_LIB_NAMES[service]} is not found but required by service {service}. '
             f'Please run "pip install -U {SERVICE_LIB_NAMES[service]}"'
+        )
+
+
+class RequireServiceError(SystemExit):
+    def __init__(self, func_name: str, services: t.Union[str, t.List[str]]) -> None:
+        services_str = ','.join(to_list(services))
+        super().__init__(
+            f'function {func_name} requires enabling one of the service(s) {services_str}. '
+            f'Please enable by passing CLI options "--embedded-services {services_str}". '
+            f'For more details, please refer to "pytest --help".'
         )
 
 
@@ -245,3 +261,80 @@ def lazy_load(
             raise AttributeError('Attribute %s not found in module %s', object_name, base_module.__name__)
 
     return __getattr__
+
+
+class _InjectMixinMeta(type):
+    def __call__(cls, *args, **kwargs):
+        try:
+            mixins = kwargs.pop('mixins', None)
+            if mixins:
+                mixins = to_list(mixins)
+                name = cls.__name__ + 'With' + 'And'.join([m.__name__ for m in mixins])
+                cls = type(name, tuple([*mixins, cls]), {})
+
+                # users should only know concept "services", not mixins
+                _based_on_services = set()
+                for m in mixins:
+                    if m.__name__ not in _MIXIN_REQUIRED_SERVICES:
+                        continue
+
+                    _based_on_services.update(to_list(_MIXIN_REQUIRED_SERVICES[m.__name__]))
+                kwargs[_MIXIN_REQUIRED_SERVICES_KEY] = sorted(_based_on_services)
+        except KeyError:
+            pass
+        return type.__call__(cls, *args, **kwargs)
+
+
+class _InjectMixinCls(metaclass=_InjectMixinMeta):
+    """
+    This class provide a check function `require_services()` to check if the function is injected by
+    enabling one of the required services.
+
+    The benefits are:
+    - provide the autocompletion for the functions provided by the mixins
+    - check the requirement at runtime
+
+    Examples:
+
+        class IdfUnityMixin:
+            def foo(self):
+                print('foo from MixinOne')
+
+
+        class Test(_InjectMixinCls):
+            def __init__(self, **kwargs):
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
+
+            @_InjectMixinCls.require_services('idf')
+            def foo(self):
+                pass
+
+
+        # mro(): TestWithIdfUnityMixin, IdfUnityMixin, Test, object
+        s1 = Test(mixins=IdfUnityMixin)
+        # mro(): Test, object
+        s2 = Test()
+        s1.foo()  # foo from IdfUnityMixin
+        s2.foo()  # function foo requires enabling one of the service(s) idf.
+    """
+
+    def require_services(*services):
+        def decorator(func):
+            def wrapped(self, *args, **kwargs):
+                based = False
+                for service in services:
+                    if hasattr(self, _MIXIN_REQUIRED_SERVICES_KEY) and service in getattr(
+                        self, _MIXIN_REQUIRED_SERVICES_KEY
+                    ):
+                        based = True
+                        break
+
+                if based:
+                    return func(self, *args, **kwargs)
+                else:
+                    raise RequireServiceError(func.__name__, services)
+
+            return wrapped
+
+        return decorator
