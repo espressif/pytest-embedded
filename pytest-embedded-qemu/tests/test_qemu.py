@@ -1,10 +1,12 @@
 import os
+import shutil
 
 import pytest
 
 qemu_bin_required = pytest.mark.skipif(
-    os.getenv('DONT_SKIP_QEMU_TESTS', False) is False,
-    reason='Build QEMU for ESP32 locally and then ' 'use "DONT_SKIP_QEMU_TESTS" to run this test.',
+    shutil.which('qemu-system-xtensa') is None,
+    reason='Please make sure that `qemu-system-xtensa` is in your PATH env var. Build QEMU for ESP32 locally and then '
+           'run `pytest` again'
 )
 
 
