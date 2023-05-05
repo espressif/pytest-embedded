@@ -313,6 +313,17 @@ class IdfUnityDutMixin:
             self.write(str(sub_case['index']))
             _timestamp = time.perf_counter()
 
+    def run_single_board_case(self, name: str, reset: bool = False, timeout: float = 30) -> None:
+        for case in self.test_menu:
+            if case.name == name and case.type == 'normal':
+                self._run_normal_case(case, reset=reset, timeout=timeout)
+                break
+            elif case.name == name and case.type == 'multi_stage':
+                self._run_multi_stage_case(case, reset=reset, timeout=timeout)
+                break
+        else:
+            raise ValueError(f'single-board test case {name} not found')
+
     def run_all_single_board_cases(
         self,
         group: t.Optional[str] = None,
