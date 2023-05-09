@@ -50,3 +50,33 @@ def test_multi_count_qemu(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+@qemu_bin_required
+def test_pre_flash_enc_qemu(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_pexpect_by_qemu(dut):
+            dut.expect('Hello world!', timeout=120)
+            dut.expect('Restarting')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
+    """)
+
+    app_path = os.path.join(testdir.tmpdir, 'hello_world_esp32_flash_enc')
+    keyfile_path = os.path.join(app_path, 'pre_encryption_key.bin')
+    efuses_path = os.path.join(app_path, 'pre_encryption_efuses.bin')
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf,qemu',
+        '--app-path', app_path,
+        '--qemu-extra-args',f'-drive file={efuses_path},if=none,format=raw,id=efuse'
+        ' -global driver=nvram.esp32.efuse,property=drive,value=efuse',
+        '--encrypt', 'true',
+        '--keyfile', keyfile_path,
+    )
+
+    result.assert_outcomes(passed=1)

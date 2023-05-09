@@ -216,7 +216,7 @@ def pytest_addoption(parser):
     )
     qemu_group.addoption(
         '--qemu-cli-args',
-        help='QEMU cli default arguments. (Default: "-nographic -no-reboot -machine esp32")',
+        help='QEMU cli default arguments. (Default: "-nographic -machine esp32")',
     )
     qemu_group.addoption(
         '--qemu-extra-args',
@@ -226,6 +226,15 @@ def pytest_addoption(parser):
         '--skip-regenerate-image',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to disable auto regenerate image. (Default: False)',
+    )
+    qemu_group.addoption(
+        '--encrypt',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True for pre-encryption workflow (Default: False)',
+    )
+    qemu_group.addoption(
+        '--keyfile',
+        help='Flash Encryption (pre-encrypted workflow) key path. (Default: None)',
     )
 
 
@@ -898,6 +907,20 @@ def skip_regenerate_image(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def encrypt(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'encrypt', None)
+
+
+@pytest.fixture
+@multi_dut_argument
+def keyfile(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'keyfile', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -958,6 +981,8 @@ def _fixture_classes_and_options(
     qemu_cli_args,
     qemu_extra_args,
     skip_regenerate_image,
+    encrypt,
+    keyfile,
     # pre-initialized fixtures
     dut_index,
     _pexpect_logfile,
@@ -1001,6 +1026,8 @@ def _fixture_classes_and_options(
                             'part_tool': part_tool,
                             'qemu_image_path': qemu_image_path,
                             'skip_regenerate_image': skip_regenerate_image,
+                            'encrypt': encrypt,
+                            'keyfile': keyfile,
                         }
                     )
                 else:
@@ -1099,13 +1126,19 @@ def _fixture_classes_and_options(
                     }
         elif fixture == 'qemu':
             if 'qemu' in _services:
-                from pytest_embedded_qemu import DEFAULT_IMAGE_FN, Qemu
+                from pytest_embedded_qemu import (
+                    DEFAULT_IMAGE_FN,
+                    ENCRYPTED_IMAGE_FN,
+                    Qemu,
+                )
 
                 classes[fixture] = Qemu
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
                     'qemu_image_path': qemu_image_path
-                    or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
+                    or os.path.join(
+                        app_path or '', build_dir or 'build', ENCRYPTED_IMAGE_FN if encrypt else DEFAULT_IMAGE_FN
+                    ),
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
