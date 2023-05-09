@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from pytest_embedded.log import MessageQueue, live_print_call
-from pytest_embedded_idf.app import IdfApp
+from pytest_embedded_idf.app import FlashFile, IdfApp
 
 from . import DEFAULT_IMAGE_FN, ENCRYPTED_IMAGE_FN
 
@@ -27,6 +27,13 @@ class IdfFlashImageMaker:
         """
         Create a single image file for qemu.
         """
+        if self.app.sdkconfig.get('SECURE_BOOT'):
+            self.app.flash_files.append(
+                FlashFile(
+                    int(self.app.sdkconfig.get('BOOTLOADER_OFFSET_IN_FLASH')),
+                    os.path.join(self.app.binary_path, 'bootloader/bootloader.bin'),
+                )
+            )
         # flash_files is sorted, if the first offset is not 0x0, we need to fill it with empty bin
         if self.app.flash_files[0][0] != 0x0:
             self._write_empty_bin(count=self.app.flash_files[0][0])
