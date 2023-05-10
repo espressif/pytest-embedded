@@ -53,21 +53,21 @@ def test_multi_count_qemu(testdir):
 
 
 @qemu_bin_required
-def test_pre_flash_enc_qemu(testdir):
+def test_secure_boot_and_pre_flash_encryption_qemu(testdir):
     testdir.makepyfile("""
         import pexpect
         import pytest
 
         def test_pexpect_by_qemu(dut):
-            dut.expect('Hello world!', timeout=120)
+            dut.expect('Hello world!', timeout=600)
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
                 dut.expect('foo bar not found', timeout=1)
     """)
 
-    app_path = os.path.join(testdir.tmpdir, 'hello_world_esp32_flash_enc')
+    app_path = os.path.join(testdir.tmpdir, 'hello_world_esp32_sb_v2_and_fe')
     keyfile_path = os.path.join(app_path, 'pre_encryption_key.bin')
-    efuses_path = os.path.join(app_path, 'pre_encryption_efuses.bin')
+    efuses_path = os.path.join(app_path, 'sb_v2_and_fe_efuses.bin')
 
     result = testdir.runpytest(
         '-s',
