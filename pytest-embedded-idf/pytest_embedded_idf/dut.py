@@ -10,6 +10,7 @@ import typing as t
 import warnings
 from contextlib import redirect_stdout
 
+import pexpect
 from pytest_embedded.unity import (
     UNITY_BASIC_REGEX,
     UNITY_FIXTURE_REGEX,
@@ -33,6 +34,21 @@ class IdfUnityDutMixin:
 
         super().__init__(*args, **kwargs)
 
+    def confirm_write(self, write_str: t.Any, expect_str: str, timeout: int = 1, retry_times: int = 3):
+        err = None
+        for _ in range(retry_times):
+            try:
+                self.write(str(write_str))
+                res = self.expect(expect_str, timeout=timeout)
+            except pexpect.TIMEOUT as e:
+                err = e
+            else:
+                break
+        else:
+            raise err
+
+        return res
+
     def _parse_test_menu(
         self,
         ready_line: str = 'Press ENTER to see the list of tests',
@@ -52,10 +68,8 @@ class IdfUnityDutMixin:
             A `list` of `UnittestMenuCase`, which includes info for each test case.
         """
         self.expect_exact(ready_line)
-        self.write(trigger)
-        menu_block = self.expect(pattern).group(1)
-        s = str(menu_block, encoding='UTF-8')
-        return self._parse_unity_menu_from_str(s)
+        res = self.confirm_write(trigger, pattern)
+        return self._parse_unity_menu_from_str(res.group(1).decode('utf8'))
 
     def parse_test_menu(
         self,
@@ -276,8 +290,7 @@ class IdfUnityDutMixin:
             return
 
         self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
-        self.write(str(case.index))
-        self.expect_exact(f'Running {case.name}...', timeout=1)
+        self.confirm_write(case.index, f'Running {case.name}...')
 
     @_record_single_unity_test_case
     def _run_multi_stage_case(
@@ -307,10 +320,14 @@ class IdfUnityDutMixin:
             _timeout = timeout - _timestamp + _start_at
             if _timeout < 0:  # pexpect process would expect 30s if < 0
                 _timeout = 0
+
             self.expect_exact(READY_PATTERN_LIST, timeout=_timeout)
-            self.write(str(case.index))
-            self.expect_exact(case.name, timeout=1)
+            self.confirm_write(case.index, f'Running {case.name}...')
+
+            # here we can't use confirm_write becuase the sub cases won't print anything
+            time.sleep(1)
             self.write(str(sub_case['index']))
+
             _timestamp = time.perf_counter()
 
     def run_single_board_case(self, name: str, reset: bool = False, timeout: float = 30) -> None:
