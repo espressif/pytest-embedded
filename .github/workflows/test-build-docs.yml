@@ -21,8 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           bash foreach.sh install
-          cd docs
-          pip install -r requirements.txt
+          pip install -r docs/requirements.txt
       - name: Test build docs
         run: |
           mkdocs build
