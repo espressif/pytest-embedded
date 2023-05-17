@@ -55,4 +55,4 @@ class Qemu(DuplicateStdoutPopen):
         # TODO: implement with QMP
         #  https://gitlab.com/qemu-project/python-qemu-qmp/-/issues/6
         #  for now got so many unexpected exceptions while __del__
-        self.write('\n')
+        raise NotImplementedError

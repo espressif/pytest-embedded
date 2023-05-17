@@ -1167,7 +1167,7 @@ def _fixture_classes_and_options(
                 )
 
                 if 'idf' in _services:
-                    from pytest_embedded_idf.dut import IdfUnityDutMixin
+                    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
 
                     mixins[fixture].append(IdfUnityDutMixin)
             elif 'jtag' in _services:
