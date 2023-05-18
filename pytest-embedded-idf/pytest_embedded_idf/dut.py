@@ -25,8 +25,8 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         skip_check_coredump (bool): skip check core dumped or not while dut teardown if set to True
     """
 
-    XTENSA_TARGETS = ['esp32', 'esp32s2', 'esp32s3']
-    RISCV32_TARGETS = ['esp32c3', 'esp32h2', 'esp32c2']
+    XTENSA_TARGETS = IdfApp.XTENSA_TARGETS
+    RISCV32_TARGETS = IdfApp.RISCV32_TARGETS
 
     COREDUMP_UART_START = b'================= CORE DUMP START ================='
     COREDUMP_UART_END = b'================= CORE DUMP END ================='
@@ -60,9 +60,9 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         Returns:
             Toolchain prefix according to the `self.target`
         """
-        if self.target in self.XTENSA_TARGETS:
+        if self.app.is_xtensa:
             return f'xtensa-{self.target}-elf-'
-        elif self.target in self.RISCV32_TARGETS:
+        elif self.app.is_riscv32:
             return 'riscv32-esp-elf-'
         else:
             raise ValueError(f'Unknown target: {self.target}')

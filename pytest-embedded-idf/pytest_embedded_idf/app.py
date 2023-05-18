@@ -26,6 +26,9 @@ class IdfApp(App):
         flash_settings (dict[str, Any]): dict of flash settings
     """
 
+    XTENSA_TARGETS = ['esp32', 'esp32s2', 'esp32s3']
+    RISCV32_TARGETS = ['esp32c3', 'esp32h2', 'esp32c2', 'esp32c6']
+
     FLASH_ARGS_FILENAME = 'flash_args'
     FLASH_PROJECT_ARGS_FILENAME = 'flash_project_args'
     FLASH_ARGS_JSON_FILENAME = 'flasher_args.json'
@@ -109,6 +112,26 @@ class IdfApp(App):
             return self.sdkconfig.get('IDF_TARGET', 'esp32')
         else:
             return self.flash_args.get('extra_esptool_args', {}).get('chip', 'esp32')
+
+    @property
+    def is_riscv32(self):
+        if self.sdkconfig.get('IDF_TARGET_ARCH_RISCV'):
+            return True
+
+        if self.target in self.RISCV32_TARGETS:
+            return True
+
+        return False
+
+    @property
+    def is_xtensa(self):
+        if self.sdkconfig.get('IDF_TARGET_ARCH_XTENSA'):
+            return True
+
+        if self.target in self.XTENSA_TARGETS:
+            return True
+
+        return False
 
     @property
     def partition_table(self) -> Dict[str, Any]:
