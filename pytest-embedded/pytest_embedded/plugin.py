@@ -1144,6 +1144,7 @@ def _fixture_classes_and_options(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
+                    'app': None,
                     'meta': _meta,
                 }
         elif fixture == 'dut':

@@ -90,9 +90,6 @@ class QemuApp(IdfApp):
         if self.encrypt:
             self.encrypted_image_path = os.path.join(self.binary_path, ENCRYPTED_IMAGE_FN)
 
-        if self.target != 'esp32':
-            raise ValueError('For now on QEMU we only support ESP32')
-
         self.create_image()
 
     def create_image(self) -> None:
