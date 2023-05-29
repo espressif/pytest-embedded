@@ -15,9 +15,11 @@ class QemuDut(Dut):
         qemu: Qemu,
         **kwargs,
     ) -> None:
+        self.qemu = qemu
+
         super().__init__(**kwargs)
 
-        self.qemu = qemu
+        self._hard_reset_func = self.qemu._hard_reset
 
     def write(self, s: AnyStr) -> None:
         self.qemu.write(s)

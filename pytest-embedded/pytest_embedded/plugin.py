@@ -947,6 +947,7 @@ def _services(embedded_services: t.Optional[str]) -> t.List[str]:
 @dataclass
 class ClassCliOptions:
     classes: t.Dict[str, type]
+    mixins: t.Dict[str, t.List[type]]
     kwargs: t.Dict[str, t.Dict[str, t.Any]]
 
 
@@ -1010,6 +1011,7 @@ def _fixture_classes_and_options(
     }
     """
     classes: t.Dict[str, type] = {}
+    mixins: t.Dict[str, t.List[type]] = defaultdict(list)
     kwargs: t.Dict[str, t.Dict[str, t.Any]] = defaultdict(dict)
 
     for fixture in FIXTURES_SERVICES.keys():
@@ -1142,6 +1144,7 @@ def _fixture_classes_and_options(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
+                    'app': None,
                     'meta': _meta,
                 }
         elif fixture == 'dut':
@@ -1163,6 +1166,11 @@ def _fixture_classes_and_options(
                         'qemu': None,
                     }
                 )
+
+                if 'idf' in _services:
+                    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
+
+                    mixins[fixture].append(IdfUnityDutMixin)
             elif 'jtag' in _services:
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
@@ -1202,7 +1210,7 @@ def _fixture_classes_and_options(
                     }
                 )
 
-    return ClassCliOptions(classes, kwargs)
+    return ClassCliOptions(classes, mixins, kwargs)
 
 
 ####################
@@ -1301,6 +1309,7 @@ def dut(
         return cls(**kwargs)
 
     cls = _fixture_classes_and_options.classes['dut']
+    mixins = _fixture_classes_and_options.mixins['dut']
     kwargs = _fixture_classes_and_options.kwargs['dut']
 
     for k, v in kwargs.items():
@@ -1316,7 +1325,7 @@ def dut(
             elif k == 'qemu':
                 kwargs[k] = qemu
 
-    return cls(**_drop_none_kwargs(kwargs))
+    return cls(**_drop_none_kwargs(kwargs), mixins=mixins)
 
 
 @pytest.fixture
