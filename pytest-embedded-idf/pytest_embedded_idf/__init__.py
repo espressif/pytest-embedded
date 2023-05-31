@@ -4,7 +4,7 @@ from pytest_embedded.utils import lazy_load
 
 from .app import IdfApp
 from .linux import LinuxDut, LinuxSerial
-from .unity_tester import CaseTester
+from .unity_tester import CaseTester, UnittestMenuCase
 
 __getattr__ = lazy_load(
     importlib.import_module(__name__),
@@ -28,4 +28,5 @@ __all__ = [
     'CaseTester',
     'LinuxSerial',
     'LinuxDut',
+    'UnittestMenuCase',
 ]

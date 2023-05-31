@@ -13,6 +13,7 @@ from pytest_embedded_serial.dut import SerialDut
 from pytest_embedded_serial_esp import EspSerial
 
 from .app import IdfApp
+from .unity_tester import UnittestMenuCase  # noqa # keep backward compatibility
 from .unity_tester import IdfUnityDutMixin
 
 
