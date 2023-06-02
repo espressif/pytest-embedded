@@ -12,21 +12,27 @@ Please refer to the instructions under the "embedded" or "embedded-[SERVICE]" gr
 
 Activate a service would enable a set of fixtures or add some extra functionalities to a few fixtures.
 
---8<-- "pytest-embedded-serial/README.md"
+```{include} ../pytest-embedded-serial/README.md
+```
 
---8<-- "pytest-embedded-serial-esp/README.md"
+```{include} ../pytest-embedded-serial-esp/README.md
+```
 
---8<-- "pytest-embedded-idf/README.md"
+```{include} ../pytest-embedded-idf/README.md
+```
 
---8<-- "pytest-embedded-jtag/README.md"
+```{include} ../pytest-embedded-jtag/README.md
+```
 
---8<-- "pytest-embedded-qemu/README.md"
+```{include} ../pytest-embedded-qemu/README.md
+```
 
---8<-- "pytest-embedded-arduino/README.md"
+```{include} ../pytest-embedded-arduino/README.md
+```
 
 ## Dependency Graph
 
-```mermaid
+```{mermaid}
 graph LR
     pytest_embedded --> pytest_embedded_serial
     pytest_embedded -->|pytest_embedded_serial_esp is an optional dependency| pytest_embedded_idf
@@ -36,5 +42,3 @@ graph LR
     pytest_embedded_serial --> pytest_embedded_serial_esp
     pytest_embedded_serial --> pytest_embedded_jtag
 ```
-
---8<-- "docs/abbr.md"

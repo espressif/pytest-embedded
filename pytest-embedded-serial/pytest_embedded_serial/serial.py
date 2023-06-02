@@ -23,9 +23,7 @@ class Serial:
         proc (pyserial.Serial): process created by `serial.serial_for_url()`
 
     Warning:
-        - the real `pyserial` object must be created inside `self._forward_io`,
-          The `pyserial` object can't be pickled when using multiprocessing.Process
-        - make sure this `Serial` __init__ run the last in MRO, it would create and start the redirect serial process
+        - make sure this `Serial.__init__()` run the last in MRO, it would create and start the redirect serial process
     """
 
     DEFAULT_BAUDRATE = 115200
@@ -98,6 +96,8 @@ class Serial:
         if self._redirect_thread and self._redirect_thread.is_alive():
             return
 
+        # Here the reason why we're still using thread is,
+        # the `pyserial` object can't be pickled when using multiprocessing.Process
         self._redirect_thread = _SerialRedirectThread(self._q, self.proc)
         self._redirect_thread.start()
 

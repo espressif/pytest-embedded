@@ -38,24 +38,21 @@ READY_PATTERN_LIST = [
 class UnittestMenuCase:
     """
     Dataclass of esp-idf unit test cases parsed from test menu
-
-    Attributes:
-        index: The index of the case, which can be used to run this case.
-        name: The name of the case.
-        type: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
-        keywords: List of additional keywords of this case. For now, we have `disable` and `ignore`.
-        groups: List of groups of this case, this is usually the component which this case belongs to.
-        attributes: Dict of attributes of this case, which is used to describe timeout duration,
-            test environment, etc.
-        subcases: List of dict of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
     """
 
+    #: The index of the case, which can be used to run this case.
     index: int
+    #: The name of the case.
     name: str
+    #: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
     type: str
+    #: List of additional keywords of this case. For now, we have `disable` and `ignore`.
     keywords: t.List[str]
+    #: List of groups of this case, this is usually the component which this case belongs to.
     groups: t.List[str]
+    #: Dict of attributes of this case, which is used to describe timeout duration,
     attributes: t.Dict[str, t.Any]
+    #: List of dict of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
     subcases: t.List[t.Dict[str, t.Any]]
 
     @property
@@ -239,7 +236,7 @@ class IdfUnityDutMixin:
         """
         The first argument of the function that is using this decorator must be `case`. passing with args.
 
-        Notes:
+        Note:
             This function is better than `dut.expect_unity_output()` since it will record the test case even it core
                 dumped during running the test case or other reasons that cause the final result block is uncaught.
         """
@@ -331,7 +328,7 @@ class IdfUnityDutMixin:
         """
         Run a specific normal case
 
-        Notes:
+        Note:
             Will skip with a warning if the case type is not "normal"
 
         Args:
@@ -356,7 +353,7 @@ class IdfUnityDutMixin:
         """
         Run a specific multi_stage case
 
-        Notes:
+        Note:
             Will skip with a warning if the case type is not "multi_stage"
 
         Args:
@@ -402,7 +399,7 @@ class IdfUnityDutMixin:
         run_ignore_cases: bool = False,
     ) -> None:
         """
-        Run all multi_stage cases
+        Run all single board cases, including multi_stage cases, and normal cases
 
         Args:
             group: test case group
@@ -596,7 +593,7 @@ class CaseTester:
         """
         Run a specific multi_device case
 
-        Notes:
+        Note:
             Will skip with a warning if the case type is not multi_device
 
         Args:

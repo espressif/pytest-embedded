@@ -101,7 +101,7 @@ class Dut(_InjectMixinCls):
     @_pexpect_func  # noqa
     def expect(self, pattern, **kwargs) -> Match:  # noqa
         """
-        Expect the `pattern` from the internal buffer. All the arguments would pass to `pexpect.expect()`.
+        Expect the `pattern` from the internal buffer. All the arguments will be passed to `pexpect.expect()`.
 
         Args:
             pattern: string, or compiled regex, or a list of string and compiled regex.
@@ -112,16 +112,17 @@ class Dut(_InjectMixinCls):
                 Otherwise match any of them could pass
 
         Returns:
-            (AnyStr): if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            `AnyStr` or `re.Match`
 
-            (re.Match): if matched given string.
+            - `AnyStr`: if you're matching `pexpect.EOF` or `pexpect.TIMEOUT` to get all the current buffers.
+            - `re.Match`: if matched given string.
         """
         return self.pexpect_proc.expect(pattern, **kwargs)
 
     @_pexpect_func  # noqa
     def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
         """
-        Expect the `pattern` from the internal buffer. All the arguments would pass to `pexpect.expect_exact()`.
+        Expect the `pattern` from the internal buffer. All the arguments will be passed to `pexpect.expect_exact()`.
 
         Args:
             pattern: string, or a list of string
@@ -132,9 +133,10 @@ class Dut(_InjectMixinCls):
                 Otherwise match any of them could pass
 
         Returns:
-            (AnyStr): if you're matching pexpect.EOF or pexpect.TIMEOUT to get all the current buffers.
+            `AnyStr` or `re.Match`
 
-            (re.Match): if matched given string.
+            - `AnyStr`: if you're matching `pexpect.EOF` or `pexpect.TIMEOUT` to get all the current buffers.
+            - `re.Match`: if matched given string.
         """
         return self.pexpect_proc.expect_exact(pattern, **kwargs)
 
@@ -147,7 +149,7 @@ class Dut(_InjectMixinCls):
         """
         Expect a unity test summary block and parse the output into junit report.
 
-        Would combine the junit report into the main one if you use `pytest --junitxml` feature.
+        Would combine the junit report into the main one if you use ``pytest --junitxml`` feature.
 
         Args:
             remove_asci_escape_code: remove asci escape code in the message field. (default: True)
@@ -155,10 +157,10 @@ class Dut(_InjectMixinCls):
             extra_before: would append before the expected bytes.
                 Use this argument when need to run `expect` functions between one unity test call.
 
-        Notes:
+        Note:
             - Would raise AssertionError at the end of the test if any unity test case result is "FAIL"
-            - Would raise TIMEOUT exception at the end of the test if any unity test case execution took longer
-                than timeout value
+            - Would raise TIMEOUT exception at the end of the test \
+                if any unity test case execution took longer than timeout value
 
         Warning:
             - All unity test cases record would be missed if the final report block is uncaught.
@@ -182,7 +184,7 @@ class Dut(_InjectMixinCls):
         reset: bool = False,
         timeout: float = 30,
         run_ignore_cases: bool = False,
-    ):
+    ) -> None:
         """
         Run all multi_stage cases
 
@@ -193,6 +195,6 @@ class Dut(_InjectMixinCls):
             run_ignore_cases: run ignored test cases or not
 
         Warning:
-            requires enable service `idf`
+            requires enable service ``idf``
         """
         pass

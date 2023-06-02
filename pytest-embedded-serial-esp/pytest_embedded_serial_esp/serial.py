@@ -162,20 +162,15 @@ class EspSerial(Serial):
 
     def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):
         """
-        1. close the redirect serial process if exists
-        2. close the serial connection
-        3. use esptool to connect to the serial port and call `run_stub()`
-        4. call to the decorated function, could use `self.stub` inside the function as the stubbed loader
-        5. call `hard_reset()`
-        5. create the redirect serial process again
+        1. tell the redirect serial thread to stop reading from the `pyserial` instance
+        2. esptool reuse the `pyserial` instance and call `run_stub()`
+        3. call to the decorated function, could use `self.stub` inside the function as the stubbed loader
+        4. call `hard_reset()`, if `hard_reset_after` is True
+        5. tell the redirect serial thread to continue reading from serial
 
         Args:
             hard_reset_after: run hard reset after
             no_stub: disable launching the flasher stub
-
-        Warning:
-            the real `pyserial` object must be created inside `self._forward_io`,
-                The `pyserial` object can't be pickled when using multiprocessing.Process
         """
 
         def decorator(func):

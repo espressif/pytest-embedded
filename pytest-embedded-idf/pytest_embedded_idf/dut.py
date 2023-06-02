@@ -144,7 +144,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         For UART and panic output, would read the `_pexpect_logfile` file.
         For partition, would read the flash according to the partition table. needs a valid `parttool_path`.
 
-        Notes:
+        Note:
             - May include multiple core dumps, since each test case may include several unity test cases.
             - May have duplicated core dumps, since after the core dump happened, the target chip would reboot
             automatically.
