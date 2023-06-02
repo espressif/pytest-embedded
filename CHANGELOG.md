@@ -1,3 +1,20 @@
+# CHANGELOG
+
+## v1.3.0 (2023-05-31) (yanked)
+
+### Feat
+
+- **idf**: `IdfApp` add new property `is_xtensa`, `is_riscv32`
+- **idf**: add `confirm_write` method to make sure the write happens
+- **idf**: add `run_single_board_case` function
+- **idf**: expose pytest_embedded_idf.UnittestMenuCase
+- **qemu**: support flash encryption workflow
+- **qemu**: support riscv32 targets, remove target restriction
+
+### Fix
+
+- **qemu**: Add more idf non-target related functions when enabling service `idf`
+
 ## v1.2.5 (2023-04-11)
 
 ### Feat
