@@ -378,8 +378,7 @@ class IdfUnityDutMixin:
             self.expect_exact(READY_PATTERN_LIST, timeout=_timeout)
             self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
-            # here we can't use confirm_write becuase the sub cases won't print anything
-            time.sleep(1)
+            # here we can't use confirm_write because the sub cases won't print anything
             self.write(str(sub_case['index']))
 
             _timestamp = time.perf_counter()
