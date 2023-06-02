@@ -75,12 +75,26 @@ class IdfUnityDutMixin:
 
         super().__init__(*args, **kwargs)
 
-    def confirm_write(self, write_str: t.Any, expect_str: str, timeout: int = 1, retry_times: int = 3):
+    def confirm_write(
+        self,
+        write_str: t.Any,
+        *,
+        expect_pattern: t.Any = None,
+        expect_str: t.Any = None,
+        timeout: int = 1,
+        retry_times: int = 3,
+    ):
+        if not ((expect_pattern is None) ^ (expect_str is None)):
+            raise ValueError('should provide expect_pattern= or expect_str=, but not both nor none')
+
         err = None
         for _ in range(retry_times):
             try:
                 self.write(str(write_str))
-                res = self.expect(expect_str, timeout=timeout)
+                if expect_pattern is not None:
+                    res = self.expect(expect_pattern, timeout=timeout)
+                else:
+                    res = self.expect_exact(expect_str, timeout=timeout)
             except pexpect.TIMEOUT as e:
                 err = e
             else:
@@ -109,7 +123,7 @@ class IdfUnityDutMixin:
             A `list` of `UnittestMenuCase`, which includes info for each test case.
         """
         self.expect_exact(ready_line)
-        res = self.confirm_write(trigger, pattern)
+        res = self.confirm_write(trigger, expect_pattern=pattern)
         return self._parse_unity_menu_from_str(res.group(1).decode('utf8'))
 
     def parse_test_menu(
@@ -330,7 +344,7 @@ class IdfUnityDutMixin:
             return
 
         self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
-        self.confirm_write(case.index, f'Running {case.name}...')
+        self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
     @_record_single_unity_test_case
     def _run_multi_stage_case(
@@ -362,7 +376,7 @@ class IdfUnityDutMixin:
                 _timeout = 0
 
             self.expect_exact(READY_PATTERN_LIST, timeout=_timeout)
-            self.confirm_write(case.index, f'Running {case.name}...')
+            self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
             # here we can't use confirm_write becuase the sub cases won't print anything
             time.sleep(1)
