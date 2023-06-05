@@ -1,6 +1,11 @@
 -r ../requirements.txt
-mkdocs
-mkdocstrings[python]
-mkdocs-material
-plantuml-markdown
-griffe<0.27.4
+
+# theme
+sphinx-rtd-theme
+
+# extensions
+myst-parser              # markdown support
+sphinx-tabs              # tabs support
+sphinx_copybutton        # copy button
+sphinxcontrib-mermaid    # mermaid graph support
+sphinxcontrib-napoleon   # google style docstring support

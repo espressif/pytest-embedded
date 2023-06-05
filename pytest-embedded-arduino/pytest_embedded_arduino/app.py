@@ -14,11 +14,12 @@ class ArduinoApp(App):
         fqbn (str): Fully Qualified Board Name.
         target (str) : ESPxx chip.
         flash_files (List[Tuple[int, str, str]]): List of (offset, file path, encrypted) of files need to be flashed in.
-        flash_settings (dict[str, Any]): dict of flash settings
-        binary_offsets (dict[str, List[int, int, int]]): dict of binaries' offset.
     """
 
+    #: dict of flash settings
     flash_settings = {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'}
+
+    #: dict of binaries' offset.
     binary_offsets = {
         'esp32': [0x1000, 0x8000, 0x10000],
         'esp32s2': [0x1000, 0x8000, 0x10000],

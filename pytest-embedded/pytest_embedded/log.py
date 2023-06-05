@@ -55,17 +55,15 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
             placeholder=f'... (total {len(self.buffer)} bytes)',
         )
 
-    def read_nonblocking(self, size=1, timeout=-1) -> bytes:
+    def read_nonblocking(self, size: int = 1, timeout: int = -1) -> bytes:
         """
         Since we're using real file stream, here we only raise an EOF error when the file stream has been closed.
         This could solve the `os.read()` blocked issue.
 
-        :return: String containing the bytes read
-
         Args:
-            size (int): Read at most *size* bytes.
-            timeout (float): Wait timeout seconds for file descriptor to be
-                ready to read. When -1 (default), use self.timeout. When 0, poll.
+            size: Read at most *size* bytes.
+            timeout: Wait timeout seconds for file descriptor to be
+                ready to read. When -1 (default), use `self.timeout`. When 0, poll.
 
         Returns:
             String containing the bytes read
@@ -115,7 +113,7 @@ def live_print_call(*args, msg_queue: Optional[MessageQueue] = None, expect_retu
         msg_queue: `MessageQueue` instance, would redirect to message queue instead of sys.stdout if specified
         expect_returncode: expect return code. (Default 0). Would raise exception when return code is different
 
-    Notes:
+    Note:
         This function behaves the same as `subprocess.call()`, it would block your current process.
     """
     default_kwargs = {
@@ -210,12 +208,11 @@ class DuplicateStdoutPopen(subprocess.Popen):
         super().terminate()
 
     def write(self, s: AnyStr) -> None:
-        """
+        r"""
         Write to `stdin` via `stdin.write`.
 
-        If the input is `str`, will encode to `bytes` and add a b'\\n' automatically in the end.
-
-        if the input is `bytes`, will pass this directly.
+        - If the input is `str`, will encode to `bytes` and add a b'\\n' automatically in the end.
+        - If the input is `bytes`, will pass this directly.
 
         Args:
             s: bytes or str

@@ -51,8 +51,8 @@ report.xml
 *.mo
 *.pot
 
-# mkdocs documentation
-site/
+# sphinx documentation
+docs/_build
 
 # PyBuilder
 target/

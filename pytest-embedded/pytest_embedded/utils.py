@@ -1,4 +1,5 @@
 import dataclasses
+import functools
 import importlib
 import logging
 import os
@@ -117,10 +118,11 @@ def to_list(s: _T) -> t.List[_T]:
         s: Anything
 
     Returns:
-        List (list[_T]):
-            - `list(s)` (List. If `s` is a tuple or a set.
-            - itself. If `s` is a list.
-            - `[s]`. If `s` is other types.
+        List (list[_T])
+
+        - `list(s)` (List. If `s` is a tuple or a set.
+        - itself. If `s` is a list.
+        - `[s]`. If `s` is other types.
     """
     if not s:
         return s
@@ -231,22 +233,23 @@ def lazy_load(
     Returns:
         __getattr__ function
 
-    Examples:
-        ```python
-        __getattr__ = lazy_load(
-            importlib.import_module(__name__),
-            {
-                'IdfApp': IdfApp,
-                'LinuxDut': LinuxDut,
-                'LinuxSerial': LinuxSerial,
-                'CaseTester': CaseTester,
-            },
-            {
-                'IdfSerial': '.serial',
-                'IdfDut': '.dut',
-            },
-        )
-        ```
+    Example:
+
+        ::
+
+            __getattr__ = lazy_load(
+                importlib.import_module(__name__),
+                {
+                    'IdfApp': IdfApp,
+                    'LinuxDut': LinuxDut,
+                    'LinuxSerial': LinuxSerial,
+                    'CaseTester': CaseTester,
+                },
+                {
+                    'IdfSerial': '.serial',
+                    'IdfDut': '.dut',
+                },
+            )
     """
 
     def __getattr__(object_name):
@@ -294,33 +297,36 @@ class _InjectMixinCls(metaclass=_InjectMixinMeta):
     - provide the autocompletion for the functions provided by the mixins
     - check the requirement at runtime
 
-    Examples:
+    Example:
 
-        class IdfUnityMixin:
-            def foo(self):
-                print('foo from MixinOne')
+        ::
 
-
-        class Test(_InjectMixinCls):
-            def __init__(self, **kwargs):
-                for k, v in kwargs.items():
-                    setattr(self, k, v)
-
-            @_InjectMixinCls.require_services('idf')
-            def foo(self):
-                pass
+            class IdfUnityMixin:
+                def foo(self):
+                    print('foo from MixinOne')
 
 
-        # mro(): TestWithIdfUnityMixin, IdfUnityMixin, Test, object
-        s1 = Test(mixins=IdfUnityMixin)
-        # mro(): Test, object
-        s2 = Test()
-        s1.foo()  # foo from IdfUnityMixin
-        s2.foo()  # function foo requires enabling one of the service(s) idf.
+            class Test(_InjectMixinCls):
+                def __init__(self, **kwargs):
+                    for k, v in kwargs.items():
+                        setattr(self, k, v)
+
+                @_InjectMixinCls.require_services('idf')
+                def foo(self):
+                    pass
+
+
+            # mro(): TestWithIdfUnityMixin, IdfUnityMixin, Test, object
+            s1 = Test(mixins=IdfUnityMixin)
+            # mro(): Test, object
+            s2 = Test()
+            s1.foo()  # foo from IdfUnityMixin
+            s2.foo()  # function foo requires enabling one of the service(s) idf.
     """
 
     def require_services(*services):
         def decorator(func):
+            @functools.wraps(func)
             def wrapped(self, *args, **kwargs):
                 based = False
                 for service in services:

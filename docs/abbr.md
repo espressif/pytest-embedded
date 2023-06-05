@@ -1,1 +1,0 @@
-*[DUT]: Device under test

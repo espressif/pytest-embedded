@@ -341,7 +341,7 @@ def multi_dut_fixture(func) -> t.Callable[..., t.Union[t.Any, t.Tuple[t.Any]]]:
     """
     Apply the multi-dut arguments to each fixture.
 
-    Notes:
+    Note:
         Run the `func(*args, **kwargs)` for multiple times by iterating all `kwargs` via `itemgetter`
 
         For example:
@@ -387,7 +387,7 @@ def multi_dut_generator_fixture(
     """
     Apply the multi-dut arguments to each fixture.
 
-    Notes:
+    Note:
         Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
         `terminate()` method of the object after it yield back.
 

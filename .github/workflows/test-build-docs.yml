@@ -24,4 +24,4 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Test build docs
         run: |
-          mkdocs build
+          cd docs && make html SPHINXOPTS="-W"

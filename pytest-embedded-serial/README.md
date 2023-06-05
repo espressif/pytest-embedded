@@ -6,7 +6,3 @@ Extra Functionalities:
 
 - `serial`: enable the fixture
 - `dut`: duplicate the `serial` output to `pexpect_proc`.
-
-Used CLI Options:
-
-- `port`
