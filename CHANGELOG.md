@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.3.1 (2023-06-06)
+
+### Fix
+
+- **unity**: stop sleep 1 second in subcases
+- confirm_write with pattern or string
+
 ## v1.3.0 (2023-05-31) (yanked)
 
 ### Feat
