@@ -30,8 +30,10 @@ for pkg in $DEFAULT_PACKAGES; do
     python setup.py sdist bdist_wheel
   elif [ "$action" = "publish" ]; then
     python -m twine upload --verbose dist/* || res=1
+  elif [ "$action" = "check" ]; then
+    twine check dist/* --strict
   else
-    echo "invalid argument. valid choices: install/uninstall/build/publish"
+    echo "invalid argument. valid choices: install/uninstall/build/publish/check"
     exit 1
   fi
   popd
