@@ -44,7 +44,7 @@ void test_stage2(void)
 {
     ESP_LOGI("multi_stage", "stage2: assert fail");
     vTaskDelay(pdMS_TO_TICKS(100));
-    assert(false);
+    assert(false);  // this one will cause a panic, the test won't fail
 }
 
 void test_stage3(void)

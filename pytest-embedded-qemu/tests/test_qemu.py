@@ -12,7 +12,7 @@ qemu_bin_required = pytest.mark.skipif(
 
 
 @qemu_bin_required
-def test_pexpect_by_qemu(testdir):
+def test_pexpect_by_qemu_xtensa(testdir):
     testdir.makepyfile("""
         import pexpect
         import pytest
@@ -28,6 +28,28 @@ def test_pexpect_by_qemu(testdir):
         '-s',
         '--embedded-services', 'idf,qemu',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@qemu_bin_required
+def test_pexpect_by_qemu_riscv(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_pexpect_by_qemu(dut):
+            dut.expect('Hello world!')
+            dut.expect('Restarting')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf,qemu',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
     )
 
     result.assert_outcomes(passed=1)

@@ -1275,13 +1275,17 @@ def gdb(_fixture_classes_and_options: ClassCliOptions) -> t.Optional['Gdb']:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def qemu(_fixture_classes_and_options: ClassCliOptions) -> t.Optional['Qemu']:
+def qemu(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Qemu']:
     """A qemu subprocess that could read/redirect/write"""
     if 'qemu' not in _fixture_classes_and_options.classes:
         return None
 
     cls = _fixture_classes_and_options.classes['qemu']
     kwargs = _fixture_classes_and_options.kwargs['qemu']
+
+    if 'app' in kwargs and kwargs['app'] is None:
+        kwargs['app'] = app
+
     return cls(**_drop_none_kwargs(kwargs))
 
 

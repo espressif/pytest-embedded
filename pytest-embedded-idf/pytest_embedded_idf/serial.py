@@ -91,7 +91,7 @@ class IdfSerial(EspSerial):
                     self.app.target,
                     'elf2image',
                     self.app.elf_file,
-                    *self.app._parse_flash_args(),
+                    *self.app.write_flash_args,
                 ],
                 msg_queue=self._q,
             )

@@ -322,7 +322,7 @@ class IdfUnityDutMixin:
     def _run_normal_case(
         self,
         case: UnittestMenuCase,
-        reset: bool = False,
+        reset: bool = False,  # noqa
         timeout: float = 30,
     ) -> None:
         """
@@ -347,7 +347,7 @@ class IdfUnityDutMixin:
     def _run_multi_stage_case(
         self,
         case: UnittestMenuCase,
-        reset: bool = False,
+        reset: bool = False,  # noqa
         timeout: float = 30,
     ) -> None:
         """

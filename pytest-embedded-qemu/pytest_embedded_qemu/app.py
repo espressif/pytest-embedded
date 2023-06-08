@@ -14,7 +14,7 @@ class IdfFlashImageMaker:
     Create a single image for QEMU based on the `IdfApp`'s partition table and all the flash files.
     """
 
-    def __init__(self, app: IdfApp, image_path: str):
+    def __init__(self, app: 'QemuApp', image_path: str):
         """
         Args:
             app: `IdfApp` instance
@@ -27,34 +27,39 @@ class IdfFlashImageMaker:
         """
         Create a single image file for qemu.
         """
-        # flash_files is sorted, if the first offset is not 0x0, we need to fill it with empty bin
-        if self.app.flash_files[0][0] != 0x0:
-            self._write_empty_bin(count=self.app.flash_files[0][0])
-        for offset, file_path, encrypted in self.app.flash_files:
-            self._write_bin(file_path, seek=offset)
+        live_print_call(
+            [
+                'esptool.py',
+                '--chip',
+                self.app.target,
+                'merge_bin',
+                '-o',
+                self.image_path,
+                '--fill-flash-size',
+                self.app.flash_settings['flash_size'],
+                *self.app.write_flash_args,
+            ],
+            cwd=self.app.binary_path,
+        )
 
         if self.app.encrypt:
             if self.app.keyfile is None or not os.path.exists(self.app.keyfile):
                 raise ValueError('Flash Encryption key file doesn\'t exist')
-            self._write_encrypted_bin(self.image_path)
+            self._write_encrypted_bin()
 
-    def _write_empty_bin(self, count: int, bs: int = 1024, seek: int = 0):
+    def _write_encrypted_bin(self, seek: int = 0):
         live_print_call(
-            f'dd if=/dev/zero bs={bs} count={count} seek={seek} of={self.image_path}',
-            shell=True,
-        )
-
-    def _write_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        live_print_call(
-            f'dd if={binary_filepath} bs={bs} seek={seek} of={self.image_path} conv=notrunc',
-            shell=True,
-        )
-
-    def _write_encrypted_bin(self, binary_filepath, bs: int = 1, seek: int = 0):
-        live_print_call(
-            f'espsecure.py encrypt_flash_data --keyfile {self.app.keyfile} '
-            f'--output {self.app.encrypted_image_path} --address {seek} {binary_filepath}',
-            shell=True,
+            [
+                'espsecure.py',
+                'encrypt_flash_data',
+                '--keyfile',
+                self.app.keyfile,
+                '--output',
+                self.app.encrypted_image_path,
+                '--address',
+                str(seek),
+                self.image_path,
+            ],
         )
 
     def _burn_efuse(self):
@@ -99,6 +104,14 @@ class QemuApp(IdfApp):
         if os.path.exists(self.image_path) and self.skip_regenerate_image:
             logging.info(f'Using existing image: {self.image_path}')
         else:
+            try:
+                import esptool  # noqa
+            except ImportError:
+                raise ImportError(
+                    'esptool is required for creating QEMU images. '
+                    'Please install esptool with "pip install -U esptool" or use an existing image.'
+                )
+
             with contextlib.redirect_stdout(self._q):
                 image_maker = IdfFlashImageMaker(self, self.image_path)
                 image_maker.make_bin()

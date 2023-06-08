@@ -192,21 +192,31 @@ class IdfApp(App):
 
         return None
 
-    def _parse_flash_args(self) -> List[str]:
+    @property
+    def write_flash_args(self):
+        """
+        Returns:
+            list of flash args
+        """
         flash_args_filepath = None
         for fn in os.listdir(self.binary_path):
             if fn in [self.FLASH_PROJECT_ARGS_FILENAME, self.FLASH_ARGS_FILENAME]:
                 flash_args_filepath = os.path.realpath(os.path.join(self.binary_path, fn))
                 break
 
-        if not flash_args_filepath:
-            raise ValueError(
-                f'{self.FLASH_PROJECT_ARGS_FILENAME} or {self.FLASH_ARGS_FILENAME} '
-                f'is not found under {self.binary_path}'
-            )
+        if flash_args_filepath:
+            with open(flash_args_filepath) as fr:
+                return shlex.split(fr.read().strip())
 
-        with open(flash_args_filepath) as fr:
-            return shlex.split(fr.read().strip())
+        # generate it from flasher_args.json
+        if 'write_flash_args' in self.flash_args and 'flash_files' in self.flash_args:
+            return self.flash_args['write_flash_args'] + [
+                item for pair in self.flash_args['flash_files'].items() for item in pair
+            ]
+        else:
+            raise ValueError(
+                f'write_flash_args and flash_files fields are not found in {self.FLASH_ARGS_JSON_FILENAME}'
+            )
 
     def _parse_flash_args_json(
         self,
