@@ -1,10 +1,13 @@
 import os
 import shlex
-from typing import Optional
+import typing as t
 
 from pytest_embedded.log import DuplicateStdoutPopen
 
-from . import DEFAULT_IMAGE_FN, QemuApp
+from . import DEFAULT_IMAGE_FN
+
+if t.TYPE_CHECKING:
+    from .app import QemuApp
 
 
 class Qemu(DuplicateStdoutPopen):
@@ -25,11 +28,11 @@ class Qemu(DuplicateStdoutPopen):
 
     def __init__(
         self,
-        qemu_image_path: Optional[str] = None,
-        qemu_prog_path: Optional[str] = None,
-        qemu_cli_args: Optional[str] = None,
-        qemu_extra_args: Optional[str] = None,
-        app: Optional[QemuApp] = None,
+        qemu_image_path: t.Optional[str] = None,
+        qemu_prog_path: t.Optional[str] = None,
+        qemu_cli_args: t.Optional[str] = None,
+        qemu_extra_args: t.Optional[str] = None,
+        app: t.Optional['QemuApp'] = None,
         **kwargs,
     ):
         """
@@ -57,14 +60,20 @@ class Qemu(DuplicateStdoutPopen):
     @property
     def qemu_prog_name(self):
         if self.app:
-            return self.QEMU_PROG_FMT.format('xtensa' if self.app.is_xtensa else 'riscv32')
+            try:
+                return self.QEMU_PROG_FMT.format('xtensa' if self.app.is_xtensa else 'riscv32')
+            except AttributeError:
+                pass
 
         return self.QEMU_PROG_PATH
 
     @property
     def qemu_default_args(self):
         if self.app:
-            return self.QEMU_DEFAULT_FMT.format(self.app.target)
+            try:
+                return self.QEMU_DEFAULT_FMT.format(self.app.target)
+            except AttributeError:
+                pass
 
         return self.QEMU_DEFAULT_ARGS
 
