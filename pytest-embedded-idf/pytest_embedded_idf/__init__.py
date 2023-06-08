@@ -1,3 +1,5 @@
+"""Make pytest-embedded plugin work with ESP-IDF."""
+
 import importlib
 
 from pytest_embedded.utils import lazy_load
@@ -30,3 +32,5 @@ __all__ = [
     'LinuxDut',
     'UnittestMenuCase',
 ]
+
+__version__ = '1.3.1'

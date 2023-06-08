@@ -1,6 +1,9 @@
 # This is a requirements.txt for extra dependencies.
 # To install all packages, please run `bash foreach.sh install`
 
+# build
+flit
+
 # testing
 pytest-cov
 pytest-rerunfailures

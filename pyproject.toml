@@ -2,6 +2,22 @@
 name = "cz_conventional_commits"
 version = "1.3.1"
 tag_format = "v$version"
+version_files = [
+    "pytest-embedded/pytest_embedded/__init__.py",
+    "pytest-embedded/pyproject.toml",
+    "pytest-embedded-arduino/pytest_embedded_arduino/__init__.py",
+    "pytest-embedded-arduino/pyproject.toml",
+    "pytest-embedded-idf/pytest_embedded_idf/__init__.py",
+    "pytest-embedded-idf/pyproject.toml",
+    "pytest-embedded-jtag/pytest_embedded_jtag/__init__.py",
+    "pytest-embedded-jtag/pyproject.toml",
+    "pytest-embedded-qemu/pytest_embedded_qemu/__init__.py",
+    "pytest-embedded-qemu/pyproject.toml",
+    "pytest-embedded-serial/pytest_embedded_serial/__init__.py",
+    "pytest-embedded-serial/pyproject.toml",
+    "pytest-embedded-serial-esp/pytest_embedded_serial_esp/__init__.py",
+    "pytest-embedded-serial-esp/pyproject.toml",
+]
 
 [tool.isort]
 profile = 'black'
