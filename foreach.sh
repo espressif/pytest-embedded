@@ -15,25 +15,20 @@ DEFAULT_PACKAGES=" \
 action=${1:-"install"}
 res=0
 
+pip install flit
+
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
   if [ "$action" = "install" ]; then
-    rm -rf ./build
-    if [ "$pkg" = "pytest-embedded-idf" ]; then
-      pip install -e ".[serial]"
-    else
-      pip install -e .
-    fi
+    flit install -s
   elif [ "$action" = "uninstall" ]; then
     pip uninstall -y $pkg
   elif [ "$action" = "build" ]; then
-    python setup.py sdist bdist_wheel
+    flit build
   elif [ "$action" = "publish" ]; then
-    python -m twine upload --verbose dist/* || res=1
-  elif [ "$action" = "check" ]; then
-    twine check dist/* --strict
+    flit upload
   else
-    echo "invalid argument. valid choices: install/uninstall/build/publish/check"
+    echo "invalid argument. valid choices: install/uninstall/build/publish"
     exit 1
   fi
   popd

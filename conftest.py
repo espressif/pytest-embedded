@@ -1,10 +1,8 @@
 import os
 import sys
-from copy import deepcopy
 from distutils.dir_util import copy_tree
 from typing import List, Pattern
 
-import pkg_resources
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
@@ -42,11 +40,6 @@ def temp_disable_packages(monkeypatch, request: FixtureRequest):
     for name in list(sys.modules):
         if name in packages or name.split('.')[0] in packages:
             monkeypatch.setitem(sys.modules, name, None)
-
-    deepcopy_sys_path = deepcopy(sys.path)
-    for package in packages:
-        deepcopy_sys_path.remove(pkg_resources.get_distribution(package).location)
-    monkeypatch.setattr(sys, 'path', deepcopy_sys_path)
 
 
 def pytest_configure(config: Config) -> None:

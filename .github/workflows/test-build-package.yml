@@ -12,11 +12,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.7'
-      - name: Install dependencies
+      - name: Build packages
         run: |
           python -m pip install --upgrade pip
-          pip install wheel twine
-      - name: Build packages
-        run: bash foreach.sh build
-      - name: Twine check
-        run: bash foreach.sh check
+          bash foreach.sh build
