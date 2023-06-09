@@ -43,7 +43,7 @@ jobs:
             --cov=pytest_embedded_jtag \
             --cov=pytest_embedded_qemu \
             --cov=pytest_embedded_serial \
-            --cov=pytest_embedded_serial_esp/
+            --cov=pytest_embedded_serial_esp
       - name: Zip log files
         if: failure()
         run: |
