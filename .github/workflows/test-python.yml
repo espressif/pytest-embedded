@@ -7,9 +7,6 @@ on:
   push:
     branches: [ main ]
 
-env:
-  FLIT_ROOT_INSTALL: 1
-
 jobs:
   test-python:
     timeout-minutes: 30
@@ -40,13 +37,13 @@ jobs:
           pytest \
             --junitxml=pytest.xml \
             --cov-report=term-missing \
-            --cov=pytest-embedded/pytest_embedded/ \
-            --cov=pytest-embedded-arduino/pytest_embedded_arduino/ \
-            --cov=pytest-embedded-idf/pytest_embedded_idf/ \
-            --cov=pytest-embedded-jtag/pytest_embedded_jtag/ \
-            --cov=pytest-embedded-qemu/pytest_embedded_qemu/ \
-            --cov=pytest-embedded-serial/pytest_embedded_serial/ \
-            --cov=pytest-embedded-serial-esp/pytest_embedded_serial_esp/
+            --cov=pytest_embedded \
+            --cov=pytest_embedded_arduino \
+            --cov=pytest_embedded_idf \
+            --cov=pytest_embedded_jtag \
+            --cov=pytest_embedded_qemu \
+            --cov=pytest_embedded_serial \
+            --cov=pytest_embedded_serial_esp/
       - name: Zip log files
         if: failure()
         run: |

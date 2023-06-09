@@ -15,9 +15,7 @@ jobs:
         with:
           python-version: '3.7'
       - name: Build packages
-        run: |
-          python -m pip install --upgrade pip
-          bash foreach.sh build
+        run: bash foreach.sh build
       - name: Publish packages
         env:
           FLIT_USERNAME: __token__
