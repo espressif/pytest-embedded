@@ -362,7 +362,12 @@ def test_erase_flash(testdir):
 @pytest.mark.temp_disable_packages('pytest_embedded_serial')
 def test_hello_world_linux(testdir):
     testdir.makepyfile(r"""
+        import pytest
+
         def test_hello_world_linux(dut):
+            with pytest.raises(ImportError):
+                import pytest_embedded_serial
+
             dut.expect('Hello world!')
             dut.expect('Restarting')
     """)
@@ -438,7 +443,7 @@ def test_idf_parse_test_menu():
 \t(1)\t"ledc_cpu_reset_test_first_stage"
 \t(2)\t"ledc_cpu_reset_test_second_stage"
 '''
-    test_menu = IdfDut.parse_unity_menu_from_str(s)
+    test_menu = IdfDut._parse_unity_menu_from_str(s)
 
     assert len(test_menu) == 3
 

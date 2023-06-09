@@ -581,8 +581,12 @@ def test_temp_disable_packages():
 def test_quick_example(testdir):
     testdir.makepyfile(r"""
     from pytest_embedded import Dut
+    import pytest
 
     def test_quick_example(redirect, dut: Dut):
+        with pytest.raises(ImportError):
+            import pytest_embedded_serial
+
         with redirect():
             print('this would be redirected')
 
