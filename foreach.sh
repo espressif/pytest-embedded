@@ -15,12 +15,22 @@ DEFAULT_PACKAGES=" \
 action=${1:-"install"}
 res=0
 
-pip install flit
+# one-time command
+pip install -U pip
+if [ "$action" = "install-editable" ]; then
+  pip install -U flit
+elif [ "$action" = "build" ]; then
+  pip install -U flit
+elif [ "$action" = "publish" ]; then
+  pip install -U flit
+fi
 
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
-  if [ "$action" = "install" ]; then
+  if [ "$action" = "install-editable" ]; then
     flit install -s
+  elif [ "$action" = "install" ]; then
+    pip install .
   elif [ "$action" = "uninstall" ]; then
     pip uninstall -y $pkg
   elif [ "$action" = "build" ]; then
@@ -28,7 +38,7 @@ for pkg in $DEFAULT_PACKAGES; do
   elif [ "$action" = "publish" ]; then
     flit upload
   else
-    echo "invalid argument. valid choices: install/uninstall/build/publish"
+    echo "invalid argument. valid choices: install-editable/install/uninstall/build/publish"
     exit 1
   fi
   popd
