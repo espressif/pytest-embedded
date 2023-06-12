@@ -1,7 +1,7 @@
 import contextlib
 import logging
 import os
-from typing import Optional
+import typing as t
 
 from pytest_embedded.log import MessageQueue, live_print_call
 from pytest_embedded_idf.app import IdfApp
@@ -14,6 +14,26 @@ class IdfFlashImageMaker:
     Create a single image for QEMU based on the `IdfApp`'s partition table and all the flash files.
     """
 
+    XTENSA_FLASH_BIN_SIZES = [
+        (2 * 1024 * 1024, '2MB'),
+        (4 * 1024 * 1024, '4MB'),
+        (8 * 1024 * 1024, '8MB'),
+        (16 * 1024 * 1024, '16MB'),
+    ]
+
+    RISCV_FLASH_BIN_SIZES = [
+        (256 * 1024, '256KB'),
+        (512 * 1024, '512KB'),
+        (1 * 1024 * 1024, '1MB'),
+        (2 * 1024 * 1024, '2MB'),
+        (4 * 1024 * 1024, '4MB'),
+        (8 * 1024 * 1024, '8MB'),
+        (16 * 1024 * 1024, '16MB'),
+        (32 * 1024 * 1024, '32MB'),
+        (64 * 1024 * 1024, '64MB'),
+        (128 * 1024 * 1024, '128MB'),
+    ]
+
     def __init__(self, app: 'QemuApp', image_path: str):
         """
         Args:
@@ -22,6 +42,28 @@ class IdfFlashImageMaker:
         """
         self.app = app
         self.image_path = image_path
+
+    def _get_upper_bound(self, size: int, ranges: t.List[t.Tuple[int, str]]) -> str:
+        for r, s in ranges:
+            if size <= r:
+                upper = s
+                break
+        else:
+            raise ValueError(f'Flash size {size} is too big for QEMU, max is {ranges[-1][1]}')
+
+        return upper
+
+    @property
+    def qemu_flash_size(self):
+        if self.app.flash_settings.get('flash_size') not in ['keep', 'detect']:
+            # 2MB-c1, 4MB-ci
+            return self.app.flash_settings['flash_size'].split('-')[0]
+
+        qemu_flash_size = self.app.flash_files[-1].offset + os.stat(self.app.flash_files[-1].file_path).st_size
+        if self.app.is_xtensa:
+            return self._get_upper_bound(qemu_flash_size, self.XTENSA_FLASH_BIN_SIZES)
+        else:
+            return self._get_upper_bound(qemu_flash_size, self.RISCV_FLASH_BIN_SIZES)
 
     def make_bin(self) -> None:
         """
@@ -36,7 +78,7 @@ class IdfFlashImageMaker:
                 '-o',
                 self.image_path,
                 '--fill-flash-size',
-                self.app.flash_settings['flash_size'],
+                self.qemu_flash_size,
                 *self.app.write_flash_args,
             ],
             cwd=self.app.binary_path,
@@ -44,7 +86,7 @@ class IdfFlashImageMaker:
 
         if self.app.encrypt:
             if self.app.keyfile is None or not os.path.exists(self.app.keyfile):
-                raise ValueError('Flash Encryption key file doesn\'t exist')
+                raise ValueError("Flash Encryption key file doesn't exist")
             self._write_encrypted_bin()
 
     def _write_encrypted_bin(self, seek: int = 0):
@@ -77,10 +119,10 @@ class QemuApp(IdfApp):
     def __init__(
         self,
         msg_queue: MessageQueue,
-        qemu_image_path: Optional[str] = None,
-        skip_regenerate_image: Optional[bool] = False,
-        encrypt: Optional[bool] = False,
-        keyfile: Optional[str] = None,
+        qemu_image_path: t.Optional[str] = None,
+        skip_regenerate_image: t.Optional[bool] = False,
+        encrypt: t.Optional[bool] = False,
+        keyfile: t.Optional[str] = None,
         **kwargs,
     ):
         self._q = msg_queue
