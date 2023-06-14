@@ -36,7 +36,7 @@ for pkg in $DEFAULT_PACKAGES; do
   elif [ "$action" = "build" ]; then
     flit build
   elif [ "$action" = "publish" ]; then
-    flit upload
+    flit publish
   else
     echo "invalid argument. valid choices: install-editable/install/uninstall/build/publish"
     exit 1
