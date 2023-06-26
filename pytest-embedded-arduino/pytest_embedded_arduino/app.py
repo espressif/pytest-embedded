@@ -26,6 +26,7 @@ class ArduinoApp(App):
         'esp32c3': [0x0, 0x8000, 0x10000],
         'esp32s3': [0x0, 0x8000, 0x10000],
         'esp32c6': [0x0, 0x8000, 0x10000],
+        'esp32h2': [0x0, 0x8000, 0x10000],
     }
 
     def __init__(
