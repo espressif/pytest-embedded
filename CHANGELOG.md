@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v1.3.3 (2023-07-05)
+
+- **arduino**: Support target esp32h2 and esp32c6
+
 ## v1.3.2 (2023-06-14)
 
 ### Fix
