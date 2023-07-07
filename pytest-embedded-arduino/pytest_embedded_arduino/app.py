@@ -17,7 +17,14 @@ class ArduinoApp(App):
     """
 
     #: dict of flash settings
-    flash_settings = {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'}
+    flash_settings = {
+        'esp32': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32s2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32c3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32s3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32c6': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32h2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '48m'},
+    }
 
     #: dict of binaries' offset.
     binary_offsets = {

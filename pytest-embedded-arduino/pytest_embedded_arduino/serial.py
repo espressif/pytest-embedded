@@ -57,7 +57,7 @@ class ArduinoSerial(EspSerial):
             'chip': self.app.target,
         }
 
-        default_kwargs.update(self.app.flash_settings)
+        default_kwargs.update(self.app.flash_settings[self.app.target])
         flash_args = EsptoolArgs(**default_kwargs)
 
         try:
