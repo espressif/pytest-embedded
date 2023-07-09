@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.3.4 (2023-07-10)
+
+### Fix
+
+- **arduino**: separated flash settings for each target
+
 ## v1.3.3 (2023-07-05)
 
 - **arduino**: Support target esp32h2 and esp32c6
