@@ -63,7 +63,7 @@ class EspSerial(Serial):
     ) -> None:
         self._meta = meta
 
-        esptool_target = beta_target or target
+        esptool_target = beta_target or target or 'auto'
         if port is None:
             available_ports = esptool.get_port_list()
             ports = list(set(available_ports) - set(self.occupied_ports.keys()))
