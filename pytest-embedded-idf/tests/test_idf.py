@@ -544,7 +544,7 @@ def test_unity_test_case_runner(testdir):
     assert junit_report.attrib['errors'] == '0'
     assert junit_report.attrib['failures'] == '1'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '4'
+    assert junit_report.attrib['tests'] == '3'
 
     case_names_one_dev = [
         'normal_case1',
@@ -559,7 +559,7 @@ def test_unity_test_case_runner(testdir):
     multi_dev_duts = ['dut-0', 'dut-1']
 
     required_names_one_dev = [f'{case_name} [{dut}]' for dut in one_dev_dut for case_name in case_names_one_dev]
-    required_names_multi_dev = [f'{case_name} [{dut}]' for dut in multi_dev_duts for case_name in case_names_multi_dev]
+    required_names_multi_dev = [f'{case_name} [{multi_dev_duts[0]}]' for case_name in case_names_multi_dev]
 
     junit_case_names = [item.attrib['name'] for item in junit_report]
 
