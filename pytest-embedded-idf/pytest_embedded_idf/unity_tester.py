@@ -3,13 +3,12 @@
 import functools
 import logging
 import re
-import threading
 import time
 import typing as t
 import warnings
+from collections import namedtuple
 from collections.abc import Iterable
 from dataclasses import dataclass
-from threading import Thread
 
 import pexpect
 from pexpect.exceptions import TIMEOUT
@@ -26,6 +25,7 @@ if t.TYPE_CHECKING:
 
 DEFAULT_START_RETRY = 3
 DEFAULT_TIMEOUT = 90
+WAIT_FOR_MENU_TIMEOUT = 10
 
 READY_PATTERN_LIST = [
     'Press ENTER to see the list of tests',
@@ -247,10 +247,14 @@ class IdfUnityDutMixin:
             _timeout = kwargs.get('timeout', 30)
             _case = args[0]
 
+            if _case.type not in func.__name__:
+                logging.warning('The %s case can\'t be executed with %s function.', _case.type, func.__name__)
+                return
+
             try:
                 # do it here since the first hard reset before test case shouldn't be counted in duration time
                 if 'reset' in kwargs:
-                    if kwargs.pop('reset') and self._hard_reset_func:
+                    if kwargs.get('reset') and self._hard_reset_func:
                         try:
                             self._hard_reset_func()
                         except NotImplementedError:
@@ -322,6 +326,7 @@ class IdfUnityDutMixin:
     def _run_normal_case(
         self,
         case: UnittestMenuCase,
+        *,
         reset: bool = False,  # noqa
         timeout: float = 30,
     ) -> None:
@@ -347,6 +352,7 @@ class IdfUnityDutMixin:
     def _run_multi_stage_case(
         self,
         case: UnittestMenuCase,
+        *,
         reset: bool = False,  # noqa
         timeout: float = 30,
     ) -> None:
@@ -416,99 +422,150 @@ class IdfUnityDutMixin:
                         self._run_multi_stage_case(case, reset=reset, timeout=timeout)
 
 
-class ResourcesProxy:
+class _MultiDevTestDut:
     """
-    Interface for share data between main thread and LoopedDevWorker thread
-
-    Attributes:
-        dut (IdfDut): Object of the Device under test
-        group (List[MultiDevResource]): List of MultiDevResource, same instance for all ResourcesProxy
-        recv_sig (t.List[str]): The list of received signals from other dut
+    Dut control for multidevice test case
     """
 
-    def __init__(self, **kwargs):
-        self.dut = kwargs['dut']
-        self.group = kwargs['group']
-        self.recv_sig: t.List[str] = []
-
-        self.case = None
-        self.sub_case_index = None
-        self.start_retry = None
-        self.start_time = None
-        self.returned_value = None
-        self.raw_data_to_report = None
-        self.timeout = 0
-        self.wait_for_menu_timeout = 0
-
-
-class LoopedDevWorker:
-    """
-    Worker for processing received task from main thread through ResourcesProxy
-
-    Attributes:
-        worker (Thread): Thread for running loop task
-        wait_for_task_event (Event): Event for lock worker before receive task
-        task_complete_event (Event): Event for lock result processing before completed/failed task
-        rp (ResourcesProxy): Interface for storing shared variables between main thread and worker
-    """
-
+    # The signal pattens come from 'test_utils.c'
     SEND_SIGNAL_PREFIX = 'Send signal: '
     WAIT_SIGNAL_PREFIX = 'Waiting for signal: '
     UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
     UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
+    signal_pattern_list = [
+        UNITY_SEND_SIGNAL_REGEX,  # The dut send a signal
+        UNITY_WAIT_SIGNAL_REGEX,  # The dut is blocked and waiting for a signal
+        UNITY_SUMMARY_LINE_REGEX,  # Means the case finished
+    ]
+
+    DevResponse = namedtuple('DevResponse', ['completed', 'data'])
 
     def __init__(
         self,
-        worker: type(Thread),
-        event: type(threading.Event),
-        resource_proxy: ResourcesProxy,
+        dut,
+        case,
+        sub_case_index,
+        shared_message_query,
+        start_retry,
+        wait_for_menu_timeout=WAIT_FOR_MENU_TIMEOUT,
+        runtest_timeout=DEFAULT_TIMEOUT,
     ):
-        self.wait_for_task_event = event()
-        self.task_complete_event = event()
-        self.rp = resource_proxy
+        self.dut = dut
+        self.case = case
+        self.sub_case_index = sub_case_index
+        self.shared_message_query = shared_message_query
+        self.dut_index = self.sub_case_index - 1
+        self.start_retry = start_retry
+        self.wait_for_menu_timeout = wait_for_menu_timeout
+        self.runtest_timeout = runtest_timeout
 
-        def loop():
-            while True:
-                self.wait_for_task_event.wait()
-                self.wait_for_task_event.clear()
-                self.rp.dut.serial.hard_reset()
+        self.work = self.run_case()
+        self.init_time = time.perf_counter()
+        self.response: _MultiDevTestDut.DevResponse = _MultiDevTestDut.DevResponse(False, None)
 
-                self.rp.returned_value = None
+    def __iter__(self):
+        return self.work
 
-                try:
-                    self.rp.returned_value = self.run_case()
-                except Exception as e:
-                    self.rp.returned_value = e
-
-                self.task_complete_event.set()
-
-        self.worker = worker(target=loop, daemon=True)
-        self.worker.start()
-
-    def setup_task(self, case, sub_case_index, start_retry, timeout) -> None:
-        self.rp.case = case
-        self.rp.sub_case_index = sub_case_index
-        self.rp.start_retry = start_retry
-        self.rp.start_time = time.perf_counter()
-        self.rp.wait_for_menu_timeout = timeout
-        self.rp.timeout = timeout
-
-    def start_task(self) -> None:
-        self.wait_for_task_event.set()
-
-    def wait_for_result(self) -> None:
-        self.task_complete_event.wait()
-        res: t.Tuple[str, t.Dict] | Exception = self.rp.returned_value
-        self.task_complete_event.clear()
-        self.rp.raw_data_to_report = res
-
-    def process_raw_data_to_report(self) -> t.Dict:
-        additional_attrs = {}
-        if isinstance(self.rp.raw_data_to_report, tuple) and len(self.rp.raw_data_to_report) == 2:
-            log = str(self.rp.raw_data_to_report[0])
-            additional_attrs = self.rp.raw_data_to_report[1]
+    def __next__(self):
+        if self.response.completed:
+            return self.response
         else:
-            log = str(self.rp.raw_data_to_report)
+            try:
+                next(self.__iter__())
+            except StopIteration as e:
+                self.response = _MultiDevTestDut.DevResponse(True, e.value)
+                self.work.close()
+            except TIMEOUT as e:
+                self.response = _MultiDevTestDut.DevResponse(True, e)
+                self.work.close()
+        return self.response
+
+    def close(self):
+        self.work.close()
+
+    def run_case(self):
+        yield from self._expect_exact(READY_PATTERN_LIST, self.wait_for_menu_timeout)
+
+        for retry in range(self.start_retry):
+            self.dut.write(str(self.case.index))
+            try:
+                yield from self._expect_exact(self.case.name, 1)
+                break
+            except TIMEOUT as e:
+                if retry >= self.start_retry - 1:
+                    raise e
+        self.dut.write(str(self.sub_case_index))
+
+        _start_time = time.perf_counter()
+        while True:
+            _current = time.perf_counter()
+            _timeout = _start_time + self.runtest_timeout - _current
+
+            if _timeout < 0:
+                raise TIMEOUT('Tasks timed out, without other exception')
+
+            pat = yield from self._expect(self.signal_pattern_list, _timeout)
+
+            if pat is not None:
+                match_str = pat.group().decode('utf-8')
+
+                # Send a signal
+                if self.SEND_SIGNAL_PREFIX in match_str:
+                    send_sig = pat.group(1).decode('utf-8')
+                    for i, q in enumerate(self.shared_message_query):
+                        if i != self.dut_index:
+                            q.append(send_sig)
+
+                # Waiting for a signal
+                elif self.WAIT_SIGNAL_PREFIX in match_str:
+                    wait_sig = pat.group(1).decode('utf-8')
+                    while True:
+                        yield
+                        if wait_sig in self.shared_message_query[self.dut_index]:
+                            self.shared_message_query[self.dut_index].remove(wait_sig)
+                            self.dut.write('')
+                            break
+                        # Keep waiting the signal
+                        else:
+                            if _start_time + self.runtest_timeout < time.perf_counter():
+                                raise TIMEOUT('Not receive signal %r' % wait_sig)
+
+                # Case finished
+                elif 'Tests' in match_str:
+                    case_duration = time.perf_counter() - _start_time
+                    additional_attrs = {'time': round(case_duration, 3)}
+                    log = remove_asci_color_code(self.dut.pexpect_proc.before)
+                    return log, additional_attrs
+
+    def _expect_exact(self, pattern, timeout):
+        start = time.perf_counter()
+        while True:
+            try:
+                yield 'Await for result'
+                res = self.dut.expect_exact(pattern, timeout=0.01)
+                return res
+            except TIMEOUT as e:
+                if time.perf_counter() - start > timeout:
+                    raise e
+
+    def _expect(self, pattern, timeout):
+        start = time.perf_counter()
+        while True:
+            try:
+                yield 'Await for result'
+                res = self.dut.expect(pattern, timeout=0.01)
+                return res
+            except TIMEOUT as e:
+                if time.perf_counter() - start > timeout:
+                    raise e
+
+    def process_raw_report_data(self, raw_data_to_report) -> t.Dict:
+        additional_attrs = {}
+        if isinstance(raw_data_to_report, tuple) and len(raw_data_to_report) == 2:
+            log = str(raw_data_to_report[0])
+            additional_attrs = raw_data_to_report[1]
+        else:
+            log = str(raw_data_to_report)
 
         if log:
             # check format
@@ -524,12 +581,12 @@ class LoopedDevWorker:
 
         # real parsing
         if len(res) == 0:
-            logging.warning(f'unity test case not found, use case {self.rp.case.name} instead')
+            logging.warning(f'unity test case not found, use case {self.case.name} instead')
             attrs = {
-                'name': self.rp.case.name,
+                'name': self.case.name,
                 'result': 'FAIL',
-                'message': self.rp.dut.pexpect_proc.buffer_debug_str,
-                'time': self.rp.timeout,
+                'message': self.dut.pexpect_proc.buffer_debug_str,
+                'time': time.perf_counter() - self.init_time,
             }
         elif len(res) == 1:
             attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
@@ -545,8 +602,75 @@ class LoopedDevWorker:
 
         return attrs
 
+    def add_to_report(self, attrs):
+        testcase = TestCase(**attrs)
+        self.dut.testsuite.testcases.append(testcase)
+
+        if testcase.result == 'FAIL':
+            self.dut.testsuite.attrs['failures'] += 1
+        elif testcase.result == 'IGNORE':
+            self.dut.testsuite.attrs['skipped'] += 1
+        else:
+            self.dut.testsuite.attrs['tests'] += 1
+
+
+class MultiDevRunTestManager:
+    """
+    Manager for control dut generator function
+    """
+
+    def __init__(self, duts, case, start_retry, wait_for_menu_timeout, runtest_timeout):
+        self.case = case
+        self.workers: t.List[_MultiDevTestDut] = []
+        shared_query = [[] for _ in case.subcases]
+        for sub_case in case.subcases:
+            index: int
+            if isinstance(sub_case['index'], str):
+                index = int(sub_case['index'], 10)
+            else:
+                index = sub_case['index']
+
+            self.workers.append(
+                _MultiDevTestDut(
+                    dut=duts[index - 1],
+                    case=case,
+                    sub_case_index=index,
+                    shared_message_query=shared_query,
+                    start_retry=start_retry,
+                    wait_for_menu_timeout=wait_for_menu_timeout,
+                    runtest_timeout=runtest_timeout,
+                )
+            )
+
+    def next_for_all(self):
+        res = []
+        err = []
+        for i, it in enumerate(self.workers):
+            try:
+                r = next(it)
+                if r.completed:
+                    res.append(r.data)
+            except Exception as e:
+                err.append(e)
+        return res, err
+
+    def gather(self):
+        try:
+            while True:
+                res, er = self.next_for_all()
+                if er:
+                    raise Exception('There are Exception: ', er)
+                if len(res) == len(self.workers):
+                    return res
+        finally:
+            for _t in self.workers:
+                _t.close()
+
+    def get_processed_report_data(self, res: t.List[t.Any]) -> t.List[t.Dict]:
+        return [self.workers[i].process_raw_report_data(res[i]) for i in range(len(res))]
+
     @staticmethod
-    def merge_result(test_cases_attr: t.List[t.Dict]) -> t.Dict:
+    def get_merge_data(test_cases_attr: t.List[t.Dict]) -> t.Dict:
         output = {}
         results = set()
         time_attr = 0.0
@@ -564,12 +688,15 @@ class LoopedDevWorker:
                     continue
 
                 if k not in output:
-                    output[k] = [f'[group dev-{ind}]: {val}']
+                    output[k] = [f'[dut-{ind}]: {val}']
                 else:
-                    output[k].append(f'[group dev-{ind}]: {val}')
+                    output[k].append(f'[dut-{ind}]: {val}')
 
         for k, val in output.items():
-            output[k] = '<------------------->\n'.join(output[k])
+            if k in ('file', 'line'):
+                output[k] = val[0]
+            else:
+                output[k] = '<------------------->\n'.join(val)
 
         output['time'] = time_attr
         output['name'] = ' <---> '.join(list(name_attr))
@@ -583,108 +710,8 @@ class LoopedDevWorker:
 
         return output
 
-    def add_to_report(self, attrs):
-        testcase = TestCase(**attrs)
-        self.rp.dut.testsuite.testcases.append(testcase)
-
-        if testcase.result == 'FAIL':
-            self.rp.dut.testsuite.attrs['failures'] += 1
-        elif testcase.result == 'IGNORE':
-            self.rp.dut.testsuite.attrs['skipped'] += 1
-        else:
-            self.rp.dut.testsuite.attrs['tests'] += 1
-
-    def clear_var_values(self) -> None:
-        self.rp.recv_sig.clear()
-        self.rp.returned_value = None
-
-    def run_case(self, **kwargs):
-        """
-        The thread target function
-        Will run for each case on each dut
-
-        Call the wrapped function to trigger the case
-        Then keep listening on the dut for the signal
-
-            - If the dut send a signal, it will be put into others' recv_sig
-            - If the dut waits for a signal, it block and keep polling for the recv_sig until get the signal it requires
-            - If the dut finished running the case, it will quite the loop and terminate the thread
-        """
-        signal_pattern_list = [
-            self.UNITY_SEND_SIGNAL_REGEX,  # The dut send a signal
-            self.UNITY_WAIT_SIGNAL_REGEX,  # The dut is blocked and waiting for a signal
-            UNITY_SUMMARY_LINE_REGEX,  # Means the case finished
-        ]
-
-        # Start the case
-        self.rp.dut.expect_exact(READY_PATTERN_LIST, timeout=self.rp.wait_for_menu_timeout)
-        _start_time = time.perf_counter()
-
-        # Retry at defined number of times if not write successfully
-        for retry in range(self.rp.start_retry):
-            self.rp.dut.write(str(self.rp.case.index))
-            try:
-                self.rp.dut.expect_exact(self.rp.case.name, timeout=1)
-                break
-            except TIMEOUT as e:
-                if retry >= self.rp.start_retry - 1:
-                    raise e
-
-        self.rp.dut.write(str(self.rp.sub_case_index))
-
-        # Wait for the specific patterns, only exist when the sub-case finished
-        while True:
-            _current = time.perf_counter()
-            _timeout = _start_time + self.rp.timeout - _current
-            if _timeout < 0:
-                raise TIMEOUT('Tasks timed out, without other exception')
-
-            pat = self.rp.dut.expect(signal_pattern_list, timeout=_timeout)
-            if pat is not None:
-                match_str = pat.group().decode('utf-8')
-
-                # Send a signal
-                if self.SEND_SIGNAL_PREFIX in match_str:
-                    send_sig = pat.group(1).decode('utf-8')
-                    for d in self.rp.group:
-                        d.rp.recv_sig.append(send_sig)
-
-                # Waiting for a signal
-                elif self.WAIT_SIGNAL_PREFIX in match_str:
-                    wait_sig = pat.group(1).decode('utf-8')
-                    while True:
-                        if wait_sig in self.rp.recv_sig:
-                            self.rp.recv_sig.remove(wait_sig)
-                            self.rp.dut.write('')
-                            break
-                        # Keep waiting the signal
-                        else:
-                            time.sleep(0.1)
-                            if _start_time + self.rp.timeout < time.perf_counter():
-                                raise TIMEOUT('Not receive signal %r' % wait_sig)
-
-                # Case finished
-                elif 'Tests' in match_str:
-                    case_end_time = time.perf_counter()
-                    case_duration = case_end_time - self.rp.start_time
-                    additional_attrs = {'time': round(case_duration, 3)}
-                    log = remove_asci_color_code(self.rp.dut.pexpect_proc.before)
-                    return log, additional_attrs
-
-
-class MultiDevResource:
-    """
-    Resources of multi_dev dut
-
-    Attributes:
-        rp (ResourcesProxy): Interface for storing shared variables between main thread and "worker"
-        worker (LoopedDevWorker): Worker for processing received task from main thread through ResourcesProxy
-    """
-
-    def __init__(self, dut: 'IdfDut', group: t.List['MultiDevResource']) -> None:
-        self.rp = ResourcesProxy(dut=dut, group=group)
-
-        self.worker = LoopedDevWorker(worker=Thread, event=threading.Event, resource_proxy=self.rp)
+    def add_report_to_first_dut(self, attrs):
+        self.workers[0].add_to_report(attrs)
 
 
 class CaseTester:
@@ -692,16 +719,9 @@ class CaseTester:
     The Generic tester of all the types
 
     Attributes:
-        group (t.List[MultiDevResource]): The group of the devices' resources
         dut (IdfDut): The first dut if there is more than one
         test_menu (t.List[UnittestMenuCase]): The list of the cases
     """
-
-    # The signal pattens come from 'test_utils.c'
-    SEND_SIGNAL_PREFIX = 'Send signal: '
-    WAIT_SIGNAL_PREFIX = 'Waiting for signal: '
-    UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
-    UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
 
     def __init__(self, dut: t.Union['IdfDut', t.List['IdfDut']]) -> None:  # type: ignore
         """
@@ -709,21 +729,14 @@ class CaseTester:
         """
         if isinstance(dut, Iterable):
             self.is_multi_dut = True
-            self.dut = list(dut)
+            self.dut: t.List['IdfDut'] = list(dut)
             self.first_dut = self.dut[0]
             self.test_menu = self.first_dut.test_menu
         else:
             self.is_multi_dut = False
-            self.dut = dut
+            self.dut = [dut]
             self.first_dut = dut
-            self.test_menu = self.dut.test_menu
-
-        if self.is_multi_dut:
-            self.group: t.List[MultiDevResource] = []
-            if isinstance(dut, list):
-                for item in dut:
-                    dev_res = MultiDevResource(item, self.group)
-                    self.group.append(dev_res)
+            self.test_menu = self.dut[0].test_menu
 
     def run_multi_dev_case(
         self,
@@ -757,31 +770,66 @@ class CaseTester:
             return
 
         if reset:
-            for dev_res in self.group:
-                dev_res.rp.dut.serial.hard_reset()
+            for dut in self.dut:
+                dut.serial.hard_reset()
 
-        tasks = []
-        for sub_case in case.subcases:
-            if isinstance(sub_case['index'], str):
-                index = int(sub_case['index'], 10)
-            else:
-                index = sub_case['index']
-            tasks.append(index)
+        mdm = MultiDevRunTestManager(
+            duts=self.dut, case=case, start_retry=start_retry, wait_for_menu_timeout=timeout, runtest_timeout=timeout
+        )
+        res = mdm.gather()
+        data_to_report = mdm.get_processed_report_data(res)
+        merged_data = mdm.get_merge_data(data_to_report)
+        mdm.add_report_to_first_dut(merged_data)
 
-        for i, task in enumerate(tasks):
-            self.group[i].worker.setup_task(case=case, sub_case_index=task, start_retry=start_retry, timeout=timeout)
+    def run_normal_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+        """
+        Run a specific normal case
 
-        for i, task in enumerate(tasks):
-            self.group[i].worker.start_task()
-        for i, task in enumerate(tasks):
-            self.group[i].worker.wait_for_result()
+        Notes:
+            Will skip if the case type is not normal
 
-        data_to_report_list = [self.group[i].worker.process_raw_data_to_report() for i, task in enumerate(tasks)]
-        merged_data = self.group[0].worker.merge_result(data_to_report_list)
-        self.group[0].worker.add_to_report(merged_data)
+        Args:
+            case: the specific case that parsed in test menu
+            reset: whether do a hardware reset before running the case
+            timeout: timeout in second
+        """
+        self.first_dut._run_normal_case(case, reset=reset, timeout=timeout)
 
-        for i, task in enumerate(tasks):
-            self.group[i].worker.clear_var_values()
+    def run_multi_stage_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
+        """
+        Run a specific multi_stage case
+
+        Notes:
+            Will skip if the case type is not multi_stage
+
+        Args:
+            case: the specific case that parsed in test menu
+            reset: whether do a hardware reset before running the case
+            timeout: timeout in second
+        """
+        self.first_dut._run_multi_stage_case(case, reset=reset, timeout=timeout)
+
+    def run_all_normal_cases(self, reset: bool = False, timeout: int = 90) -> None:
+        """
+        Run all normal cases
+
+        Args:
+            reset: whether do a hardware reset before running the case
+            timeout: timeout in second
+        """
+        for case in self.test_menu:
+            self.run_normal_case(case, reset, timeout=timeout)
+
+    def run_all_multi_stage_cases(self, reset: bool = False, timeout: int = 90) -> None:
+        """
+        Run all multi_stage cases
+
+        Args:
+            reset: whether do a hardware reset before running the case
+            timeout: timeout in second
+        """
+        for case in self.test_menu:
+            self.run_multi_stage_case(case, reset=reset, timeout=timeout)
 
     def run_all_multi_dev_cases(
         self,
@@ -831,14 +879,9 @@ class CaseTester:
         Args:
             case: the specific case that parsed in test menu
             reset: whether to perform a hardware reset before running a case
-            timeout: timeout in second
+            timeout: timeout in second, setup time excluded
             start_retry (int): number of retries for a single case when it is failed to start
         """
-        warnings.warn(
-            'Current timeout logic not clear: currently it is a sum of wait board menu time and runtest time.'
-            'Will be renamed and split into two time in future',
-            DeprecationWarning,
-        )
 
         if case.attributes.get('timeout'):
             timeout = int(case.attributes['timeout'])
