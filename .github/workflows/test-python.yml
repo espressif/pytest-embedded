@@ -21,7 +21,7 @@ jobs:
       image: python:${{ matrix.python-version }}-bullseye
       options: --privileged
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           apt update && apt install -y socat zip
