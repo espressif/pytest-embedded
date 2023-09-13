@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.3.5 (2023-09-13)
+
+### Feat
+
+- Support hard_reset without stub
+- add local cache for port-target-cache between session
+
 ## v1.3.4 (2023-07-10)
 
 ### Fix
