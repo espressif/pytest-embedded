@@ -173,6 +173,8 @@ class DuplicateStdoutPopen(subprocess.Popen):
         # we use real log file to record output, pipe-like file object won't be non-blocking.
         _log_file = os.path.join(logdir, f'{self.SOURCE.lower()}-{uuid.uuid4()}{logfile_extension}')
         self._fw = open(_log_file, 'w')
+        self._fr = open(_log_file, 'rb')
+        self.pexpect_proc = PexpectProcess(self._fr)
         self._logfile = _log_file
         self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')

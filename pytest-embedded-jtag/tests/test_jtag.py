@@ -9,6 +9,43 @@ jtag_connection_required = pytest.mark.skipif(
 
 
 @jtag_connection_required
+def test_pexpect_multi_source(testdir):
+    testdir.makepyfile(r"""
+        import os
+        import time
+
+        def test_pexpect_multi_source(dut):
+            dut.gdb.write('mon reset halt')
+            dut.gdb.write('thb app_main')
+            dut.gdb.write('thb 23')
+            dut.gdb.write('b hello_world_main.c:23')
+            dut.gdb.write('b hello_world_main.c:46')
+            dut.gdb.write('c')
+            dut.gdb.write('c')
+            dut.gdb.write('c')
+            dut.gdb.write('info local')
+
+            print(dut.expect('i = 10', source='gdb', timeout=10))
+
+            dut.gdb.write('c')
+            dut.gdb.write('info local')
+            print(dut.expect('i = 9', source='gdb'))
+
+            dut.openocd.write('echo "Hello world from openocd"')
+
+            print(dut.expect('Hello world from openocd', source='openocd'))
+            print(dut.expect('Hello world!'))
+            print(dut.expect('.*', source='all'))
+    """)
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf,jtag',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+    result.assert_outcomes(passed=1)
+
+
+@jtag_connection_required
 def test_pexpect_by_jtag(testdir):
     testdir.makepyfile(r"""
         import os

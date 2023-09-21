@@ -2,6 +2,7 @@ import functools
 import logging
 import multiprocessing
 import os.path
+import time
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
@@ -37,6 +38,7 @@ class Dut(_InjectMixinCls):
         self._meta = meta
 
         self.pexpect_proc = pexpect_proc
+        self.pexpect_sources = {'default': [pexpect_proc, pexpect_logfile]}
         self.app = app
         self.logfile = pexpect_logfile
         self.test_case_name = test_case_name
@@ -70,21 +72,23 @@ class Dut(_InjectMixinCls):
         ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
             patterns = to_list(pattern)
             res = []
+            _pexpect_proc = kwargs.pop('pexpect_process')
+            _logfile = kwargs.pop('pexpect_logfile')
             while patterns:
                 try:
-                    index = func(self, pattern, *args, **kwargs)  # noqa
+                    index = func(self, pattern, _pexpect_proc, *args, **kwargs)  # noqa
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
                     debug_str = (
                         f'Not found "{str(pattern)}"\n'
-                        f'Bytes in current buffer (color code eliminated): {self.pexpect_proc.buffer_debug_str}\n'
-                        f'Please check the full log here: {self.logfile}'
+                        f'Bytes in current buffer (color code eliminated): {_pexpect_proc.buffer_debug_str}\n'
+                        f'Please check the full log here: {_logfile}'
                     )
                     raise e.__class__(debug_str) from e
                 else:
-                    if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                        res.append(self.pexpect_proc.before.rstrip())
+                    if _pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                        res.append(_pexpect_proc.before.rstrip())
                     else:
-                        res.append(self.pexpect_proc.match)
+                        res.append(_pexpect_proc.match)
 
                 if expect_all:
                     patterns.pop(index)
@@ -98,8 +102,18 @@ class Dut(_InjectMixinCls):
 
         return wrapper
 
+    def register_additional_expect_sources(self, sources=None):
+        if sources is not None:
+            self.pexpect_sources.update(sources)
+
+        from .log import DuplicateStdoutPopen
+
+        for k in self.__dict__:
+            if isinstance(getattr(self, k), DuplicateStdoutPopen):
+                self.pexpect_sources[k] = [getattr(self, k).pexpect_proc, getattr(self, k)._logfile]  # noqa
+
     @_pexpect_func  # noqa
-    def expect(self, pattern, **kwargs) -> Match:  # noqa
+    def _expect(self, pattern, _pexpect_proc, **kwargs) -> Match:  # noqa
         """
         Expect the `pattern` from the internal buffer. All the arguments will be passed to `pexpect.expect()`.
 
@@ -117,7 +131,25 @@ class Dut(_InjectMixinCls):
             - `AnyStr`: if you're matching `pexpect.EOF` or `pexpect.TIMEOUT` to get all the current buffers.
             - `re.Match`: if matched given string.
         """
-        return self.pexpect_proc.expect(pattern, **kwargs)
+        return _pexpect_proc.expect(pattern, **kwargs)
+
+    def expect(self, pattern, *, source='default', **kwargs):
+        if source != 'all':
+            pr, lg = self.pexpect_sources[source]
+            kwargs['pexpect_process'] = pr
+            kwargs['pexpect_logfile'] = lg
+            return self._expect(pattern, **kwargs)
+
+        _res = []
+        _timeout = kwargs.get('timeout', 30)
+        start = time.perf_counter()
+        for pr, lg in self.pexpect_sources.values():
+            kwargs['timeout'] = _timeout - (time.perf_counter() - start)
+            kwargs['pexpect_process'] = pr
+            kwargs['pexpect_logfile'] = lg
+            _res.append(self._expect(pattern, **kwargs))
+
+        return _res
 
     @_pexpect_func  # noqa
     def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
