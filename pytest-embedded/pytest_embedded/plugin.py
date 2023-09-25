@@ -51,7 +51,6 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
-
     from pytest_embedded_wokwi import WokwiCLI
 
 
