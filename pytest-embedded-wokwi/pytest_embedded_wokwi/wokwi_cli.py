@@ -1,6 +1,7 @@
 import json
 import os
 import typing as t
+from pathlib import Path
 
 from pytest_embedded import __version__
 from pytest_embedded.log import DuplicateStdoutPopen
@@ -39,32 +40,16 @@ class WokwiCLI(DuplicateStdoutPopen):
             wokwi_cli_path: Wokwi CLI arguments
         """
         self.app = app
+        flasher_args = Path(app.binary_path, 'flasher_args.json')
 
-        bin_list = []
-        app_binary = None
-        for file in app.flash_files:
-            if not os.path.exists(file.file_path):
-                raise ValueError(f'Firmware binary file doesn\'t exist: {file.file_path}')
-            file_rel_path = os.path.relpath(app.elf_file, app.app_path)
-            bin_list.append(f"'{file.offset:#x} {file_rel_path}',")
-            # The following is a workaround until wokwi-cli supports multiple binaries
-            if file.offset == 0x10000:
-                app_binary = file_rel_path
-
-        bin_list_toml = '\n  '.join(bin_list)
         with open(os.path.join(app.app_path, 'wokwi.toml'), 'wt') as f:
             f.write(
                 f"""
 [wokwi]
 version = 1
 generatedBy = 'pytest-embedded-wokwi {__version__}'
-firmware = '{app_binary}'
-elf = '{os.path.relpath(app.elf_file, app.app_path)}'
-
-# We don't support multiple binaries yet, so this will be ignored for now:
-flash = [
-  {bin_list_toml}
-]
+firmware = '{Path(flasher_args).relative_to(app.app_path).as_posix()}'
+elf = '{Path(app.elf_file).relative_to(app.app_path).as_posix()}'
 """
             )
 
