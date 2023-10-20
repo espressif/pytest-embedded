@@ -8,6 +8,8 @@ import toml
 from pytest_embedded import __version__
 from pytest_embedded.log import DuplicateStdoutPopen
 
+from .idf import IDFFirmwareResolver
+
 if t.TYPE_CHECKING:
     from pytest_embedded_idf.app import IdfApp
 
@@ -33,6 +35,7 @@ class WokwiCLI(DuplicateStdoutPopen):
 
     def __init__(
         self,
+        firmware_resolver: IDFFirmwareResolver,
         wokwi_cli_path: t.Optional[str] = None,
         app: t.Optional['IdfApp'] = None,
         **kwargs,
@@ -42,6 +45,7 @@ class WokwiCLI(DuplicateStdoutPopen):
             wokwi_cli_path: Wokwi CLI arguments
         """
         self.app = app
+        self.firmware_resolver = firmware_resolver
 
         self.create_wokwi_toml()
         self.create_diagram_json()
@@ -59,7 +63,7 @@ class WokwiCLI(DuplicateStdoutPopen):
 
     def create_wokwi_toml(self):
         app = self.app
-        flasher_args = Path(app.binary_path, 'flasher_args.json')
+        flasher_args = self.firmware_resolver.resolve_firmware(app)
         wokwi_toml_path = os.path.join(app.app_path, 'wokwi.toml')
         firmware_path = Path(flasher_args).relative_to(app.app_path).as_posix()
         elf_path = Path(app.elf_file).relative_to(app.app_path).as_posix()

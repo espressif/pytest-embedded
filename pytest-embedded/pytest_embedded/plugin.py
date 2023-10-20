@@ -51,6 +51,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
+
     from pytest_embedded_wokwi import WokwiCLI
 
 
@@ -1199,12 +1200,14 @@ def _fixture_classes_and_options(
                 from pytest_embedded_wokwi import WokwiCLI
 
                 classes[fixture] = WokwiCLI
-                kwargs[fixture] = {
-                    'wokwi_cli_path': wokwi_cli_path,
-                    'msg_queue': msg_queue,
-                    'app': None,
-                    'meta': _meta,
-                }
+                kwargs[fixture].update(
+                    {
+                        'wokwi_cli_path': wokwi_cli_path,
+                        'msg_queue': msg_queue,
+                        'app': None,
+                        'meta': _meta,
+                    }
+                )
         elif fixture == 'dut':
             classes[fixture] = Dut
             kwargs[fixture] = {
@@ -1228,7 +1231,13 @@ def _fixture_classes_and_options(
                 if 'idf' in _services:
                     from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
 
+                    from pytest_embedded_wokwi.idf import IDFFirmwareResolver
+
+                    kwargs['wokwi'].update({'firmware_resolver': IDFFirmwareResolver()})
+
                     mixins[fixture].append(IdfUnityDutMixin)
+                else:
+                    raise SystemExit('wokwi service should be used together with idf service')
             if 'qemu' in _services:
                 from pytest_embedded_qemu import QemuDut
 
@@ -1373,7 +1382,6 @@ def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wok
 
     if 'app' in kwargs and kwargs['app'] is None:
         kwargs['app'] = app
-
     return cls(**_drop_none_kwargs(kwargs))
 
 
