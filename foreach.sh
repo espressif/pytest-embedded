@@ -10,6 +10,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-jtag \
   pytest-embedded-qemu \
   pytest-embedded-arduino \
+  pytest-embedded-wokwi \
 "
 
 action=${1:-"install"}
