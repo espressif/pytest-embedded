@@ -6,6 +6,7 @@ build-backend = "flit_core.buildapi"
 name = "pytest-embedded-wokwi"
 authors = [
     {name = "Fu Hanxi", email = "fuhanxi@espressif.com"},
+    {name = "Uri Shaked", email = "uri@wokwi.com"},
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
