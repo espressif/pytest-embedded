@@ -51,6 +51,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
+    from pytest_embedded_wokwi import WokwiCLI
 
 
 _T = t.TypeVar('_T')
@@ -118,6 +119,7 @@ def pytest_addoption(parser):
         '- jtag: openocd and gdb\n'
         '- qemu: use qemu simulator instead of the real target\n'
         '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
+        '- wokwi: use wokwi simulator instead of the real target\n'
         'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
@@ -240,6 +242,12 @@ def pytest_addoption(parser):
     qemu_group.addoption(
         '--keyfile',
         help='Flash Encryption (pre-encrypted workflow) key path. (Default: None)',
+    )
+
+    wokwi_group = parser.getgroup('embedded-wokwi')
+    wokwi_group.addoption(
+        '--wokwi-cli-path',
+        help='Path to the wokwi-cli program (Default: "wokwi-cli")',
     )
 
 
@@ -949,6 +957,16 @@ def keyfile(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'keyfile', None)
 
 
+#########
+# Wokwi #
+#########
+@pytest.fixture
+@multi_dut_argument
+def wokwi_cli_path(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'wokwi_cli_path', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -1009,6 +1027,7 @@ def _fixture_classes_and_options(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
+    wokwi_cli_path,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -1175,6 +1194,19 @@ def _fixture_classes_and_options(
                     'app': None,
                     'meta': _meta,
                 }
+        elif fixture == 'wokwi':
+            if 'wokwi' in _services:
+                from pytest_embedded_wokwi import WokwiCLI
+
+                classes[fixture] = WokwiCLI
+                kwargs[fixture].update(
+                    {
+                        'wokwi_cli_path': wokwi_cli_path,
+                        'msg_queue': msg_queue,
+                        'app': None,
+                        'meta': _meta,
+                    }
+                )
         elif fixture == 'dut':
             classes[fixture] = Dut
             kwargs[fixture] = {
@@ -1185,6 +1217,25 @@ def _fixture_classes_and_options(
                 'test_case_name': test_case_name,
                 'meta': _meta,
             }
+            if 'wokwi' in _services:
+                from pytest_embedded_wokwi import WokwiDut
+
+                classes[fixture] = WokwiDut
+                kwargs[fixture].update(
+                    {
+                        'wokwi': None,
+                    }
+                )
+
+                if 'idf' in _services:
+                    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
+                    from pytest_embedded_wokwi.idf import IDFFirmwareResolver
+
+                    kwargs['wokwi'].update({'firmware_resolver': IDFFirmwareResolver()})
+
+                    mixins[fixture].append(IdfUnityDutMixin)
+                else:
+                    raise SystemExit('wokwi service should be used together with idf service')
             if 'qemu' in _services:
                 from pytest_embedded_qemu import QemuDut
 
@@ -1319,6 +1370,21 @@ def qemu(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Qemu
 
 @pytest.fixture
 @multi_dut_generator_fixture
+def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['WokwiCLI']:
+    """A wokwi subprocess that could read/redirect/write"""
+    if 'wokwi' not in _fixture_classes_and_options.classes:
+        return None
+
+    cls = _fixture_classes_and_options.classes['wokwi']
+    kwargs = _fixture_classes_and_options.kwargs['wokwi']
+
+    if 'app' in kwargs and kwargs['app'] is None:
+        kwargs['app'] = app
+    return cls(**_drop_none_kwargs(kwargs))
+
+
+@pytest.fixture
+@multi_dut_generator_fixture
 def dut(
     _fixture_classes_and_options: ClassCliOptions,
     openocd: t.Optional['OpenOcd'],
@@ -1326,6 +1392,7 @@ def dut(
     app: App,
     serial: t.Optional[t.Union['Serial', 'LinuxSerial']],
     qemu: t.Optional['Qemu'],
+    wokwi: t.Optional['WokwiCLI'],
 ) -> t.Union[Dut, t.List[Dut]]:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
@@ -1356,7 +1423,8 @@ def dut(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
-
+            elif k == 'wokwi':
+                kwargs[k] = wokwi
     return cls(**_drop_none_kwargs(kwargs), mixins=mixins)
 
 

@@ -21,6 +21,7 @@ SERVICE_LIB_NAMES = {
     'jtag': f'{BASE_LIB_NAME}-jtag',
     'qemu': f'{BASE_LIB_NAME}-qemu',
     'arduino': f'{BASE_LIB_NAME}-arduino',
+    'wokwi': f'{BASE_LIB_NAME}-wokwi',
 }
 
 FIXTURES_SERVICES = {
@@ -29,7 +30,8 @@ FIXTURES_SERVICES = {
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
-    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf'],
+    'wokwi': ['wokwi'],
+    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf', 'wokwi'],
 }
 
 _T = t.TypeVar('_T')
