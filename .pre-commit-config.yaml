@@ -8,7 +8,7 @@ exclude: |
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -20,11 +20,17 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.10.1
     hooks:
       - id: black
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.255'
+    rev: 'v0.1.4'
     hooks:
       - id: ruff
         args: ['--fix']
+  - repo: https://github.com/espressif/conventional-precommit-linter
+    rev: v1.2.1
+    hooks:
+      - id: conventional-precommit-linter
+        stages: [commit-msg]
+        args: ['--types=change,ci,docs,feat,fix,refactor,remove,revert,bump']
