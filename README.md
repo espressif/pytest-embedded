@@ -14,6 +14,7 @@ All packages are published to PyPI. Please install them via `pip`.
 [![pytest-embedded-idf](https://img.shields.io/pypi/v/pytest-embedded-idf?color=green&label=pytest-embedded-idf)](https://pypi.org/project/pytest-embedded-idf/)
 [![pytest-embedded-qemu](https://img.shields.io/pypi/v/pytest-embedded-qemu?color=green&label=pytest-embedded-qemu)](https://pypi.org/project/pytest-embedded-qemu/)
 [![pytest-embedded-arduino](https://img.shields.io/pypi/v/pytest-embedded-arduino?color=green&label=pytest-embedded-arduino)](https://pypi.org/project/pytest-embedded-arduino/)
+[![pytest-embedded-wokwi](https://img.shields.io/pypi/v/pytest-embedded-wokwi?color=green&label=pytest-embedded-wokwi)](https://pypi.org/project/pytest-embedded-wokwi/)
 
 ## Quick Example
 
@@ -59,7 +60,7 @@ The `print` line is also duplicated to console output.
 
 ## Extra Services
 
-You can activate more services with `pytest --embedded-services service[, service]` to enable extra fixtures and functionalities.
+You can activate more services with `pytest --embedded-services service[,service]` to enable extra fixtures and functionalities.
 These services are provided by several optional dependencies. You can install them via `pip` as well.
 
 Available services:
@@ -70,6 +71,7 @@ Available services:
 - `jtag`: openocd/gdb utilities
 - `qemu`: running test cases on QEMU instead of the real target.
 - `arduino`: auto-detect more app info with [arduino](https://github.com/arduino/Arduino) specific rules, auto-flash the binary into the target.
+- `wokwi`: running test cases with [Wokwi](https://wokwi.com/) instead of the real target.
 
 ## Resources
 

@@ -33,7 +33,3 @@ html_css_files = ['theme_overrides.css']
 html_logo = '_static/espressif-logo.svg'
 html_static_path = ['_static']
 html_theme = 'sphinx_rtd_theme'
-
-# mermaid 10.0.0 change the CDN path
-# temp workaround until sphinxcontrib-mermaid fixed it
-mermaid_version = '9.4.0'
