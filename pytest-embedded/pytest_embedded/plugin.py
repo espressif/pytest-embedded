@@ -2,6 +2,7 @@ import contextlib
 import datetime
 import dbm
 import functools
+import gc
 import importlib
 import io
 import logging
@@ -439,6 +440,16 @@ def multi_dut_generator_fixture(
                 logging.debug('%s: %s', obj, str(e))
                 return  # swallow up all error
             finally:
+                referrers = gc.get_referrers(obj)
+                for _referrer in referrers:
+                    if isinstance(_referrer, list):
+                        for _i, val in enumerate(_referrer):
+                            if val is obj:
+                                _referrer[_i] = None
+                    elif isinstance(_referrer, dict):
+                        for key, value in _referrer.items():
+                            if value is obj:
+                                _referrer[key] = None
                 del obj
 
         if _COUNT == 1:
