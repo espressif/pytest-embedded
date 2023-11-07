@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.4.0 (2023-11-07)
+
+### Feat
+
+- **wokwi**: Support wokwi
+
+### Fix
+
+- clear all references for the message queue
+
 ## v1.3.5 (2023-09-13)
 
 ### Feat
