@@ -17,6 +17,8 @@ version_files = [
     "pytest-embedded-serial/pyproject.toml",
     "pytest-embedded-serial-esp/pytest_embedded_serial_esp/__init__.py",
     "pytest-embedded-serial-esp/pyproject.toml",
+    "pytest-embedded-wokwi/pytest_embedded_wokwi/__init__.py",
+    "pytest-embedded-wokwi/pyproject.toml",
 ]
 
 [tool.isort]
