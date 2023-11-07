@@ -14,7 +14,7 @@ Each test case would initialize a few fixtures. The most important fixtures are:
 ```{eval-rst}
 .. note::
 
-    You may redirect any output to the `msg_queue` fixture by `contextlib.redirect_stdout`.
+    You may redirect any output to the ``msg_queue`` fixture by ``contextlib.redirect_stdout``.
 
     .. code-block:: python
 
@@ -70,7 +70,7 @@ def test_serial_tcp(dut):
 
 ## Services
 
-You can activate more services with `pytest --embedded-services service[, service]` to enable extra fixtures and functionalities. These services are provided by several optional dependencies. You can install them via `pip` as well.
+You can activate more services with `pytest --embedded-services service[,service]` to enable extra fixtures and functionalities. These services are provided by several optional dependencies. You can install them via `pip` as well.
 
 Available services:
 
@@ -80,6 +80,7 @@ Available services:
 - `jtag`: openocd/gdb utilities.
 - `qemu`: running test cases on QEMU instead of the real target.
 - `arduino`: auto-detect more app info with [arduino](https://github.com/arduino/Arduino) specific rules, auto-flash the binary into the target.
+- `wokwi`: running test cases with [Wokwi](https://wokwi.com/) instead of the real target.
 
 ## Multi DUTs
 

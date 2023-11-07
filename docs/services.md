@@ -8,7 +8,21 @@ Please refer to instructions under the "fixtures defined from pytest_embedded.pl
 
 Please refer to the instructions under the "embedded" or "embedded-[SERVICE]" groups of the output of `pytest --help`.
 
-## Services
+## Dependency Graph
+
+```{mermaid}
+graph LR
+    pytest_embedded --> pytest_embedded_serial
+    pytest_embedded -->|pytest_embedded_serial_esp is an optional dependency| pytest_embedded_idf
+    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_qemu
+    pytest_embedded -->|pytest_embedded_serial is an optional dependency| pytest_embedded_arduino
+    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_wokwi
+
+    pytest_embedded_serial --> pytest_embedded_serial_esp
+    pytest_embedded_serial --> pytest_embedded_jtag
+```
+
+## Supported Services
 
 Activate a service would enable a set of fixtures or add some extra functionalities to a few fixtures.
 
@@ -30,15 +44,5 @@ Activate a service would enable a set of fixtures or add some extra functionalit
 ```{include} ../pytest-embedded-arduino/README.md
 ```
 
-## Dependency Graph
-
-```{mermaid}
-graph LR
-    pytest_embedded --> pytest_embedded_serial
-    pytest_embedded -->|pytest_embedded_serial_esp is an optional dependency| pytest_embedded_idf
-    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_qemu
-    pytest_embedded -->|pytest_embedded_serial is an optional dependency| pytest_embedded_arduino
-
-    pytest_embedded_serial --> pytest_embedded_serial_esp
-    pytest_embedded_serial --> pytest_embedded_jtag
+```{include} ../pytest-embedded-wokwi/README.md
 ```

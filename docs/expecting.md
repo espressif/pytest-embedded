@@ -81,7 +81,7 @@ def test_expect_from_eof_current_buffer(dut):
 .. note::
 
     The pexpect process would only read from the process into the buffer when running expecting functions.
-    If you're expecting `pexpect.EOF` as the first statement, it would return an empty byte string
+    If you're expecting ``pexpect.EOF`` as the first statement, it would return an empty byte string
 
     .. code-block:: python
 

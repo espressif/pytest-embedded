@@ -6,7 +6,7 @@ Wokwi supports most ESP32 targets, including: esp32, esp32s2, esp32s3, esp32c3, 
 
 Running the tests with Wokwi requires an internet connection. Your firmware is uploaded to the Wokwi server for the duration of the simulation, but it is not saved on the server. On-premises Wokwi installations are available for enterprise customers.
 
-## Wokwi CLI installation
+#### Wokwi CLI installation
 
 The Wokwi plugin uses the [Wokwi CLI](https://github.com/wokwi/wokwi-cli) to interact with the wokwi simulation server. You can download the precompiled CLI binaries from the [releases page](https://github.com/wokwi/wokwi-cli/releases). Alternatively, on Linux or Mac OS, you can install the CLI using the following command:
 
@@ -20,7 +20,7 @@ And on Windows:
 iwr https://wokwi.com/ci/install.ps1 -useb | iex
 ```
 
-## API Tokens
+#### Wokwi API Tokens
 
 Before using this plugin, you need to create a free Wokwi account and [generate an API key](https://wokwi.com/dashboard/ci). You can then set the `WOKWI_CLI_TOKEN` environment variable to the API key.
 
