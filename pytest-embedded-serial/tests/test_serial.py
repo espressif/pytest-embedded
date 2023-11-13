@@ -3,6 +3,64 @@ import sys
 import pytest
 
 
+def test_custom_serial_device(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+
+        def test_serial_mixed(dut):
+            from pytest_embedded.dut_factory import DutFactory
+            assert len(dut)==2
+            another_dut = DutFactory.create()
+            st = set(
+                (
+                    dut[0].serial.port,
+                    dut[1].serial.port,
+                    another_dut.serial.port
+                )
+            )
+            assert len(st) == 3
+
+        def test_custom_dut():
+            from pytest_embedded.dut_factory import DutFactory
+            another_dut = DutFactory.create(embedded_services='esp,serial')
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,serial',
+        '--count', 2,
+    )
+    result.assert_outcomes(passed=2, errors=0)
+
+
+def test_custom_serial_device_dut_count_1(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+
+        def test_serial_device_created_dut_count_1(dut):
+            from pytest_embedded.dut_factory import DutFactory
+            another_dut = DutFactory.create()
+            another_dut2 = DutFactory.create()
+            st = set(
+                (
+                    dut.serial.port,
+                    another_dut.serial.port,
+                    another_dut2.serial.port
+                )
+            )
+            assert len(st) == 3
+
+
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,serial',
+        '--count', 1,
+    )
+    result.assert_outcomes(passed=1, errors=0)
+
+
 @pytest.mark.skipif(sys.platform == 'win32', reason='No socat support on windows')
 @pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_serial_port(testdir):

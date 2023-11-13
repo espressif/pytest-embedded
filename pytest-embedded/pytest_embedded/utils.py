@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import typing as t
+from dataclasses import dataclass
 
 if t.TYPE_CHECKING:
     from . import App
@@ -33,6 +34,14 @@ FIXTURES_SERVICES = {
     'wokwi': ['wokwi'],
     'dut': ['base', 'serial', 'jtag', 'qemu', 'idf', 'wokwi'],
 }
+
+
+@dataclass
+class ClassCliOptions:
+    classes: t.Dict[str, type]
+    mixins: t.Dict[str, t.List[type]]
+    kwargs: t.Dict[str, t.Dict[str, t.Any]]
+
 
 _T = t.TypeVar('_T')
 
