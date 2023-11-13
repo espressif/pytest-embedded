@@ -14,10 +14,8 @@ import sys
 import tempfile
 import typing as t
 import xml.dom.minidom
-from collections import Counter, defaultdict
-from dataclasses import dataclass
+from collections import Counter
 from operator import itemgetter
-from pathlib import Path
 
 import pytest
 from _pytest.config import Config
@@ -34,17 +32,32 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
+from .dut_factory import (
+    DutFactory,
+    _fixture_classes_and_options_fn,
+    _listener_gn,
+    _pexpect_fr_gn,
+    app_fn,
+    dut_gn,
+    gdb_gn,
+    msg_queue_gn,
+    openocd_gn,
+    pexpect_proc_fn,
+    qemu_gn,
+    serial_gn,
+    set_parametrized_fixtures_cache,
+    wokwi_gn,
+)
 from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger, escape_illegal_xml_chars
 from .utils import (
-    FIXTURES_SERVICES,
     SERVICE_LIB_NAMES,
+    ClassCliOptions,
     Meta,
     PackageNotInstalledError,
     UnknownServiceError,
     find_by_suffix,
     to_list,
-    to_str,
 )
 
 if t.TYPE_CHECKING:
@@ -197,7 +210,7 @@ def pytest_addoption(parser):
     idf_group.addoption(
         '--panic-output-decode-script',
         help='Panic output decode script that is used in conjunction with the check-panic-coredump option '
-        'to parse panic output. (Default: use gdb_panic_server.py from package esp_idf_panic_decoder)',
+        'to parse panic output. (Default: $IDF_PATH/tools/gdb_panic_server.py)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
@@ -291,10 +304,6 @@ def _str_bool(v: str) -> t.Union[bool, str, None]:
         return False
     else:
         return v
-
-
-def _drop_none_kwargs(kwargs: t.Dict[t.Any, t.Any]):
-    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def _prettify_xml(file_path: str):
@@ -636,14 +645,11 @@ def _pexpect_logfile(test_case_tempdir, logfile_extension, dut_index, dut_total)
 if sys.platform == 'darwin':
     multiprocessing.set_start_method('fork')
 
-_ctx = multiprocessing.get_context()
-_stdout = sys.__stdout__
-
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
-    return MessageQueue(ctx=_ctx)
+    return msg_queue_gn()
 
 
 @pytest.fixture
@@ -651,46 +657,6 @@ def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixtur
 def with_timestamp(request: FixtureRequest) -> bool:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'with_timestamp', None)
-
-
-def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
-    _added_prefix = False
-    while True:
-        msg = q.get()
-        if not msg:
-            continue
-
-        with open(filepath, 'ab') as fw:
-            fw.write(msg)
-            fw.flush()
-
-        _s = to_str(msg)
-        if not _s:
-            continue
-
-        prefix = ''
-        if total > 1:
-            source = f'dut-{count}'
-        else:
-            source = None
-
-        if source:
-            prefix = f'[{source}] ' + prefix
-
-        if with_timestamp:
-            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
-
-        if not _added_prefix:
-            _s = prefix + _s
-            _added_prefix = True
-        _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
-        _s = _s.replace('\n', '\n' + prefix)
-        if prefix and _s.endswith(prefix):
-            _s = _s.rsplit(prefix, maxsplit=1)[0]
-            _added_prefix = False
-
-        _stdout.write(_s)
-        _stdout.flush()
 
 
 @pytest.fixture
@@ -703,29 +669,13 @@ def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total)
     1. print the string to `sys.stdout`
     2. write the string to `_pexpect_logfile`
     """
-    os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
-    kwargs = {
-        'with_timestamp': with_timestamp,
-        'count': dut_index,
-        'total': dut_total,
-    }
-
-    return _ctx.Process(
-        target=_listen,
-        args=(
-            msg_queue,
-            _pexpect_logfile,
-        ),
-        kwargs=_drop_none_kwargs(kwargs),
-    )
+    return _listener_gn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def _pexpect_fr(_pexpect_logfile, _listener) -> t.BinaryIO:
-    Path(_pexpect_logfile).touch()
-    _listener.start()
-    return open(_pexpect_logfile, 'rb')
+    return _pexpect_fr_gn(**locals())
 
 
 @pytest.fixture
@@ -735,7 +685,7 @@ def _pexpect_fr(_pexpect_logfile, _listener) -> t.BinaryIO:
 @multi_dut_fixture
 def pexpect_proc(_pexpect_fr) -> PexpectProcess:
     """Pexpect process that run the expect functions on"""
-    return PexpectProcess(_pexpect_fr)
+    return pexpect_proc_fn(**locals())
 
 
 @pytest.fixture
@@ -1025,16 +975,9 @@ def _services(embedded_services: t.Optional[str]) -> t.List[str]:
     return ['base', *services]
 
 
-@dataclass
-class ClassCliOptions:
-    classes: t.Dict[str, type]
-    mixins: t.Dict[str, t.List[type]]
-    kwargs: t.Dict[str, t.Dict[str, t.Any]]
-
-
-@pytest.fixture
+@pytest.fixture(autouse=True)
 @multi_dut_fixture
-def _fixture_classes_and_options(
+def parametrize_fixtures(
     _services,
     # parametrize fixtures
     app_path,
@@ -1068,13 +1011,29 @@ def _fixture_classes_and_options(
     skip_regenerate_image,
     encrypt,
     keyfile,
+    # common fixtures
+    test_case_name,
+    _meta,
+):
+    set_parametrized_fixtures_cache(locals())
+    return locals()
+
+
+@pytest.fixture(autouse=True)
+def close_factory_duts():
+    yield
+    DutFactory.close()
+
+
+@pytest.fixture
+@multi_dut_fixture
+def _fixture_classes_and_options(
+    parametrize_fixtures,
     # pre-initialized fixtures
     dut_index,
     _pexpect_logfile,
-    test_case_name,
     pexpect_proc,
     msg_queue,
-    _meta,
 ) -> ClassCliOptions:
     """
     classes: the class that the fixture should instantiate
@@ -1094,221 +1053,10 @@ def _fixture_classes_and_options(
         ...
     }
     """
-    classes: t.Dict[str, type] = {}
-    mixins: t.Dict[str, t.List[type]] = defaultdict(list)
-    kwargs: t.Dict[str, t.Dict[str, t.Any]] = defaultdict(dict)
+    kwargs = locals()
+    kwargs.update(kwargs.pop('parametrize_fixtures'))
 
-    for fixture in FIXTURES_SERVICES.keys():
-        if fixture == 'app':
-            kwargs['app'] = {'app_path': app_path, 'build_dir': build_dir}
-            if 'idf' in _services:
-                if 'qemu' in _services:
-                    from pytest_embedded_qemu import DEFAULT_IMAGE_FN, QemuApp
-
-                    classes[fixture] = QemuApp
-                    kwargs[fixture].update({
-                        'msg_queue': msg_queue,
-                        'part_tool': part_tool,
-                        'qemu_image_path': qemu_image_path,
-                        'skip_regenerate_image': skip_regenerate_image,
-                        'encrypt': encrypt,
-                        'keyfile': keyfile,
-                        'qemu_prog_path': qemu_prog_path,
-                    })
-                else:
-                    from pytest_embedded_idf import IdfApp
-
-                    classes[fixture] = IdfApp
-                    kwargs[fixture].update({
-                        'part_tool': part_tool,
-                    })
-            elif 'arduino' in _services:
-                from pytest_embedded_arduino import ArduinoApp
-
-                classes[fixture] = ArduinoApp
-            else:
-                from .app import App
-
-                classes[fixture] = App
-        elif fixture == 'serial':
-            if 'esp' in _services:
-                from pytest_embedded_serial_esp import EspSerial
-
-                kwargs[fixture] = {
-                    'pexpect_proc': pexpect_proc,
-                    'msg_queue': msg_queue,
-                    'target': target,
-                    'beta_target': beta_target,
-                    'port': os.getenv('ESPPORT') or port,
-                    'port_location': port_location,
-                    'port_mac': port_mac,
-                    'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
-                    'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
-                    'esp_flash_force': esp_flash_force,
-                    'skip_autoflash': skip_autoflash,
-                    'erase_all': erase_all,
-                    'meta': _meta,
-                }
-                if 'idf' in _services:
-                    from pytest_embedded_idf import IdfSerial
-
-                    classes[fixture] = IdfSerial
-                    kwargs[fixture].update({
-                        'app': None,
-                        'confirm_target_elf_sha256': confirm_target_elf_sha256,
-                        'erase_nvs': erase_nvs,
-                    })
-                elif 'arduino' in _services:
-                    from pytest_embedded_arduino import ArduinoSerial
-
-                    classes[fixture] = ArduinoSerial
-                    kwargs[fixture].update({
-                        'app': None,
-                    })
-                else:
-                    from pytest_embedded_serial_esp import EspSerial
-
-                    classes[fixture] = EspSerial
-            elif 'serial' in _services or 'jtag' in _services:
-                from pytest_embedded_serial.serial import Serial
-
-                classes[fixture] = Serial
-                kwargs[fixture] = {
-                    'msg_queue': msg_queue,
-                    'port': port,
-                    'port_location': port_location,
-                    'baud': int(baud or Serial.DEFAULT_BAUDRATE),
-                    'meta': _meta,
-                }
-        elif fixture in ['openocd', 'gdb']:
-            if 'jtag' in _services:
-                if fixture == 'openocd':
-                    from pytest_embedded_jtag import OpenOcd
-
-                    classes[fixture] = OpenOcd
-                    kwargs[fixture] = {
-                        'msg_queue': msg_queue,
-                        'app': None,
-                        'openocd_prog_path': openocd_prog_path,
-                        'openocd_cli_args': openocd_cli_args,
-                        'port_offset': dut_index,
-                        'meta': _meta,
-                    }
-                elif not no_gdb:
-                    from pytest_embedded_jtag import Gdb
-
-                    classes[fixture] = Gdb
-                    kwargs[fixture] = {
-                        'msg_queue': msg_queue,
-                        'gdb_prog_path': gdb_prog_path,
-                        'gdb_cli_args': gdb_cli_args,
-                        'meta': _meta,
-                    }
-        elif fixture == 'qemu':
-            if 'qemu' in _services:
-                from pytest_embedded_qemu import (
-                    DEFAULT_IMAGE_FN,
-                    ENCRYPTED_IMAGE_FN,
-                    Qemu,
-                )
-
-                classes[fixture] = Qemu
-                kwargs[fixture] = {
-                    'msg_queue': msg_queue,
-                    'qemu_image_path': qemu_image_path
-                    or os.path.join(
-                        app_path or '', build_dir or 'build', ENCRYPTED_IMAGE_FN if encrypt else DEFAULT_IMAGE_FN
-                    ),
-                    'qemu_prog_path': qemu_prog_path,
-                    'qemu_cli_args': qemu_cli_args,
-                    'qemu_extra_args': qemu_extra_args,
-                    'app': None,
-                    'meta': _meta,
-                    'dut_index': dut_index,
-                }
-        elif fixture == 'wokwi':
-            if 'wokwi' in _services:
-                from pytest_embedded_wokwi import WokwiCLI
-
-                classes[fixture] = WokwiCLI
-                kwargs[fixture].update({
-                    'wokwi_cli_path': wokwi_cli_path,
-                    'wokwi_timeout': wokwi_timeout,
-                    'msg_queue': msg_queue,
-                    'app': None,
-                    'meta': _meta,
-                })
-        elif fixture == 'dut':
-            classes[fixture] = Dut
-            kwargs[fixture] = {
-                'pexpect_proc': pexpect_proc,
-                'msg_queue': msg_queue,
-                'app': None,
-                'pexpect_logfile': _pexpect_logfile,
-                'test_case_name': test_case_name,
-                'meta': _meta,
-            }
-            if 'idf' in _services and 'esp' not in _services:
-                # esp,idf will use IdfDut, which based on IdfUnityDutMixin already
-                from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
-
-                mixins[fixture].append(IdfUnityDutMixin)
-
-            if 'wokwi' in _services:
-                from pytest_embedded_wokwi import WokwiDut
-
-                classes[fixture] = WokwiDut
-                kwargs[fixture].update({
-                    'wokwi': None,
-                })
-
-                if 'idf' in _services:
-                    from pytest_embedded_wokwi.idf import IDFFirmwareResolver
-
-                    kwargs['wokwi'].update({'firmware_resolver': IDFFirmwareResolver()})
-                else:
-                    raise SystemExit('wokwi service should be used together with idf service')
-            elif 'qemu' in _services:
-                from pytest_embedded_qemu import QemuDut
-
-                classes[fixture] = QemuDut
-                kwargs[fixture].update({
-                    'qemu': None,
-                })
-            elif 'jtag' in _services:
-                if 'idf' in _services:
-                    from pytest_embedded_idf import IdfDut
-
-                    classes[fixture] = IdfDut
-                else:
-                    from pytest_embedded_serial import SerialDut
-
-                    classes[fixture] = SerialDut
-
-                kwargs[fixture].update({
-                    'serial': None,
-                    'openocd': None,
-                    'gdb': None,
-                })
-            elif 'serial' in _services or 'esp' in _services:
-                if 'esp' in _services and 'idf' in _services:
-                    from pytest_embedded_idf import IdfDut
-
-                    classes[fixture] = IdfDut
-                    kwargs[fixture].update({
-                        'skip_check_coredump': skip_check_coredump,
-                        'panic_output_decode_script': panic_output_decode_script,
-                    })
-                else:
-                    from pytest_embedded_serial import SerialDut
-
-                    classes[fixture] = SerialDut
-
-                kwargs[fixture].update({
-                    'serial': None,
-                })
-
-    return ClassCliOptions(classes, mixins, kwargs)
+    return _fixture_classes_and_options_fn(**kwargs)
 
 
 ####################
@@ -1318,88 +1066,42 @@ def _fixture_classes_and_options(
 @multi_dut_fixture
 def app(_fixture_classes_and_options: ClassCliOptions) -> App:
     """A pytest fixture to gather information from the specified built binary folder"""
-    cls = _fixture_classes_and_options.classes['app']
-    kwargs = _fixture_classes_and_options.kwargs['app']
-    return cls(**_drop_none_kwargs(kwargs))
+    return app_fn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def serial(_fixture_classes_and_options, msg_queue, app) -> t.Optional[t.Union['Serial', 'LinuxSerial']]:
     """A serial subprocess that could read/redirect/write"""
-    if hasattr(app, 'target') and app.target == 'linux':
-        from pytest_embedded_idf import LinuxSerial
-
-        cls = LinuxSerial
-        kwargs = {
-            'app': app,
-            'msg_queue': msg_queue,
-        }
-        return cls(**kwargs)
-
-    if 'serial' not in _fixture_classes_and_options.classes:
-        return None
-
-    cls = _fixture_classes_and_options.classes['serial']
-    kwargs = _fixture_classes_and_options.kwargs['serial']
-    if 'app' in kwargs and kwargs['app'] is None:
-        kwargs['app'] = app
-    return cls(**_drop_none_kwargs(kwargs))
+    return serial_gn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def openocd(_fixture_classes_and_options: ClassCliOptions) -> t.Optional['OpenOcd']:
     """An openocd subprocess that could read/redirect/write"""
-    if 'openocd' not in _fixture_classes_and_options.classes:
-        return None
-
-    cls = _fixture_classes_and_options.classes['openocd']
-    kwargs = _fixture_classes_and_options.kwargs['openocd']
-    return cls(**_drop_none_kwargs(kwargs))
+    return openocd_gn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def gdb(_fixture_classes_and_options: ClassCliOptions) -> t.Optional['Gdb']:
     """A gdb subprocess that could read/redirect/write"""
-    if 'gdb' not in _fixture_classes_and_options.classes:
-        return None
-
-    cls = _fixture_classes_and_options.classes['gdb']
-    kwargs = _fixture_classes_and_options.kwargs['gdb']
-    return cls(**_drop_none_kwargs(kwargs))
+    return gdb_gn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def qemu(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Qemu']:
     """A qemu subprocess that could read/redirect/write"""
-    if 'qemu' not in _fixture_classes_and_options.classes:
-        return None
-
-    cls = _fixture_classes_and_options.classes['qemu']
-    kwargs = _fixture_classes_and_options.kwargs['qemu']
-
-    if 'app' in kwargs and kwargs['app'] is None:
-        kwargs['app'] = app
-
-    return cls(**_drop_none_kwargs(kwargs))
+    return qemu_gn(**locals())
 
 
 @pytest.fixture
 @multi_dut_generator_fixture
 def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['WokwiCLI']:
     """A wokwi subprocess that could read/redirect/write"""
-    if 'wokwi' not in _fixture_classes_and_options.classes:
-        return None
-
-    cls = _fixture_classes_and_options.classes['wokwi']
-    kwargs = _fixture_classes_and_options.kwargs['wokwi']
-
-    if 'app' in kwargs and kwargs['app'] is None:
-        kwargs['app'] = app
-    return cls(**_drop_none_kwargs(kwargs))
+    return wokwi_gn(**locals())
 
 
 @pytest.fixture
@@ -1417,34 +1119,7 @@ def dut(
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
     """
-    kwargs = _fixture_classes_and_options.kwargs['dut']
-    mixins = _fixture_classes_and_options.mixins['dut']
-
-    # since there's no way to know the target before setup finished
-    # we have to use the `app.target` to determine the dut class here
-    if hasattr(app, 'target') and app.target == 'linux':
-        from pytest_embedded_idf import LinuxDut
-
-        cls = LinuxDut
-        kwargs['serial'] = None  # replace it later with LinuxSerial
-    else:
-        cls = _fixture_classes_and_options.classes['dut']
-
-    for k, v in kwargs.items():
-        if v is None:
-            if k == 'app':
-                kwargs[k] = app
-            elif k == 'serial':
-                kwargs[k] = serial
-            elif k == 'openocd':
-                kwargs[k] = openocd
-            elif k == 'gdb':
-                kwargs[k] = gdb
-            elif k == 'qemu':
-                kwargs[k] = qemu
-            elif k == 'wokwi':
-                kwargs[k] = wokwi
-    return cls(**_drop_none_kwargs(kwargs), mixins=mixins)
+    return dut_gn(**locals())
 
 
 @pytest.fixture

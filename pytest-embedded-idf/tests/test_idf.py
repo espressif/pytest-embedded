@@ -130,6 +130,55 @@ def test_expect_exact_no_matching(testdir):
     result.assert_outcomes(passed=2, failed=2)
 
 
+def test_custom_idf_device_dut(testdir):
+    p = os.path.join(testdir.tmpdir, 'hello_world_esp32')
+    p_c3 = os.path.join(testdir.tmpdir, 'hello_world_esp32c3')
+    unity_test_path = os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
+    unity_test_path_c3 = os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3')
+    testdir.makepyfile(f"""
+        import pytest
+
+        def test_idf_custom_dev():
+            from pytest_embedded.dut_factory import DutFactory
+            dut = DutFactory.create(embedded_services='esp,idf', app_path=r'{p}')
+            dut.expect("Hello")
+
+        def test_idf_mixed(dut):
+            from pytest_embedded.dut_factory import DutFactory
+            dutc = DutFactory.create(embedded_services='esp,idf', app_path=r'{p_c3}')
+            dutc.expect("Hello")
+            dut.expect("Hello")
+            assert dutc.serial.port!=dut.serial.port
+
+        def test_idf_unity_tester():
+            from pytest_embedded.dut_factory import DutFactory
+            dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
+            dut2 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path_c3}')
+            tester = DutFactory.unity_tester(dut1, dut2)
+            tester.run_all_cases()
+
+        def test_idf_run_all_single_board_cases():
+            from pytest_embedded.dut_factory import DutFactory
+            dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
+            dut1.run_all_single_board_cases()
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--app-path', p,
+        '--embedded-services', 'esp,idf',
+        '--junitxml', 'report.xml',
+    )
+    result.assert_outcomes(passed=4, errors=0)
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '7'
+
+
 def test_idf_serial_flash_with_erase_nvs(testdir):
     testdir.makepyfile("""
         import pexpect
