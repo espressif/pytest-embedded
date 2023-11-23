@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.4.1a0 (2023-11-23)
+
+### Refactor
+
+- change threads to generator functions
+- change logic of threading control in CaseTester for MultiDev
+
 ## v1.4.0 (2023-11-07)
 
 ### Feat
