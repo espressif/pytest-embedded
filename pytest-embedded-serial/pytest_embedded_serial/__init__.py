@@ -8,4 +8,4 @@ __all__ = [
     'SerialDut',
 ]
 
-__version__ = '1.4.1a0'
+__version__ = '1.4.1'
