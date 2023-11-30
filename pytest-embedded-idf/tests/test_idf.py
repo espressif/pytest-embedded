@@ -556,10 +556,9 @@ def test_unity_test_case_runner(testdir):
     ]
 
     one_dev_dut = ['dut-0']
-    multi_dev_duts = ['dut-0', 'dut-1']
 
-    required_names_one_dev = [f'{case_name} [{dut}]' for dut in one_dev_dut for case_name in case_names_one_dev]
-    required_names_multi_dev = [f'{case_name} [{multi_dev_duts[0]}]' for case_name in case_names_multi_dev]
+    required_names_one_dev = [f'{case_name}' for _ in one_dev_dut for case_name in case_names_one_dev]
+    required_names_multi_dev = [f'{case_name}' for case_name in case_names_multi_dev]
 
     junit_case_names = [item.attrib['name'] for item in junit_report]
 

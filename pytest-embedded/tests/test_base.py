@@ -426,8 +426,8 @@ def test_expect_unity_test_output_multi_dut(testdir):
         'test case 4',
     ]
     required_names = []
-    for dut in ['dut-0', 'dut-1', 'dut-1']:
-        required_names.extend([f'{case_name} [{dut}]' for case_name in case_names])
+    for _ in ['dut-0', 'dut-1', 'dut-1']:
+        required_names.extend([f'{case_name}' for case_name in case_names])
 
     all_case_names = [item.attrib['name'] for item in junit_report]
 
@@ -473,8 +473,8 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     assert junit_report.attrib['tests'] == '2'
 
     required_names = [
-        'test_case [dut-0]',
-        'test_case [dut-1]',
+        'test_case',
+        'test_case',
     ]
     all_case_names = [item.attrib['name'] for item in junit_report]
 
