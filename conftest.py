@@ -18,6 +18,14 @@ def copy_fixtures(testdir):
     yield
 
 
+@pytest.fixture(autouse=True)
+def cache_file_remove(cache_dir):
+    yield
+    _cache_file_path = os.path.join(cache_dir, 'port_target_cache')
+    if os.path.exists(_cache_file_path):
+        os.remove(_cache_file_path)
+
+
 @pytest.fixture
 def first_index_of_messages():
     def _fake(_pattern: Pattern, _messages: List[str], _start: int = 0) -> int:
