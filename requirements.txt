@@ -7,3 +7,4 @@ flit
 # testing
 pytest-cov
 pytest-rerunfailures
+pytest-lazy-fixture
