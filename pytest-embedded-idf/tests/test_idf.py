@@ -546,23 +546,14 @@ def test_unity_test_case_runner(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '3'
 
-    case_names_one_dev = [
-        'normal_case1',
-        'normal_case2',
-        'multiple_stages_test',
-    ]
-    case_names_multi_dev = [
-        'multiple_devices_test',
-    ]
-
-    one_dev_dut = ['dut-0']
-
-    required_names_one_dev = [f'{case_name}' for _ in one_dev_dut for case_name in case_names_one_dev]
-    required_names_multi_dev = [f'{case_name}' for case_name in case_names_multi_dev]
-
-    junit_case_names = [item.attrib['name'] for item in junit_report]
-
-    assert sorted(required_names_one_dev + required_names_multi_dev) == sorted(junit_case_names)
+    assert junit_report[0].get('name') == 'normal_case1'
+    assert junit_report[0].find('failure') is None
+    assert junit_report[1].get('name') == 'normal_case2'
+    assert junit_report[1].find('failure') is not None
+    assert junit_report[2].get('name') == 'multiple_stages_test'
+    assert junit_report[2].find('failure') is None
+    assert junit_report[3].get('name') == 'multiple_devices_test'
+    assert junit_report[3].find('failure') is None
 
 
 def test_erase_all_with_port_cache(testdir):

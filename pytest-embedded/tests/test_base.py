@@ -419,19 +419,32 @@ def test_expect_unity_test_output_multi_dut(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '12'
 
-    case_names = [
-        'test_case',
-        'test_case_2',
-        'test case 3',
-        'test case 4',
-    ]
-    required_names = []
-    for _ in ['dut-0', 'dut-1', 'dut-1']:
-        required_names.extend([f'{case_name}' for case_name in case_names])
+    assert junit_report[0].get('name') == 'test_case'
+    assert junit_report[0].find('failure') is not None
+    assert junit_report[1].get('name') == 'test_case_2'
+    assert junit_report[1].find('failure') is not None
+    assert junit_report[2].get('name') == 'test case 3'
+    assert junit_report[2].find('failure') is None
+    assert junit_report[3].get('name') == 'test case 4'
+    assert junit_report[3].find('failure') is not None
 
-    all_case_names = [item.attrib['name'] for item in junit_report]
+    assert junit_report[4].get('name') == 'test_case'
+    assert junit_report[4].find('failure') is not None
+    assert junit_report[5].get('name') == 'test_case_2'
+    assert junit_report[5].find('failure') is not None
+    assert junit_report[6].get('name') == 'test case 3'
+    assert junit_report[6].find('failure') is None
+    assert junit_report[7].get('name') == 'test case 4'
+    assert junit_report[7].find('failure') is not None
 
-    assert sorted(required_names) == sorted(all_case_names)
+    assert junit_report[8].get('name') == 'test_case'
+    assert junit_report[8].find('failure') is not None
+    assert junit_report[9].get('name') == 'test_case_2'
+    assert junit_report[9].find('failure') is not None
+    assert junit_report[10].get('name') == 'test case 3'
+    assert junit_report[10].find('failure') is None
+    assert junit_report[11].get('name') == 'test case 4'
+    assert junit_report[11].find('failure') is not None
 
 
 def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
@@ -472,13 +485,11 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '2'
 
-    required_names = [
-        'test_case',
-        'test_case',
-    ]
-    all_case_names = [item.attrib['name'] for item in junit_report]
+    assert junit_report[0].get('name') == 'test_case'
+    assert junit_report[0].find('failure') is not None
+    assert junit_report[1].get('name') == 'test_case'
+    assert junit_report[1].find('failure') is not None
 
-    assert sorted(required_names) == sorted(all_case_names)
 
 
 def test_duplicate_stdout_popen(testdir):
