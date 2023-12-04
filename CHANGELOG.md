@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.4.2 (2023-12-04)
+
+### Feat
+
+- **unity**: Support data transfer with signal in multi-dut unity test cases
+
+### Fix
+
+- added interrupt if one of the test was failed
+- remove testcase name postfix
+
 ## v1.4.1 (2023-11-27)
 
 ### Refactor
