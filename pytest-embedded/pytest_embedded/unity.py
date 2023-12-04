@@ -248,8 +248,6 @@ class JunitMerger:
                     logging.info(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
                     _junit = ET.parse(_junit_file)
                     _root = _junit.getroot()
-                    for case in _root:  # one level down
-                        case.attrib['name'] += f' [{os.path.splitext(os.path.basename(_junit_file))[0]}]'
 
                     if _data is None:
                         _data = _junit
@@ -273,11 +271,7 @@ class JunitMerger:
             elif _junit_files[0] != merged_dut_junit_filepath:
                 _junit_file = _junit_files[0]
                 logging.info(f'Rename {_junit_file} to {merged_dut_junit_filepath}')
-                _junit = ET.parse(_junit_file)
-                _root = _junit.getroot()
-                for case in _root:  # one level down
-                    case.attrib['name'] += f' [{os.path.splitext(os.path.basename(_junit_file))[0]}]'
-                _junit.write(merged_dut_junit_filepath)
+                os.rename(_junit_file, merged_dut_junit_filepath)
 
             _merged_multi_dut_junit_files.append(merged_dut_junit_filepath)
 

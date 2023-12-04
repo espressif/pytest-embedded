@@ -473,15 +473,22 @@ class _MultiDevTestDut:
             try:
                 next(self.__iter__())
             except StopIteration as e:
-                self.response = _MultiDevTestDut.DevResponse(True, e.value)
+                self.response = _MultiDevTestDut.DevResponse(True, self.process_raw_report_data(e.value))
                 self.work.close()
             except TIMEOUT as e:
-                self.response = _MultiDevTestDut.DevResponse(True, e)
+                self.response = _MultiDevTestDut.DevResponse(True, self.process_raw_report_data(e))
                 self.work.close()
         return self.response
 
     def close(self):
         self.work.close()
+
+    def interrupt(self):
+        if not self.response.completed:
+            self.response = _MultiDevTestDut.DevResponse(
+                True, self.process_raw_report_data('Some of the dut failed, so this dut was interrupted.')
+            )
+            self.work.close()
 
     def run_case(self):
         yield from self._expect_exact(READY_PATTERN_LIST, self.wait_for_menu_timeout)
@@ -512,23 +519,34 @@ class _MultiDevTestDut:
                 # Send a signal
                 if self.SEND_SIGNAL_PREFIX in match_str:
                     send_sig = pat.group(1).decode('utf-8')
+
+                    sig_name, sig_data = send_sig, ''
+                    matched = re.search(r'(.*)\]\[(.*)', send_sig)
+                    if matched:
+                        sig_name, sig_data = matched.group(1), matched.group(2)
+
                     for i, q in enumerate(self.shared_message_query):
                         if i != self.dut_index:
-                            q.append(send_sig)
+                            q.append((sig_name, sig_data))
 
                 # Waiting for a signal
                 elif self.WAIT_SIGNAL_PREFIX in match_str:
                     wait_sig = pat.group(1).decode('utf-8')
                     while True:
                         yield
-                        if wait_sig in self.shared_message_query[self.dut_index]:
-                            self.shared_message_query[self.dut_index].remove(wait_sig)
-                            self.dut.write('')
-                            break
-                        # Keep waiting the signal
+
+                        for i, (sig_name, sig_data) in enumerate(self.shared_message_query[self.dut_index]):
+                            if wait_sig == sig_name:
+                                break
                         else:
+                            # Keep waiting the signal
                             if _start_time + self.runtest_timeout < time.perf_counter():
                                 raise TIMEOUT('Not receive signal %r' % wait_sig)
+                            continue
+
+                        self.shared_message_query[self.dut_index].remove((sig_name, sig_data))
+                        self.dut.write(sig_data)
+                        break
 
                 # Case finished
                 elif 'Tests' in match_str:
@@ -662,6 +680,10 @@ class MultiDevRunTestManager:
                     raise Exception('There are Exception: ', er)
                 if len(res) == len(self.workers):
                     return res
+
+                if any(True for r in res if r['result'] == 'FAIL'):
+                    for it in self.workers:
+                        it.interrupt()
         finally:
             for _t in self.workers:
                 _t.close()
@@ -776,8 +798,7 @@ class CaseTester:
         mdm = MultiDevRunTestManager(
             duts=self.dut, case=case, start_retry=start_retry, wait_for_menu_timeout=timeout, runtest_timeout=timeout
         )
-        res = mdm.gather()
-        data_to_report = mdm.get_processed_report_data(res)
+        data_to_report = mdm.gather()
         merged_data = mdm.get_merge_data(data_to_report)
         mdm.add_report_to_first_dut(merged_data)
 
