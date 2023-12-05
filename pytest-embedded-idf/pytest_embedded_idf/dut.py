@@ -1,3 +1,4 @@
+import importlib.util
 import logging
 import os
 import re
@@ -74,16 +75,18 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         Returns:
             Panic output decode script path
         """
-        script_filepath = self._panic_output_decode_script or os.path.join(
-            os.getenv('IDF_PATH', 'IDF_PATH'),
-            'tools',
-            'gdb_panic_server.py',
-        )
-        if not os.path.isfile(script_filepath):
-            raise ValueError(
-                'Panic output decode script not found. Please use --panic-output-decode-script flag '
-                'to provide script or set IDF_PATH (Default: $IDF_PATH/tools/gdb_panic_server.py)'
-            )
+
+        script_filepath = self._panic_output_decode_script
+        if not script_filepath or not os.path.isfile(script_filepath):
+            module = importlib.util.find_spec('esp_idf_panic_decoder.gdb_panic_server')
+            if not module:
+                raise ValueError(
+                    'Panic output decode script not found. '
+                    'Please use the --panic-output-decode-script flag to provide a script '
+                    'or install esp-idf-panic-decoder using the command: `pip install esp-idf-panic-decoder` .'
+                )
+            script_filepath = module.origin
+
         return os.path.realpath(script_filepath)
 
     def _check_panic_decode_trigger(self):  # type: () -> None
