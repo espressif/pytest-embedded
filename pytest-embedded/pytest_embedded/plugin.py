@@ -193,7 +193,7 @@ def pytest_addoption(parser):
     idf_group.addoption(
         '--panic-output-decode-script',
         help='Panic output decode script that is used in conjunction with the check-panic-coredump option '
-        'to parse panic output. (Default: $IDF_PATH/tools/gdb_panic_server.py)',
+        'to parse panic output. (Default: use gdb_panic_server.py from package esp_idf_panic_decoder)',
     )
 
     jtag_group = parser.getgroup('embedded-jtag')
