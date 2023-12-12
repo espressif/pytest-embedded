@@ -36,6 +36,7 @@ def DUT1(dut_helper):
 def DUT2(dut_helper):
     return dut_helper.dut2()
 
+
 @pytest.mark.parametrize(
 
     'embedded_services, count, port, baud', [
