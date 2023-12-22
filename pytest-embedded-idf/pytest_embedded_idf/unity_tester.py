@@ -72,6 +72,8 @@ class IdfUnityDutMixin:
 
         super().__init__(*args, **kwargs)
 
+        self._ignore_first_ready_pattern = False
+
     def confirm_write(
         self,
         write_str: t.Any,
@@ -219,16 +221,28 @@ class IdfUnityDutMixin:
 
         return test_menu
 
+    def _hard_reset(self) -> None:
+        if self._hard_reset_func:
+            try:
+                self._hard_reset_func()
+            except NotImplementedError:
+                # since menu printed but been expected (buffer has gone)... ignore the first ready pattern
+                self.confirm_write('\n', expect_pattern=READY_PATTERN_LIST)
+                self._ignore_first_ready_pattern = True
+                pass
+
+    def _get_ready(self, timeout: float = 30) -> None:
+        if self._ignore_first_ready_pattern:
+            self._ignore_first_ready_pattern = False
+        else:
+            self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
+
     @property
     def test_menu(self) -> t.List[UnittestMenuCase]:
         if self._test_menu is None:
             self._test_menu = self._parse_test_menu()
             logging.debug('Successfully parsed unity test menu')
-            if self._hard_reset_func:
-                try:
-                    self._hard_reset_func()
-                except NotImplementedError:
-                    self.write('\n')  # print the menu
+            self._hard_reset()
 
         return self._test_menu
 
@@ -254,11 +268,8 @@ class IdfUnityDutMixin:
             try:
                 # do it here since the first hard reset before test case shouldn't be counted in duration time
                 if 'reset' in kwargs:
-                    if kwargs.get('reset') and self._hard_reset_func:
-                        try:
-                            self._hard_reset_func()
-                        except NotImplementedError:
-                            self.write('\n')  # print the menu
+                    if kwargs.get('reset'):
+                        self._hard_reset()
 
                 _start_at = time.perf_counter()
                 func(self, *args, **kwargs)
@@ -345,7 +356,7 @@ class IdfUnityDutMixin:
             logging.warning('case %s is not a normal case', case.name)
             return
 
-        self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
+        self._get_ready(timeout)
         self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
     @_record_single_unity_test_case
@@ -378,10 +389,11 @@ class IdfUnityDutMixin:
             if _timeout < 0:  # pexpect process would expect 30s if < 0
                 _timeout = 0
 
-            self.expect_exact(READY_PATTERN_LIST, timeout=_timeout)
+            self._get_ready(timeout)
             self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
             # here we can't use confirm_write because the sub cases won't print anything
+            time.sleep(1)
             self.write(str(sub_case['index']))
 
             _timestamp = time.perf_counter()
