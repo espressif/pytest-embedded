@@ -190,8 +190,8 @@ class _SerialRedirectThread(threading.Thread):
                 self._block_reading = False
             elif _e == 'end':
                 return
-
-            time.sleep(0.05)  # set interval
+            if self._s.baudrate <= 115200:
+                time.sleep(0.05)  # set interval
 
     def stop_reading(self):
         self._event_q.put('stop')
