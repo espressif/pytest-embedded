@@ -1,8 +1,10 @@
+import asyncio
 import os
 import shlex
 import typing as t
 
 from pytest_embedded.log import DuplicateStdoutPopen
+from qemu.qmp import QMPClient
 
 from . import DEFAULT_IMAGE_FN
 
@@ -25,6 +27,8 @@ class Qemu(DuplicateStdoutPopen):
 
     QEMU_STRAP_MODE_FMT = '-global driver=esp32.gpio,property=strap_mode,value={}'
     QEMU_SERIAL_TCP_FMT = '-serial tcp::{},server,nowait'
+
+    QEMU_DEFAULT_QMP = '-qmp tcp:localhost:4488,server,wait=off'
 
     def __init__(
         self,
@@ -49,9 +53,23 @@ class Qemu(DuplicateStdoutPopen):
             raise ValueError(f'QEMU image path doesn\'t exist: {image_path}')
 
         qemu_prog_path = qemu_prog_path or self.qemu_prog_name
+
+        if qemu_cli_args:
+            qemu_cli_args = qemu_cli_args.strip("\"").strip("\'")
         qemu_cli_args = shlex.split(qemu_cli_args or self.qemu_default_args)
         qemu_extra_args = shlex.split(qemu_extra_args or '')
 
+        self.qmp_addr = None
+        self.qmp_port = None
+        self.qmp = QMPClient()
+
+        for i, v in enumerate(qemu_cli_args):
+            if v == '-qmp':
+                d = qemu_cli_args[i + 1]
+                if not d.startswith('tcp'):
+                    raise ValueError('Please use TCP for qmp, example: -qmp tcp:localhost:4488,server,wait=off')
+                cmd = d.split(',')[0]
+                _, self.qmp_addr, self.qmp_port = cmd.split(':')
         super().__init__(
             cmd=[qemu_prog_path, *qemu_cli_args, *qemu_extra_args] + ['-drive', f'file={image_path},if=mtd,format=raw'],
             **kwargs,
@@ -77,11 +95,25 @@ class Qemu(DuplicateStdoutPopen):
 
         return self.QEMU_DEFAULT_ARGS
 
+    def qmp_execute_cmd(self, execute, arguments=None):
+        response = None
+
+        async def h_r():
+            nonlocal response
+            try:
+                await self.qmp.connect((str(self.qmp_addr), int(self.qmp_port)))
+                response = await self.qmp.execute(execute, arguments=arguments)
+            finally:
+                await self.qmp.disconnect()
+
+        asyncio.run(h_r())
+        return response
+
     def _hard_reset(self):
         """
         This is a fake hard_reset. Keep this API to keep the consistency.
         """
-        # TODO: implement with QMP
-        #  https://gitlab.com/qemu-project/python-qemu-qmp/-/issues/6
-        #  for now got so many unexpected exceptions while __del__
-        raise NotImplementedError
+        self.qmp_execute_cmd('system_reset')
+
+    def take_screenshot(self, image_path):
+        self.qmp_execute_cmd('screendump', arguments={'filename': image_path})

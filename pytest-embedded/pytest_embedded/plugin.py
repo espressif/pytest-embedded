@@ -1088,6 +1088,7 @@ def _fixture_classes_and_options(
                             'skip_regenerate_image': skip_regenerate_image,
                             'encrypt': encrypt,
                             'keyfile': keyfile,
+                            'qemu_prog_path': qemu_prog_path,
                         }
                     )
                 else:
