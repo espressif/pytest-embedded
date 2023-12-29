@@ -23,3 +23,6 @@ class QemuDut(Dut):
 
     def write(self, s: AnyStr) -> None:
         self.qemu.write(s)
+
+    def hard_reset(self):
+        self._hard_reset_func()

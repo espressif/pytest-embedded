@@ -1205,6 +1205,7 @@ def _fixture_classes_and_options(
                     'qemu_extra_args': qemu_extra_args,
                     'app': None,
                     'meta': _meta,
+                    'dut_index': dut_index,
                 }
         elif fixture == 'wokwi':
             if 'wokwi' in _services:
