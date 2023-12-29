@@ -16,7 +16,7 @@ jobs:
       - multiboard
     strategy:
       matrix:
-        python-version: ['3.7', '3.11']
+        python-version: ['3.7', '3.12']
       fail-fast: false
     container:
       image: python:${{ matrix.python-version }}-bullseye
