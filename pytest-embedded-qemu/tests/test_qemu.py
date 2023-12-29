@@ -34,6 +34,32 @@ def test_pexpect_by_qemu_xtensa(testdir):
 
 
 @qemu_bin_required
+def test_pexpect_make_restart_by_qemu_xtensa(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_pexpect_by_qemu(dut):
+            dut.expect('Hello world!')
+            dut.hard_reset()
+            dut.expect('cpu_start')
+            dut.expect('Hello world!')
+            dut.hard_reset()
+            dut.expect('cpu_start')
+            dut.expect('Hello world!')
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf,qemu',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--qemu-cli-args="-qmp tcp:localhost:4488,server,wait=off -machine esp32 -nographic"',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@qemu_bin_required
 def test_pexpect_by_qemu_riscv(testdir):
     testdir.makepyfile("""
         import pexpect

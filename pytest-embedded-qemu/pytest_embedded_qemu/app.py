@@ -162,6 +162,7 @@ class QemuApp(IdfApp):
         if self.encrypt:
             self.encrypted_image_path = os.path.join(self.binary_path, ENCRYPTED_IMAGE_FN)
 
+        self.qemu_prog_path = kwargs.get('qemu_prog_path', 'qemu-system-xtensa')
         self.create_image()
 
     @property
@@ -176,7 +177,7 @@ class QemuApp(IdfApp):
         if self._QEMU_VERSION is not None:
             return self._QEMU_VERSION
 
-        s = subprocess.check_output(['qemu-system-xtensa', '--version'], encoding='utf-8')
+        s = subprocess.check_output([self.qemu_prog_path, '--version'], encoding='utf-8')
         version = self.QEMU_VERSION_REGEX.search(s)
         if version is None:
             raise ValueError(f'Could not parse QEMU version from {s}')

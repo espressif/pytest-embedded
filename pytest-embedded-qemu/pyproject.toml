@@ -30,6 +30,7 @@ requires-python = ">=3.7"
 
 dependencies = [
     "pytest-embedded~=1.5.0",
+    "qemu.qmp==0.0.3"
 ]
 
 [project.optional-dependencies]
