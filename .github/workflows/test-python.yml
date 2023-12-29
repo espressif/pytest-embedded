@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '**.py'
+      - .github/workflows/test-python.yml
       - '!docs/**'
   push:
     branches: [ main ]
