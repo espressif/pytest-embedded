@@ -4,9 +4,15 @@ on:
   pull_request:
     paths:
       - '**.py'
+      - .github/workflows/test-python.yml
       - '!docs/**'
   push:
     branches: [ main ]
+
+# cancel jobs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-python:
@@ -16,7 +22,7 @@ jobs:
       - multiboard
     strategy:
       matrix:
-        python-version: ['3.7', '3.11']
+        python-version: ['3.7', '3.12']
       fail-fast: false
     container:
       image: python:${{ matrix.python-version }}-bullseye
