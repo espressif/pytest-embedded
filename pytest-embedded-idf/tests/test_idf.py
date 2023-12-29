@@ -380,6 +380,32 @@ def test_hello_world_linux(testdir):
 
     result.assert_outcomes(passed=1)
 
+@pytest.mark.skipif(platform.machine() != 'x86_64', reason='The test is intended to be run on an x86_64 machine.')
+def test_unity_tester_with_linux(testdir):
+    testdir.makepyfile(r"""
+
+    def test_unity_tester_with_linux(dut):
+        dut.run_all_single_board_cases()
+    """
+    )
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'idf',
+        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_linux")}',
+        '--target', 'linux',
+        '--junitxml', 'report.xml',
+    )
+
+    result.assert_outcomes(passed=1)
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '0'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '46'
+
 
 @toolchain_required
 def test_check_coredump(testdir, caplog, first_index_of_messages):
