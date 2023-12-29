@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.5.0 (2023-12-29)
+
+### Feat
+
+- use gdb_panic_server from esp_idf_panic_decoder instead static $IDF_PATH/tools/gdb_panic_server.py
+
+### Fix
+
+- **unity**: make single board test procedure more robust
+
 ## v1.4.2 (2023-12-04)
 
 ### Feat

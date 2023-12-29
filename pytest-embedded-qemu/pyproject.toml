@@ -29,12 +29,12 @@ dynamic = ["version", "description"]
 requires-python = ">=3.7"
 
 dependencies = [
-    "pytest-embedded~=1.4.2",
+    "pytest-embedded~=1.5.0",
 ]
 
 [project.optional-dependencies]
 idf = [
-    "pytest-embedded-idf~=1.4.2",
+    "pytest-embedded-idf~=1.5.0",
 ]
 
 [project.urls]
