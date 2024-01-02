@@ -393,7 +393,7 @@ class IdfUnityDutMixin:
             self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
             # here we can't use confirm_write because the sub cases won't print anything
-            time.sleep(1)
+            # can't rely on time.sleep either cause it will break some time-related child cases
             self.write(str(sub_case['index']))
 
             _timestamp = time.perf_counter()
