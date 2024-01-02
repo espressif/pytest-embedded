@@ -17,13 +17,18 @@ concurrency:
 jobs:
   test-python:
     timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - python-version: '3.7'
+            arch: 'ARM'
+          - python-version: '3.12'
+            arch: 'X64'
+      fail-fast: false
     runs-on:
       - self-hosted
       - multiboard
-    strategy:
-      matrix:
-        python-version: ['3.7', '3.12']
-      fail-fast: false
+      - ${{ matrix.arch }}
     container:
       image: python:${{ matrix.python-version }}-bullseye
       options: --privileged
