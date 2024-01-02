@@ -22,6 +22,8 @@ class LinuxDut(Dut):
         self.serial = serial
         super().__init__(**kwargs)
 
+        self._hard_reset_func = self.serial.hard_reset
+
     def write(self, data: t.AnyStr) -> None:
         self.serial.write(data)
 
@@ -45,3 +47,9 @@ class LinuxSerial(DuplicateStdoutPopen):
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: "linux".')
 
         super().__init__(cmd=[self.app.elf_file], **kwargs)
+
+    def hard_reset(self) -> None:
+        """
+        Perform a fake hardware reset
+        """
+        self.write('\n')

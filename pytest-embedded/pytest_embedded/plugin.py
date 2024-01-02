@@ -1230,6 +1230,12 @@ def _fixture_classes_and_options(
                 'test_case_name': test_case_name,
                 'meta': _meta,
             }
+            if 'idf' in _services and 'esp' not in _services:
+                # esp,idf will use IdfDut, which based on IdfUnityDutMixin already
+                from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
+
+                mixins[fixture].append(IdfUnityDutMixin)
+
             if 'wokwi' in _services:
                 from pytest_embedded_wokwi import WokwiDut
 
@@ -1241,15 +1247,12 @@ def _fixture_classes_and_options(
                 )
 
                 if 'idf' in _services:
-                    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
                     from pytest_embedded_wokwi.idf import IDFFirmwareResolver
 
                     kwargs['wokwi'].update({'firmware_resolver': IDFFirmwareResolver()})
-
-                    mixins[fixture].append(IdfUnityDutMixin)
                 else:
                     raise SystemExit('wokwi service should be used together with idf service')
-            if 'qemu' in _services:
+            elif 'qemu' in _services:
                 from pytest_embedded_qemu import QemuDut
 
                 classes[fixture] = QemuDut
@@ -1258,11 +1261,6 @@ def _fixture_classes_and_options(
                         'qemu': None,
                     }
                 )
-
-                if 'idf' in _services:
-                    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
-
-                    mixins[fixture].append(IdfUnityDutMixin)
             elif 'jtag' in _services:
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
@@ -1411,18 +1409,18 @@ def dut(
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
     """
+    kwargs = _fixture_classes_and_options.kwargs['dut']
+    mixins = _fixture_classes_and_options.mixins['dut']
+
+    # since there's no way to know the target before setup finished
+    # we have to use the `app.target` to determine the dut class here
     if hasattr(app, 'target') and app.target == 'linux':
         from pytest_embedded_idf import LinuxDut
 
         cls = LinuxDut
-        kwargs = _fixture_classes_and_options.kwargs['dut']
-        kwargs['serial'] = serial
-
-        return cls(**kwargs)
-
-    cls = _fixture_classes_and_options.classes['dut']
-    mixins = _fixture_classes_and_options.mixins['dut']
-    kwargs = _fixture_classes_and_options.kwargs['dut']
+        kwargs['serial'] = None  # replace it later with LinuxSerial
+    else:
+        cls = _fixture_classes_and_options.classes['dut']
 
     for k, v in kwargs.items():
         if v is None:

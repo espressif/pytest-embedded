@@ -30,7 +30,7 @@ jobs:
       - multiboard
       - ${{ matrix.arch }}
     container:
-      image: python:${{ matrix.python-version }}-bullseye
+      image: python:${{ matrix.python-version }}
       options: --privileged
     steps:
       - uses: actions/checkout@v4
