@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.6.0 (2024-01-02)
+
+### Feat
+
+- Support qemu qmp
+
+### Fix
+
+- **idf**: make LinuxDut inherit from IdfUnityDutMixin
+- **unity**: remove extra time sleep inside multi-stage tests
+
 ## v1.5.0 (2023-12-29)
 
 ### Feat
