@@ -61,7 +61,6 @@ class Qemu(DuplicateStdoutPopen):
 
         self.qmp_addr = None
         self.qmp_port = None
-        self.qmp = QMPClient()
 
         dut_index = int(kwargs.pop('dut_index', 0))
         for i, v in enumerate(qemu_cli_args):
@@ -110,11 +109,13 @@ class Qemu(DuplicateStdoutPopen):
 
         async def h_r():
             nonlocal response
+
+            qmp = QMPClient()
             try:
-                await self.qmp.connect((str(self.qmp_addr), int(self.qmp_port)))
-                response = await self.qmp.execute(execute, arguments=arguments)
+                await qmp.connect((str(self.qmp_addr), int(self.qmp_port)))
+                response = await qmp.execute(execute, arguments=arguments)
             finally:
-                await self.qmp.disconnect()
+                await qmp.disconnect()
 
         asyncio.run(h_r())
         return response
