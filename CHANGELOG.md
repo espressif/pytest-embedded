@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.6.1 (2024-01-04)
+
+### Fix
+
+- **qemu**: fix qmp client missing event loop in main thread
+
 ## v1.6.0 (2024-01-02)
 
 ### Feat
