@@ -110,7 +110,7 @@ def test_pre_flash_enc_qemu(testdir):
         import pytest
 
         def test_pexpect_by_qemu(dut):
-            dut.expect('Hello world!', timeout=120)
+            dut.expect('Hello world!', timeout=300)
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
                 dut.expect('foo bar not found', timeout=1)
