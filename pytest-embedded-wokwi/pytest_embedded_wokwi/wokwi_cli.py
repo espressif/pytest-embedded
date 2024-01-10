@@ -19,6 +19,7 @@ target_to_board = {
     'esp32c3': 'board-esp32-c3-devkitm-1',
     'esp32c6': 'board-esp32-c6-devkitc-1',
     'esp32h2': 'board-esp32-h2-devkitm-1',
+    'esp32p4': 'board-esp32-p4-preview',
     'esp32s2': 'board-esp32-s2-devkitm-1',
     'esp32s3': 'board-esp32-s3-devkitc-1',
 }
