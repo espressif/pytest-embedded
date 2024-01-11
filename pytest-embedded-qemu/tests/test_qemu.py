@@ -53,7 +53,7 @@ def test_pexpect_make_restart_by_qemu_xtensa(testdir):
         '-s',
         '--embedded-services', 'idf,qemu',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--qemu-cli-args="-qmp tcp:localhost:4488,server,wait=off -machine esp32 -nographic"',
+        '--qemu-cli-args="-machine esp32 -nographic"',
     )
 
     result.assert_outcomes(passed=1)
