@@ -39,7 +39,7 @@ jobs:
           apt update && apt install -y socat zip
           pip install -U pip
           export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
-          pip install cryptography --only-binary :all:
+          pip install cryptography --prefer-binary
           pip install -r requirements.txt
           bash foreach.sh install
       - name: Check ports
