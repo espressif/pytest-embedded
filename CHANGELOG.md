@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.6.2 (2024-01-15)
+
+### Feat
+
+- **wokwi**: preliminary esp32p4 support
+
+### Fix
+
+- use socket bind to get allowed port
+
 ## v1.6.1 (2024-01-04)
 
 ### Fix
