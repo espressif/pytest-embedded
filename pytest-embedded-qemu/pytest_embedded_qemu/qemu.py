@@ -1,6 +1,7 @@
 import asyncio
 import os
 import shlex
+import socket
 import typing as t
 
 from pytest_embedded.log import DuplicateStdoutPopen
@@ -28,7 +29,7 @@ class Qemu(DuplicateStdoutPopen):
     QEMU_STRAP_MODE_FMT = '-global driver=esp32.gpio,property=strap_mode,value={}'
     QEMU_SERIAL_TCP_FMT = '-serial tcp::{},server,nowait'
 
-    QEMU_DEFAULT_QMP_FMT = '-qmp tcp:localhost:{},server,wait=off'
+    QEMU_DEFAULT_QMP_FMT = '-qmp tcp:127.0.0.1:{},server,wait=off'
 
     def __init__(
         self,
@@ -75,8 +76,10 @@ class Qemu(DuplicateStdoutPopen):
                 qemu_cli_args[i + 1] = ','.join(cmd)
                 break
         else:
-            self.qmp_addr = 'localhost'
-            self.qmp_port = 4488 + dut_index
+            self.qmp_addr = '127.0.0.1'
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((self.qmp_addr, 0))
+                _, self.qmp_port = s.getsockname()
             qemu_cli_args += shlex.split(self.QEMU_DEFAULT_QMP_FMT.format(self.qmp_port))
 
         super().__init__(
