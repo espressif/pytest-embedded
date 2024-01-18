@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.6.3 (2024-01-18)
+
+### Fix
+
+- **wokwi**: run in interactive mode
+
 ## v1.6.2 (2024-01-15)
 
 ### Feat
