@@ -54,7 +54,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         wokwi_cli = wokwi_cli_path or self.wokwi_cli_executable
 
         super().__init__(
-            cmd=[wokwi_cli, app.app_path],
+            cmd=[wokwi_cli, '--interactive', app.app_path],
             **kwargs,
         )
 
