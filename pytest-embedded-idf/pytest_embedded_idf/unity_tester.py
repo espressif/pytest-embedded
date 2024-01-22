@@ -310,8 +310,15 @@ class IdfUnityDutMixin:
 
         # real parsing
         if len(res) == 0:
-            logging.warning(f'unity test case not found, use case {case.name} instead')
-            attrs = {'name': case.name, 'result': 'FAIL', 'message': self.pexpect_proc.buffer_debug_str}
+            logging.warning(
+                'unity test case not found, probably due to a timeout. Assume the current test case is "%s"',
+                case.name,
+            )
+            attrs = {
+                'name': case.name,
+                'result': 'FAIL',
+                'message': self.pexpect_proc.buffer_debug_str or 'timeout',
+            }
         elif len(res) == 1:
             attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
         else:
@@ -611,11 +618,14 @@ class _MultiDevTestDut:
 
         # real parsing
         if len(res) == 0:
-            logging.warning(f'unity test case not found, use case {self.case.name} instead')
+            logging.warning(
+                'unity test case not found, probably due to a timeout. Assume the current test case is "%s"',
+                self.case.name,
+            )
             attrs = {
                 'name': self.case.name,
                 'result': 'FAIL',
-                'message': self.dut.pexpect_proc.buffer_debug_str,
+                'message': self.dut.pexpect_proc.buffer_debug_str or 'timeout',
                 'time': time.perf_counter() - self.init_time,
             }
         elif len(res) == 1:
