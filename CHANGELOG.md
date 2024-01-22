@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.6.4 (2024-01-22)
+
+### Fix
+
+- **unity**: avoid missing attr `message` in `failure` nodes
+
 ## v1.6.3 (2024-01-18)
 
 ### Fix
