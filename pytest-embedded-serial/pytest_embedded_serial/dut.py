@@ -38,6 +38,7 @@ class SerialDut(Dut):
         self.telnet = telnet
 
         self.setup_jtag()
+        self.register_additional_expect_sources()
 
     def write(self, data: AnyStr) -> None:
         self.serial.proc.write(to_bytes(data, '\n'))

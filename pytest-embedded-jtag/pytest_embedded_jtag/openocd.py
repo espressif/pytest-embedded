@@ -1,4 +1,3 @@
-import logging
 import os
 import shlex
 import telnetlib
@@ -6,7 +5,7 @@ import time
 from typing import AnyStr, Optional
 
 from pytest_embedded.log import DuplicateStdoutPopen
-from pytest_embedded.utils import to_bytes, to_str
+from pytest_embedded.utils import to_bytes
 
 
 class OpenOcd(DuplicateStdoutPopen):
@@ -65,16 +64,5 @@ class OpenOcd(DuplicateStdoutPopen):
         else:
             raise ConnectionRefusedError
 
-    def write(self, s: AnyStr) -> str:
-        # read all output already sent
-        resp = self.telnet.read_very_eager()
-        if resp:
-            logging.debug(f'{self.SOURCE} <-: {to_str(resp)}')
-
-        logging.debug(f'{self.SOURCE} ->: {to_str(s)}')
+    def write(self, s: AnyStr) -> None:
         self.telnet.write(to_bytes(s, '\n'))
-
-        resp = self.telnet.read_until(b'>')
-
-        logging.debug(f'{self.SOURCE} <-: {to_str(resp)}')
-        return to_str(resp)
