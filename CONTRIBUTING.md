@@ -5,7 +5,7 @@
 We use [pre-commit](https://pre-commit.com) for code formatting, and some linter checks. You can install it by
 
 ```shell
-$ pre-commit install
+$ pre-commit install -t pre-commit -t commit-msg
 ```
 
 We use [commitizen](https://github.com/commitizen-tools/commitizen) to auto generate the [CHANGELOG.md](./CHANGELOG.md).
