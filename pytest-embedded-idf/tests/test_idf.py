@@ -35,6 +35,63 @@ def test_idf_serial_flash(testdir):
     result.assert_outcomes(passed=1)
 
 
+def test_expect_no_matching(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+        import re
+
+        def test_no_matching_list(dut):
+            dut.expect('world!', not_matching=[re.compile("Hell"), "Hello"])
+
+        def test_no_matching_word(dut):
+            dut.expect('Restarting', not_matching="Hello world!")
+
+        def test_no_matching_word_pass(dut):
+            dut.expect('Restarting', not_matching="Hello world!333")
+
+        def test_no_matching_word_pass_rest(dut):
+            dut.expect('Hello world', not_matching="Restarting")
+
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+
+    result.assert_outcomes(passed=2, failed=2)
+
+
+def test_expect_exact_no_matching(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_no_matching_list(dut):
+            dut.expect_exact('world!', not_matching=["Hell1", "Hello"])
+
+        def test_no_matching_word(dut):
+            dut.expect_exact('Restarting', not_matching="Hello world!")
+
+        def test_no_matching_word_pass(dut):
+            dut.expect_exact('Restarting', not_matching="Hello world!333")
+
+        def test_no_matching_word_pass_rest(dut):
+            dut.expect_exact('Hello world', not_matching="Restarting")
+
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+
+    result.assert_outcomes(passed=2, failed=2)
+
+
 def test_idf_serial_flash_with_erase_nvs(testdir):
     testdir.makepyfile("""
         import pexpect
