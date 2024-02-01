@@ -2,6 +2,7 @@ import functools
 import logging
 import multiprocessing
 import os.path
+import re
 from typing import AnyStr, Callable, List, Match, Optional, Union
 
 import pexpect
@@ -66,7 +67,7 @@ class Dut(_InjectMixinCls):
     def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:  # noqa
         @functools.wraps(func)  # noqa
         def wrapper(
-            self, pattern, *args, expect_all: bool = False, **kwargs
+            self, pattern, *args, expect_all: bool = False, not_matching: List[Union[str, re.Pattern]] = (), **kwargs
         ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
             patterns = to_list(pattern)
             res = []
@@ -80,11 +81,20 @@ class Dut(_InjectMixinCls):
                         f'Please check the full log here: {self.logfile}'
                     )
                     raise e.__class__(debug_str) from e
+
+                if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
+                    res.append(self.pexpect_proc.before.rstrip())
                 else:
-                    if self.pexpect_proc.match in [pexpect.EOF, pexpect.TIMEOUT]:
-                        res.append(self.pexpect_proc.before.rstrip())
-                    else:
-                        res.append(self.pexpect_proc.match)
+                    res.append(self.pexpect_proc.match)
+
+                for nm_pattern in to_list(not_matching):
+                    if isinstance(nm_pattern, str):
+                        nm_pattern = re.compile(nm_pattern.encode())
+                    if isinstance(nm_pattern.pattern, str):
+                        nm_pattern = re.compile(nm_pattern.pattern.encode())
+
+                    if nm_pattern.search(self.pexpect_proc.before):
+                        raise ValueError(f'The pattern {nm_pattern} should not have been matched.')
 
                 if expect_all:
                     patterns.pop(index)
@@ -110,6 +120,7 @@ class Dut(_InjectMixinCls):
             timeout (float): would raise `pexpect.TIMEOUT` exception when pattern is not matched after timeout
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
+            not_matching: string, or compiled regex, or a list of string and compiled regex.
 
         Returns:
             `AnyStr` or `re.Match`
@@ -131,6 +142,7 @@ class Dut(_InjectMixinCls):
             timeout (float): would raise `pexpect.TIMEOUT` exception when pattern is not matched after timeout
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
+            not_matching: string, or compiled regex, or a list of string and compiled regex.
 
         Returns:
             `AnyStr` or `re.Match`
