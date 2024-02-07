@@ -109,8 +109,10 @@ class IdfSerial(EspSerial):
             )
 
     def _force_flag(self):
+        if self.esp_flash_force:
+            return ['--force']
         config = self.app.sdkconfig
-        if any((config.get('CONFIG_SECURE_FLASH_ENC_ENABLED', False), config.get('CONFIG_SECURE_BOOT', False))):
+        if any((config.get('SECURE_FLASH_ENC_ENABLED', False), config.get('SECURE_BOOT', False))):
             return ['--force']
         return []
 
@@ -159,25 +161,19 @@ class IdfSerial(EspSerial):
         flash_files = []
         for file in self.app.flash_files:
             if file.encrypted:
-                encrypt_files.append(hex(file.offset))
-                encrypt_files.append(str(file.file_path))
+                encrypt_files.extend([hex(file.offset), str(file.file_path)])
             else:
-                flash_files.append(hex(file.offset))
-                flash_files.append(file.file_path)
+                flash_files.extend([hex(file.offset), str(file.file_path)])
 
         if flash_files and encrypt_files:
-            _args.extend(flash_files)
-            _args.append('--encrypt-files')
-            _args.extend(encrypt_files)
+            _args.extend([*flash_files, '--encrypt-files', *encrypt_files])
         else:
             if flash_files:
                 _args.extend(flash_files)
             else:
-                _args.append('--encrypt')
-                _args.extend(encrypt_files)
+                _args.extend(['--encrypt', *encrypt_files])
 
-        _args.extend(self.app.flash_args['write_flash_args'])
-        _args.extend(self._force_flag())
+        _args.extend([*self.app.flash_args['write_flash_args'], *self._force_flag()])
 
         esptool.main(_args, esp=self.esp)
 

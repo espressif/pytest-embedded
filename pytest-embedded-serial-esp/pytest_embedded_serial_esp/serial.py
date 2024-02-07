@@ -55,6 +55,7 @@ class EspSerial(Serial):
         port_mac: str = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
+        esp_flash_force: bool = False,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         meta: Optional[Meta] = None,
@@ -119,6 +120,7 @@ class EspSerial(Serial):
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
+        self.esp_flash_force = esp_flash_force
 
         super().__init__(msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, **kwargs)
 
@@ -175,7 +177,11 @@ class EspSerial(Serial):
     def erase_flash(self):
         """Erase the complete flash"""
         logging.info('Erasing the flash')
-        esptool.main(['erase_flash', '--force'], esp=self.esp)
+        options = ['erase_flash']
+        if self.esp_flash_force:
+            options.append('--force')
+
+        esptool.main(options, esp=self.esp)
 
         if self._meta:
             self._meta.drop_port_app_cache(self.port)

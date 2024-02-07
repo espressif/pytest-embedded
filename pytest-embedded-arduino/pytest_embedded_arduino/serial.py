@@ -51,6 +51,9 @@ class ArduinoSerial(EspSerial):
             flash_settings.append(f'--{k}')
             flash_settings.append(v)
 
+        if self.esp_flash_force:
+            flash_settings.append('--force')
+
         try:
             esptool.main(
                 ['--chip', self.app.target, 'write_flash', *flash_files, *flash_settings],
