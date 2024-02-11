@@ -250,6 +250,12 @@ def pytest_addoption(parser):
         '--wokwi-cli-path',
         help='Path to the wokwi-cli program (Default: "wokwi-cli")',
     )
+    wokwi_group.addoption(
+        '--wokwi-timeout',
+        default=86400000,
+        type=_gte_one_int,
+        help='Simulation timeout in milliseconds (Default: 86400000)',
+    )
 
 
 ###########
@@ -978,6 +984,13 @@ def wokwi_cli_path(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'wokwi_cli_path', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def wokwi_timeout(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'wokwi_timeout', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -1039,6 +1052,7 @@ def _fixture_classes_and_options(
     qemu_cli_args,
     qemu_extra_args,
     wokwi_cli_path,
+    wokwi_timeout,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -1215,6 +1229,7 @@ def _fixture_classes_and_options(
                 kwargs[fixture].update(
                     {
                         'wokwi_cli_path': wokwi_cli_path,
+                        'wokwi_timeout': wokwi_timeout,
                         'msg_queue': msg_queue,
                         'app': None,
                         'meta': _meta,
