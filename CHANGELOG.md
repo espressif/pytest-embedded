@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.7.0 (2024-02-14)
+
+### Feat
+
+- **wokwi**: support for specifying simulation timeout
+- support expect with `not_matching` keyword
+
 ## v1.6.4 (2024-01-22)
 
 ### Fix
