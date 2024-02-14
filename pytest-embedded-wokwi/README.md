@@ -35,3 +35,17 @@ Windows PowerShell:
 ```powershell
 $env:WOKWI_CLI_TOKEN="your-api-key"
 ```
+
+#### Usage
+
+To run your tests with Wokwi, make sure to specify the `wokwi` service when running pytest, e.g.:
+
+```
+pytest --embedded-services idf,wokwi
+```
+
+To limit the amount of simulation time, use the `--wokwi-timeout` flag. For example, to set the simulation time limit to 60 seconds (60000 milliseconds):
+
+```
+pytest --embedded-services idf,wokwi --wokwi-timeout=60000
+```
