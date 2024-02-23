@@ -1,12 +1,11 @@
+import contextlib
 import hashlib
 import logging
-import os
 import tempfile
 from typing import Optional, TextIO, Union
 
 import esptool
-from pytest_embedded.log import live_print_call
-from pytest_embedded_serial_esp.serial import EspSerial, EsptoolArgs
+from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
 
@@ -84,30 +83,38 @@ class IdfSerial(EspSerial):
         if self.app.bin_file:
             bin_file = self.app.bin_file
         else:
-            live_print_call(
-                [
-                    'esptool.py',
-                    '--chip',
-                    self.app.target,
-                    'elf2image',
-                    self.app.elf_file,
-                    *self.app.write_flash_args,
-                ],
-                msg_queue=self._q,
-            )
+            with contextlib.redirect_stdout(self._q):
+                esptool.main(
+                    [
+                        '--chip',
+                        self.app.target,
+                        'elf2image',
+                        self.app.elf_file,
+                        *self.app.write_flash_args,
+                    ],
+                    esp=self.esp,
+                )
             bin_file = self.app.elf_file.replace('.elf', '.bin')
 
-        live_print_call(
-            [
-                'esptool.py',
-                '--chip',
-                self.app.target,
-                '--no-stub',
-                'load_ram',
-                bin_file,
-            ],
-            msg_queue=self._q,
-        )
+        with contextlib.redirect_stdout(self._q):
+            esptool.main(
+                [
+                    '--chip',
+                    self.app.target,
+                    '--no-stub',
+                    'load_ram',
+                    bin_file,
+                ],
+                esp=self.esp,
+            )
+
+    def _force_flag(self):
+        if self.esp_flash_force:
+            return ['--force']
+        config = self.app.sdkconfig
+        if any((config.get('SECURE_FLASH_ENC_ENABLED', False), config.get('SECURE_BOOT', False))):
+            return ['--force']
+        return []
 
     @EspSerial.use_esptool()
     def flash(self) -> None:
@@ -122,59 +129,56 @@ class IdfSerial(EspSerial):
             logging.error('No flash settings detected. Skipping auto flash...')
             return
 
-        flash_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if not file.encrypted]
-        encrypt_files = [(file.offset, open(file.file_path, 'rb')) for file in self.app.flash_files if file.encrypted]
-
-        nvs_file = None
-        try:
-            if self.erase_nvs:
-                address = self.app.partition_table['nvs']['offset']
-                size = self.app.partition_table['nvs']['size']
-                nvs_file = tempfile.NamedTemporaryFile(delete=False)
-                nvs_file.write(b'\xff' * size)
-                if not isinstance(address, int):
-                    address = int(address, 0)
-
-                if self.app.flash_settings['encrypt']:
-                    encrypt_files.append((address, open(nvs_file.name, 'rb')))
+        _args = []
+        for k, v in self.app.flash_args['extra_esptool_args'].items():
+            if isinstance(v, bool):
+                if k == 'stub':
+                    if v is False:
+                        _args.append('--no-stub')
+                elif v:
+                    _args.append(f'--{k}')
+            else:
+                _args.append(f'--{k}')
+                if k == 'after':
+                    _args.append('hard_reset')
                 else:
-                    flash_files.append((address, open(nvs_file.name, 'rb')))
+                    _args.append(str(v))
 
-            # write_flash expects the parameter encrypt_files to be None and not
-            # an empty list, so perform the check here
-            default_kwargs = {
-                'addr_filename': flash_files,
-                'encrypt_files': encrypt_files or None,
-                'no_stub': False,
-                'compress': True,
-                'verify': False,
-                'ignore_flash_encryption_efuse_setting': False,
-                'erase_all': False,
-                'force': False,
-            }
+        _args.append('write_flash')
 
-            default_kwargs.update(self.app.flash_settings)
-            default_kwargs.update(self.app.flash_args.get('extra_esptool_args', {}))
-            args = EsptoolArgs(**default_kwargs)
+        if self.erase_nvs:
+            esptool.main(
+                [
+                    'erase_region',
+                    str(self.app.partition_table['nvs']['offset']),
+                    str(self.app.partition_table['nvs']['size']),
+                ],
+                esp=self.esp,
+            )
+            self.esp.connect()
 
-            self.stub.change_baud(self.esptool_baud)
-            esptool.detect_flash_size(self.stub, args)
-            esptool.write_flash(self.stub, args)
-            self.stub.change_baud(self.baud)
+        encrypt_files = []
+        flash_files = []
+        for file in self.app.flash_files:
+            if file.encrypted:
+                encrypt_files.extend([hex(file.offset), str(file.file_path)])
+            else:
+                flash_files.extend([hex(file.offset), str(file.file_path)])
 
-            if self._meta:
-                self._meta.set_port_app_cache(self.port, self.app)
-        finally:
-            if nvs_file:
-                nvs_file.close()
-                try:
-                    os.remove(nvs_file.name)
-                except OSError:
-                    pass
-            for _, f in flash_files:
-                f.close()
-            for _, f in encrypt_files:
-                f.close()
+        if flash_files and encrypt_files:
+            _args.extend([*flash_files, '--encrypt-files', *encrypt_files])
+        else:
+            if flash_files:
+                _args.extend(flash_files)
+            else:
+                _args.extend(['--encrypt', *encrypt_files])
+
+        _args.extend([*self.app.flash_args['write_flash_args'], *self._force_flag()])
+
+        esptool.main(_args, esp=self.esp)
+
+        if self._meta:
+            self._meta.set_port_app_cache(self.port, self.app)
 
     @EspSerial.use_esptool()
     def dump_flash(
@@ -207,15 +211,12 @@ class IdfSerial(EspSerial):
         else:
             raise ValueError('You must specify "partition" or ("address" and "size") to dump flash')
 
-        content = self.stub.read_flash(_addr, _size)
         if output:
-            if isinstance(output, str):
-                os.makedirs(os.path.dirname(output), exist_ok=True)
-                with open(output, 'wb') as f:
-                    f.write(content)
-            else:
-                output.write(content)
+            esptool.main(['read_flash', str(_addr), str(_size), str(output)], esp=self.esp)
         else:
+            with tempfile.NamedTemporaryFile() as fp:
+                esptool.main(['read_flash', str(_addr), str(_size), fp.name], esp=self.esp)
+                content = fp.read()
             return content
 
     @EspSerial.use_esptool()
@@ -233,7 +234,7 @@ class IdfSerial(EspSerial):
             address = self.app.partition_table[partition_name]['offset']
             size = self.app.partition_table[partition_name]['size']
             logging.info(f'Erasing the partition "{partition_name}" of size {size} at {address}')
-            self.stub.erase_region(address, size)
+            esptool.main(['erase_region', str(address), str(size), *self._force_flag()], esp=self.esp)
         else:
             raise ValueError(f'partition name "{partition_name}" not found in app partition table')
 
@@ -254,7 +255,13 @@ class IdfSerial(EspSerial):
         if not bin_offset:
             raise ValueError('.bin file not found in flash files')
 
-        return self.stub.read_flash(bin_offset + self.DEFAULT_SHA256_OFFSET, 32)
+        with tempfile.NamedTemporaryFile() as fp:
+            esptool.main(
+                ['read_flash', str(bin_offset + self.DEFAULT_SHA256_OFFSET), str(32), fp.name],
+                esp=self.esp,
+            )
+            content = fp.read()
+        return content
 
     def is_target_flashed_same_elf(self) -> bool:
         """

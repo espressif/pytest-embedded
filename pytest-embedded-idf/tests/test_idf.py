@@ -35,6 +35,43 @@ def test_idf_serial_flash(testdir):
     result.assert_outcomes(passed=1)
 
 
+def test_esp_flash_force_flag(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_idf_serial_flash(dut):
+            dut.expect('Hello world!')
+            assert dut.serial.esp_flash_force == True
+    """)
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--esp-flash-force',
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_esp_flash_no_force_flag(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_idf_serial_flash(dut):
+            dut.expect('Hello world!')
+            assert dut.serial.esp_flash_force == False
+    """)
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+    )
+
+    result.assert_outcomes(passed=1)
+
+
 def test_expect_no_matching(testdir):
     testdir.makepyfile("""
         import pexpect

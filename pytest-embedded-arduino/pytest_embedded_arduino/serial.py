@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import esptool
-from pytest_embedded_serial_esp.serial import EspSerial, EsptoolArgs
+from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import ArduinoApp
 
@@ -40,33 +40,24 @@ class ArduinoSerial(EspSerial):
         """
         Flash the binary files to the board.
         """
-        flash_files = [
-            (offset, open(path, 'rb')) for (offset, path, encrypted) in self.app.flash_files if not encrypted
-        ]
+        flash_files = []
+        for offset, path, encrypted in self.app.flash_files:
+            if encrypted:
+                continue
+            flash_files.extend((str(offset), path))
 
-        default_kwargs = {
-            'addr_filename': flash_files,
-            'encrypt_files': None,
-            'no_stub': False,
-            'compress': True,
-            'verify': False,
-            'ignore_flash_encryption_efuse_setting': False,
-            'erase_all': False,
-            'encrypt': False,
-            'force': False,
-            'chip': self.app.target,
-        }
+        flash_settings = []
+        for k, v in self.app.flash_settings[self.app.target].items():
+            flash_settings.append(f'--{k}')
+            flash_settings.append(v)
 
-        default_kwargs.update(self.app.flash_settings[self.app.target])
-        flash_args = EsptoolArgs(**default_kwargs)
+        if self.esp_flash_force:
+            flash_settings.append('--force')
 
         try:
-            self.stub.change_baud(self.esptool_baud)
-            esptool.detect_flash_size(self.stub, flash_args)
-            esptool.write_flash(self.stub, flash_args)
-            self.stub.change_baud(self.baud)
+            esptool.main(
+                ['--chip', self.app.target, 'write_flash', *flash_files, *flash_settings],
+                esp=self.esp,
+            )
         except Exception:
             raise
-        finally:
-            for _, f in flash_files:
-                f.close()

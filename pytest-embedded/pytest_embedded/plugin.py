@@ -164,7 +164,11 @@ def pytest_addoption(parser):
         '--port-mac',
         help='MAC address of the board. (Default: None)',
     )
-
+    esp_group.addoption(
+        '--esp-flash-force',
+        action='store_true',
+        help='force mode for esptool',
+    )
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
         '--part-tool',
@@ -773,6 +777,13 @@ def app_path(request: FixtureRequest, test_file_path: str) -> t.Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
+def esp_flash_force(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'esp_flash_force', False)
+
+
+@pytest.fixture
+@multi_dut_argument
 def build_dir(request: FixtureRequest) -> t.Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'build_dir', 'build')
@@ -1037,6 +1048,7 @@ def _fixture_classes_and_options(
     skip_autoflash,
     erase_all,
     esptool_baud,
+    esp_flash_force,
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
@@ -1136,6 +1148,7 @@ def _fixture_classes_and_options(
                     'port_mac': port_mac,
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
+                    'esp_flash_force': esp_flash_force,
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
                     'meta': _meta,

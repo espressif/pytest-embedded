@@ -3,11 +3,10 @@ import functools
 import logging
 import subprocess
 from typing import Optional
+from warnings import warn
 
 import esptool
-from esptool import CHIP_DEFS, FatalError
 from esptool import __version__ as ESPTOOL_VERSION
-from esptool import detect_chip
 from esptool.targets import CHIP_LIST as ESPTOOL_CHIPS
 from pexpect import TIMEOUT
 from pytest_embedded.log import MessageQueue, PexpectProcess, live_print_call
@@ -56,6 +55,7 @@ class EspSerial(Serial):
         port_mac: str = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
+        esp_flash_force: bool = False,
         skip_autoflash: bool = False,
         erase_all: bool = False,
         meta: Optional[Meta] = None,
@@ -101,62 +101,35 @@ class EspSerial(Serial):
             )
 
         with contextlib.redirect_stdout(msg_queue):
-            # Temp workaround for esptool
-            # on windows have to close the unused scanned ports manually
-            #
-            # could revert to the following code blocks after fixing it
-            #
-            # esp: esptool.ESPLoader = esptool.get_default_connected_device(
-            #     ports,
-            #     port=port,
-            #     connect_attempts=3,
-            #     initial_baud=baud,
-            #     chip=esptool_target,
-            # )
-            _esp = None
-            for each_port in reversed(ports):
-                print(f'Serial port {each_port}')
-                try:
-                    if esptool_target == 'auto':
-                        _esp = detect_chip(each_port, baud, connect_attempts=3)
-                    else:
-                        chip_class = CHIP_DEFS[esptool_target]
-                        _esp = chip_class(each_port, baud)
-                        _esp.connect(attempts=3)
-                    break
-                except (FatalError, OSError) as err:
-                    if port is not None:
-                        raise
-                    print(f'{each_port} failed to connect: {err}')
-                    if _esp:
-                        # ensure unused port is closed.
-                        _esp._port.close()
-                    _esp = None
-            esp = _esp
+            self.esp = esptool.get_default_connected_device(
+                ports,
+                port=port,
+                connect_attempts=3,
+                initial_baud=baud,
+                chip=esptool_target,
+            )
 
-        if not esp:
+        if not self.esp:
             raise ValueError('Couldn\'t auto detect chip. Please manually specify with "--port"')
 
-        self.esp: esptool.ESPLoader = None  # type: ignore
-        self.stub: esptool.ESPLoader = None  # type: ignore
-
-        target = esp.CHIP_NAME.lower().replace('-', '')
-        logging.info('Target: %s, Port: %s', target, esp.serial_port)
+        target = self.esp.CHIP_NAME.lower().replace('-', '')
+        logging.info('Target: %s, Port: %s', target, self.esp.serial_port)
 
         self.target = target
 
         self.skip_autoflash = skip_autoflash
         self.erase_all = erase_all
         self.esptool_baud = esptool_baud
+        self.esp_flash_force = esp_flash_force
 
-        super().__init__(msg_queue=msg_queue, port=esp._port, baud=baud, meta=meta, **kwargs)
+        super().__init__(msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, **kwargs)
 
     def _post_init(self):
         if self._meta:
             self._meta.set_port_target_cache(self.port, self.target)
 
         if self.erase_all:
-            self.erase_flash()
+            esptool.main(['erase_flash'], esp=self.esp)
 
         super()._post_init()
 
@@ -172,6 +145,11 @@ class EspSerial(Serial):
             hard_reset_after: run hard reset after
             no_stub: disable launching the flasher stub
         """
+        warn(
+            "The 'no_stub' parameter is now read directly from `flasher_args.json` "
+            'and does not need to be explicitly set.',
+            DeprecationWarning,
+        )
 
         def decorator(func):
             @functools.wraps(func)
@@ -179,20 +157,9 @@ class EspSerial(Serial):
                 with self.disable_redirect_thread():
                     with contextlib.redirect_stdout(self._q):
                         settings = self.proc.get_settings()
-                        try:
-                            self.esp = esptool.detect_chip(self.proc, self.baud)
-                            self.esp.connect('hard_reset')
-
-                            if not no_stub:
-                                self.stub = self.esp.run_stub()
-
-                            ret = func(self, *args, **kwargs)
-                        finally:
-                            if hard_reset_after:
-                                self.esp.hard_reset()
-
-                            self.proc.apply_settings(settings)
-
+                        self.esp.connect()
+                        ret = func(self, *args, **kwargs)
+                        self.proc.apply_settings(settings)
                 return ret
 
             return wrapper
@@ -202,16 +169,27 @@ class EspSerial(Serial):
     def _start(self):
         self.hard_reset()
 
-    @use_esptool(hard_reset_after=True, no_stub=True)
     def hard_reset(self):
         """Hard reset your espressif device"""
-        pass
+        self.esp.hard_reset()
 
     @use_esptool()
     def erase_flash(self):
         """Erase the complete flash"""
         logging.info('Erasing the flash')
-        self.stub.erase_flash()
+        options = ['erase_flash']
+        if self.esp_flash_force:
+            options.append('--force')
+
+        esptool.main(options, esp=self.esp)
 
         if self._meta:
             self._meta.drop_port_app_cache(self.port)
+
+    @property
+    def stub(self):
+        warn(
+            'Please use `self.esp` instead of `self.stub`. `self.stub` will be removed in 2.0 release.',
+            DeprecationWarning,
+        )
+        return self.esp
