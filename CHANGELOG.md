@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.8.0 (2024-02-23)
+
+### Feat
+
+- support --esp-flash-force to run esptool.flash with the force flag
+
+### Refactor
+
+- call esptool.main() instead of implementing on our own
+
 ## v1.7.0 (2024-02-14)
 
 ### Feat
