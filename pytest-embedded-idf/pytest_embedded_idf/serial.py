@@ -111,10 +111,23 @@ class IdfSerial(EspSerial):
     def _force_flag(self):
         if self.esp_flash_force:
             return ['--force']
-        config = self.app.sdkconfig
-        if any((config.get('SECURE_FLASH_ENC_ENABLED', False), config.get('SECURE_BOOT', False))):
+
+        if any(
+            (
+                self.app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
+                self.app.sdkconfig.get('SECURE_BOOT', False),
+            )
+        ):
             return ['--force']
+
         return []
+
+    @EspSerial.use_esptool()
+    def erase_flash(self, force: bool = False):
+        if self._force_flag() or force:
+            super().erase_flash(force=True)
+        else:
+            super().erase_flash()
 
     @EspSerial.use_esptool()
     def flash(self) -> None:
