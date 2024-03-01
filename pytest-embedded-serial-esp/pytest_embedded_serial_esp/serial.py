@@ -174,11 +174,12 @@ class EspSerial(Serial):
         self.esp.hard_reset()
 
     @use_esptool()
-    def erase_flash(self):
+    def erase_flash(self, force: bool = False) -> None:
         """Erase the complete flash"""
         logging.info('Erasing the flash')
         options = ['erase_flash']
-        if self.esp_flash_force:
+
+        if force or self.esp_flash_force:
             options.append('--force')
 
         esptool.main(options, esp=self.esp)
