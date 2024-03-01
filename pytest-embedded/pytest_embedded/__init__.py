@@ -5,4 +5,4 @@ from .dut import Dut
 
 __all__ = ['App', 'Dut']
 
-__version__ = '1.8.0'
+__version__ = '1.8.1'

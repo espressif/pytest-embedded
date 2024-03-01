@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.8.1 (2024-03-01)
+
+### Fix
+
+- **idf**: check sdkconfig items while `erase_flash`
+
 ## v1.8.0 (2024-02-23)
 
 ### Feat
