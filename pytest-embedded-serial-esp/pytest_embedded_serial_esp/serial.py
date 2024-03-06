@@ -2,6 +2,7 @@ import contextlib
 import functools
 import logging
 import subprocess
+import warnings
 from typing import Optional
 from warnings import warn
 
@@ -34,6 +35,8 @@ class EsptoolArgs:
     """
 
     def __init__(self, **kwargs):
+        warnings.warn('EsptoolArgs is deprecated and will be removed in 2.0 release.', DeprecationWarning)
+
         for key, value in kwargs.items():
             self.__setattr__(key, value)
 
@@ -147,7 +150,7 @@ class EspSerial(Serial):
         """
         warn(
             "The 'no_stub' parameter is now read directly from `flasher_args.json` "
-            'and does not need to be explicitly set.',
+            'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
             DeprecationWarning,
         )
 
