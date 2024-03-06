@@ -26,4 +26,4 @@ repos:
     hooks:
       - id: conventional-precommit-linter
         stages: [commit-msg]
-        args: ['--types=change,ci,docs,feat,fix,refactor,remove,revert,bump']
+        args: ['--types=chore,change,ci,docs,feat,fix,refactor,remove,revert,bump']
