@@ -35,10 +35,11 @@ class IdfApp(App):
 
     def __init__(
         self,
+        *args,
         part_tool: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
 
         # Optional info
         self._sdkconfig = None
