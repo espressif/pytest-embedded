@@ -392,7 +392,30 @@ def test_multi_dut_read_flash(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_no_elf_file(testdir):
+def test_flash_another_app(testdir):
+    testdir.makepyfile(r"""
+        import pytest
+        import pexpect
+
+        from pytest_embedded_idf import IdfApp
+
+        def test_flash_another_app(dut):
+            dut.serial.flash(IdfApp('{}'))
+            dut.expect('Hash of data verified.', timeout=5)
+            dut.expect_exact('Hello world!', timeout=5)
+    """.format(os.path.join(testdir.tmpdir, 'hello_world_esp32')))
+
+    result = testdir.runpytest(
+        '-s',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--embedded-services', 'esp,idf',
+        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+def test_flash_with_no_elf_file(testdir):
     testdir.makepyfile(r"""
          import pytest
          import pexpect

@@ -108,13 +108,16 @@ class IdfSerial(EspSerial):
                 esp=self.esp,
             )
 
-    def _force_flag(self):
+    def _force_flag(self, app: Optional[IdfApp] = None):
         if self.esp_flash_force:
             return ['--force']
 
+        if app is None:
+            app = self.app
+
         if any((
-            self.app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
-            self.app.sdkconfig.get('SECURE_BOOT', False),
+            app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
+            app.sdkconfig.get('SECURE_BOOT', False),
         )):
             return ['--force']
 
@@ -128,20 +131,23 @@ class IdfSerial(EspSerial):
             super().erase_flash()
 
     @EspSerial.use_esptool()
-    def flash(self) -> None:
+    def flash(self, app: Optional[IdfApp] = None) -> None:
         """
         Flash the `app.flash_files` to the dut
         """
-        if not self.app.flash_files:
+        if not app:
+            app = self.app
+
+        if not app.flash_files:
             logging.error('No flash files detected. Skipping auto flash...')
             return
 
-        if not self.app.flash_settings:
+        if not app.flash_settings:
             logging.error('No flash settings detected. Skipping auto flash...')
             return
 
         _args = []
-        for k, v in self.app.flash_args['extra_esptool_args'].items():
+        for k, v in app.flash_args['extra_esptool_args'].items():
             if isinstance(v, bool):
                 if k == 'stub':
                     if v is False:
@@ -161,8 +167,8 @@ class IdfSerial(EspSerial):
             esptool.main(
                 [
                     'erase_region',
-                    str(self.app.partition_table['nvs']['offset']),
-                    str(self.app.partition_table['nvs']['size']),
+                    str(app.partition_table['nvs']['offset']),
+                    str(app.partition_table['nvs']['size']),
                 ],
                 esp=self.esp,
             )
@@ -170,7 +176,7 @@ class IdfSerial(EspSerial):
 
         encrypt_files = []
         flash_files = []
-        for file in self.app.flash_files:
+        for file in app.flash_files:
             if file.encrypted:
                 encrypt_files.extend([hex(file.offset), str(file.file_path)])
             else:
@@ -184,12 +190,12 @@ class IdfSerial(EspSerial):
             else:
                 _args.extend(['--encrypt', *encrypt_files])
 
-        _args.extend([*self.app.flash_args['write_flash_args'], *self._force_flag()])
+        _args.extend([*app.flash_args['write_flash_args'], *self._force_flag(app)])
 
         esptool.main(_args, esp=self.esp)
 
         if self._meta:
-            self._meta.set_port_app_cache(self.port, self.app)
+            self._meta.set_port_app_cache(self.port, app)
 
     @EspSerial.use_esptool()
     def dump_flash(

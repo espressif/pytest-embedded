@@ -94,7 +94,7 @@ class IdfApp(App):
         if self._sdkconfig is not None:
             return self._sdkconfig
 
-        sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
+        sdkconfig_json_path = os.path.join(self.binary_path or '', 'config', 'sdkconfig.json')
         if not os.path.isfile(sdkconfig_json_path):
             logging.warning(f"{sdkconfig_json_path} doesn't exist. Skipping...")
             self._sdkconfig = {}
