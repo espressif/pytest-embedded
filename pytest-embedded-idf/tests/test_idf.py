@@ -5,6 +5,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 import pytest
+
 from pytest_embedded_idf.dut import IdfDut
 
 toolchain_required = pytest.mark.skipif(
@@ -473,6 +474,7 @@ def test_hello_world_linux(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
 
 @pytest.mark.skipif(platform.machine() != 'x86_64', reason='The test is intended to be run on an x86_64 machine.')
 def test_unity_tester_with_linux(testdir):

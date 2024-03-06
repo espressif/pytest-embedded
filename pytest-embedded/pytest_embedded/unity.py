@@ -23,7 +23,7 @@ UNITY_FIXTURE_REGEX = re.compile(
 )
 
 UNITY_SUMMARY_LINE_REGEX = re.compile(
-    br'^[-]+\s*(\d+) Tests (\d+) Failures (\d+) Ignored\s*(?P<result>OK|FAIL)',
+    rb'^[-]+\s*(\d+) Tests (\d+) Failures (\d+) Ignored\s*(?P<result>OK|FAIL)',
     re.MULTILINE,
 )
 

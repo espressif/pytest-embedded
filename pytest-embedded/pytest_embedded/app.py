@@ -34,10 +34,10 @@ class App:
         if os.path.isdir(build_dir):
             return os.path.realpath(build_dir)
 
-        logging.debug(f'{build_dir} doesn\'t exist. Treat it as a relative path...')
+        logging.debug(f"{build_dir} doesn't exist. Treat it as a relative path...")
         path = os.path.join(self.app_path, build_dir)
         if os.path.isdir(path):
             return path
 
-        logging.debug(f'{path} doesn\'t exist.')
+        logging.debug(f"{path} doesn't exist.")
         return None

@@ -33,7 +33,7 @@ class IdfSerial(EspSerial):
         self.erase_nvs = erase_nvs
 
         if not hasattr(self.app, 'target'):
-            raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
+            raise ValueError(f"Idf app not parsable. Please check if it's valid: {self.app.binary_path}")
 
         if target and self.app.target and self.app.target != target:
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: {target}.')
@@ -112,12 +112,10 @@ class IdfSerial(EspSerial):
         if self.esp_flash_force:
             return ['--force']
 
-        if any(
-            (
-                self.app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
-                self.app.sdkconfig.get('SECURE_BOOT', False),
-            )
-        ):
+        if any((
+            self.app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
+            self.app.sdkconfig.get('SECURE_BOOT', False),
+        )):
             return ['--force']
 
         return []
@@ -284,7 +282,7 @@ class IdfSerial(EspSerial):
             True if the sha256 values are matched
         """
         if not self.app.elf_file:
-            logging.info('no elf file. Can\'t tell if the target flashed the same elf file or not. Assume as False')
+            logging.info("no elf file. Can't tell if the target flashed the same elf file or not. Assume as False")
             return False
 
         flash_elf_sha256 = self.read_flash_elf_sha256()

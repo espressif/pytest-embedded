@@ -4,7 +4,7 @@ import os
 import shlex
 import subprocess
 import sys
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, NamedTuple, Optional, Tuple
 
 from pytest_embedded.app import App
 
@@ -26,8 +26,8 @@ class IdfApp(App):
         flash_settings (dict[str, Any]): dict of flash settings
     """
 
-    XTENSA_TARGETS = ['esp32', 'esp32s2', 'esp32s3']
-    RISCV32_TARGETS = ['esp32c3', 'esp32h2', 'esp32c2', 'esp32c6']
+    XTENSA_TARGETS: ClassVar[List[str]] = ['esp32', 'esp32s2', 'esp32s3']
+    RISCV32_TARGETS: ClassVar[List[str]] = ['esp32c3', 'esp32h2', 'esp32c2', 'esp32c6']
 
     FLASH_ARGS_FILENAME = 'flash_args'
     FLASH_PROJECT_ARGS_FILENAME = 'flash_project_args'
@@ -96,7 +96,7 @@ class IdfApp(App):
 
         sdkconfig_json_path = os.path.join(self.binary_path, 'config', 'sdkconfig.json')
         if not os.path.isfile(sdkconfig_json_path):
-            logging.warning(f'{sdkconfig_json_path} doesn\'t exist. Skipping...')
+            logging.warning(f"{sdkconfig_json_path} doesn't exist. Skipping...")
             self._sdkconfig = {}
         else:
             self._sdkconfig = json.load(open(sdkconfig_json_path))
@@ -151,7 +151,7 @@ class IdfApp(App):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        stdout, stderr = process.communicate()
+        stdout, _ = process.communicate()
         raw_data = stdout.decode() if isinstance(stdout, bytes) else stdout
 
         partition_table = {}

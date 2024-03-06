@@ -51,12 +51,12 @@ class Qemu(DuplicateStdoutPopen):
 
         image_path = qemu_image_path or DEFAULT_IMAGE_FN
         if not os.path.exists(image_path):
-            raise ValueError(f'QEMU image path doesn\'t exist: {image_path}')
+            raise ValueError(f"QEMU image path doesn't exist: {image_path}")
 
         qemu_prog_path = qemu_prog_path or self.qemu_prog_name
 
         if qemu_cli_args:
-            qemu_cli_args = qemu_cli_args.strip("\"").strip("\'")
+            qemu_cli_args = qemu_cli_args.strip('"').strip("'")
         qemu_cli_args = shlex.split(qemu_cli_args or self.qemu_default_args)
         qemu_extra_args = shlex.split(qemu_extra_args or '')
 
@@ -83,7 +83,7 @@ class Qemu(DuplicateStdoutPopen):
             qemu_cli_args += shlex.split(self.QEMU_DEFAULT_QMP_FMT.format(self.qmp_port))
 
         super().__init__(
-            cmd=[qemu_prog_path, *qemu_cli_args, *qemu_extra_args] + ['-drive', f'file={image_path},if=mtd,format=raw'],
+            cmd=[qemu_prog_path, *qemu_cli_args, *qemu_extra_args, '-drive', f'file={image_path},if=mtd,format=raw'],
             **kwargs,
         )
 

@@ -28,7 +28,7 @@ def _is_port_mac_verified(pexpect_proc: PexpectProcess, port: str, port_mac: str
             return True
 
 
-class EsptoolArgs(object):
+class EsptoolArgs:
     """
     fake args object, this is a hack until esptool Python API is improved
     """
@@ -52,7 +52,7 @@ class EspSerial(Serial):
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
         port: Optional[str] = None,
-        port_mac: str = None,
+        port_mac: Optional[str] = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         esp_flash_force: bool = False,
@@ -94,7 +94,7 @@ class EspSerial(Serial):
                 ports = [port]
 
         # normal loader
-        if esptool_target not in (['auto'] + ESPTOOL_CHIPS):
+        if esptool_target not in ['auto', *ESPTOOL_CHIPS]:
             raise ValueError(
                 f'esptool version {ESPTOOL_VERSION} not support target {esptool_target}\n'
                 f'Supported targets: {ESPTOOL_CHIPS}'
@@ -133,7 +133,7 @@ class EspSerial(Serial):
 
         super()._post_init()
 
-    def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):
+    def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):  # noqa: ARG002
         """
         1. tell the redirect serial thread to stop reading from the `pyserial` instance
         2. esptool reuse the `pyserial` instance and call `run_stub()`

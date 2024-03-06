@@ -271,7 +271,7 @@ _COUNT = 1
 def _gte_one_int(v) -> int:
     try:
         v = int(v)
-    except Exception:  # noqa
+    except Exception:
         pass  # deal with it later
     else:
         if v >= 1:
@@ -398,7 +398,7 @@ def multi_dut_fixture(func) -> t.Callable[..., t.Union[t.Any, t.Tuple[t.Any]]]:
             if func.__name__ == 'dut_index':
                 current_kwargs['count'] = i
 
-            res = tuple(list(res) + [func(*args, **current_kwargs)])
+            res = tuple([*list(res), func(*args, **current_kwargs)])
 
         return res
 
@@ -484,7 +484,7 @@ def multi_dut_generator_fixture(
                 try:
                     i_res = func(*args, **current_kwargs)
                     res.append(i_res)
-                except Exception:  # noqa
+                except Exception:
                     for item in res:  # close the earlier succeeded set up items
                         _close_or_terminate(item)
 
@@ -1022,7 +1022,7 @@ def _services(embedded_services: t.Optional[str]) -> t.List[str]:
         except ModuleNotFoundError:
             raise PackageNotInstalledError(s)
 
-    return ['base'] + services
+    return ['base', *services]
 
 
 @dataclass
@@ -1106,26 +1106,22 @@ def _fixture_classes_and_options(
                     from pytest_embedded_qemu import DEFAULT_IMAGE_FN, QemuApp
 
                     classes[fixture] = QemuApp
-                    kwargs[fixture].update(
-                        {
-                            'msg_queue': msg_queue,
-                            'part_tool': part_tool,
-                            'qemu_image_path': qemu_image_path,
-                            'skip_regenerate_image': skip_regenerate_image,
-                            'encrypt': encrypt,
-                            'keyfile': keyfile,
-                            'qemu_prog_path': qemu_prog_path,
-                        }
-                    )
+                    kwargs[fixture].update({
+                        'msg_queue': msg_queue,
+                        'part_tool': part_tool,
+                        'qemu_image_path': qemu_image_path,
+                        'skip_regenerate_image': skip_regenerate_image,
+                        'encrypt': encrypt,
+                        'keyfile': keyfile,
+                        'qemu_prog_path': qemu_prog_path,
+                    })
                 else:
                     from pytest_embedded_idf import IdfApp
 
                     classes[fixture] = IdfApp
-                    kwargs[fixture].update(
-                        {
-                            'part_tool': part_tool,
-                        }
-                    )
+                    kwargs[fixture].update({
+                        'part_tool': part_tool,
+                    })
             elif 'arduino' in _services:
                 from pytest_embedded_arduino import ArduinoApp
 
@@ -1157,22 +1153,18 @@ def _fixture_classes_and_options(
                     from pytest_embedded_idf import IdfSerial
 
                     classes[fixture] = IdfSerial
-                    kwargs[fixture].update(
-                        {
-                            'app': None,
-                            'confirm_target_elf_sha256': confirm_target_elf_sha256,
-                            'erase_nvs': erase_nvs,
-                        }
-                    )
+                    kwargs[fixture].update({
+                        'app': None,
+                        'confirm_target_elf_sha256': confirm_target_elf_sha256,
+                        'erase_nvs': erase_nvs,
+                    })
                 elif 'arduino' in _services:
                     from pytest_embedded_arduino import ArduinoSerial
 
                     classes[fixture] = ArduinoSerial
-                    kwargs[fixture].update(
-                        {
-                            'app': None,
-                        }
-                    )
+                    kwargs[fixture].update({
+                        'app': None,
+                    })
                 else:
                     from pytest_embedded_serial_esp import EspSerial
 
@@ -1239,15 +1231,13 @@ def _fixture_classes_and_options(
                 from pytest_embedded_wokwi import WokwiCLI
 
                 classes[fixture] = WokwiCLI
-                kwargs[fixture].update(
-                    {
-                        'wokwi_cli_path': wokwi_cli_path,
-                        'wokwi_timeout': wokwi_timeout,
-                        'msg_queue': msg_queue,
-                        'app': None,
-                        'meta': _meta,
-                    }
-                )
+                kwargs[fixture].update({
+                    'wokwi_cli_path': wokwi_cli_path,
+                    'wokwi_timeout': wokwi_timeout,
+                    'msg_queue': msg_queue,
+                    'app': None,
+                    'meta': _meta,
+                })
         elif fixture == 'dut':
             classes[fixture] = Dut
             kwargs[fixture] = {
@@ -1268,11 +1258,9 @@ def _fixture_classes_and_options(
                 from pytest_embedded_wokwi import WokwiDut
 
                 classes[fixture] = WokwiDut
-                kwargs[fixture].update(
-                    {
-                        'wokwi': None,
-                    }
-                )
+                kwargs[fixture].update({
+                    'wokwi': None,
+                })
 
                 if 'idf' in _services:
                     from pytest_embedded_wokwi.idf import IDFFirmwareResolver
@@ -1284,11 +1272,9 @@ def _fixture_classes_and_options(
                 from pytest_embedded_qemu import QemuDut
 
                 classes[fixture] = QemuDut
-                kwargs[fixture].update(
-                    {
-                        'qemu': None,
-                    }
-                )
+                kwargs[fixture].update({
+                    'qemu': None,
+                })
             elif 'jtag' in _services:
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
@@ -1299,34 +1285,28 @@ def _fixture_classes_and_options(
 
                     classes[fixture] = SerialDut
 
-                kwargs[fixture].update(
-                    {
-                        'serial': None,
-                        'openocd': None,
-                        'gdb': None,
-                    }
-                )
+                kwargs[fixture].update({
+                    'serial': None,
+                    'openocd': None,
+                    'gdb': None,
+                })
             elif 'serial' in _services or 'esp' in _services:
                 if 'esp' in _services and 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
 
                     classes[fixture] = IdfDut
-                    kwargs[fixture].update(
-                        {
-                            'skip_check_coredump': skip_check_coredump,
-                            'panic_output_decode_script': panic_output_decode_script,
-                        }
-                    )
+                    kwargs[fixture].update({
+                        'skip_check_coredump': skip_check_coredump,
+                        'panic_output_decode_script': panic_output_decode_script,
+                    })
                 else:
                     from pytest_embedded_serial import SerialDut
 
                     classes[fixture] = SerialDut
 
-                kwargs[fixture].update(
-                    {
-                        'serial': None,
-                    }
-                )
+                kwargs[fixture].update({
+                    'serial': None,
+                })
 
     return ClassCliOptions(classes, mixins, kwargs)
 
@@ -1543,7 +1523,7 @@ class PytestEmbedded:
         for argname in fixturedef.argnames:
             fixdef = request._get_active_fixturedef(argname)
             assert fixdef.cached_result is not None
-            result, arg_cache_key, exc = fixdef.cached_result
+            result, _, _ = fixdef.cached_result
             request._check_scope(argname, request._scope, fixdef._scope)
             kwargs[argname] = result
 
@@ -1589,9 +1569,9 @@ class PytestEmbedded:
             if duplicated_test_cases:
                 raise ValueError(f'Duplicated test function names: {duplicated_test_cases}')
 
-            duplicated_test_script_paths = self._duplicate_items(
-                [os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])]
-            )
+            duplicated_test_script_paths = self._duplicate_items([
+                os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])
+            ])
             if duplicated_test_script_paths:
                 raise ValueError(f'Duplicated test scripts: {duplicated_test_script_paths}')
 
@@ -1625,7 +1605,7 @@ class PytestEmbedded:
             self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
-    def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:  # noqa
+    def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
         _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, None)
         _stash_junit_report_path = session.config.stash.get(_junit_report_path_key, None)

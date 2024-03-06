@@ -5,7 +5,7 @@ import multiprocessing
 import queue
 import threading
 import time
-from typing import Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 import serial as pyserial
 from pytest_embedded.log import MessageQueue
@@ -28,7 +28,7 @@ class Serial:
 
     DEFAULT_BAUDRATE = 115200
 
-    DEFAULT_PORT_CONFIG = {
+    DEFAULT_PORT_CONFIG: ClassVar[Dict[str, Any]] = {
         'baudrate': DEFAULT_BAUDRATE,
         'bytesize': pyserial.EIGHTBITS,
         'parity': pyserial.PARITY_NONE,
@@ -38,13 +38,13 @@ class Serial:
         'rtscts': False,
     }
 
-    occupied_ports: Dict[str, None] = dict()
+    occupied_ports: ClassVar[Dict[str, None]] = dict()
 
     def __init__(
         self,
         msg_queue: MessageQueue,
-        port: str = None,
-        port_location: str = None,
+        port: Optional[str] = None,
+        port_location: Optional[str] = None,
         baud: int = DEFAULT_BAUDRATE,
         meta: Optional[Meta] = None,
         **kwargs,

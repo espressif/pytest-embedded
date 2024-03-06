@@ -8,7 +8,7 @@
 
 project = 'pytest-embedded'
 project_homepage = 'https://github.com/espressif/pytest-embedded'
-copyright = '2023, Espressif Systems (Shanghai) Co., Ltd.'
+copyright = '2023, Espressif Systems (Shanghai) Co., Ltd.'  # noqa: A001
 author = 'Fu Hanxi'
 
 # -- General configuration ---------------------------------------------------

@@ -74,7 +74,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         elf_path = Path(app.elf_file).relative_to(app.app_path).as_posix()
 
         if os.path.exists(wokwi_toml_path):
-            with open(wokwi_toml_path, 'rt') as f:
+            with open(wokwi_toml_path) as f:
                 toml_data = toml.load(f)
 
             if 'wokwi' not in toml_data:
@@ -96,7 +96,7 @@ class WokwiCLI(DuplicateStdoutPopen):
                 }
             }
 
-        with open(wokwi_toml_path, 'wt') as f:
+        with open(wokwi_toml_path, 'w') as f:
             toml.dump(toml_data, f)
 
     def create_diagram_json(self):
@@ -105,7 +105,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         target_board = target_to_board[app.target]
 
         if os.path.exists(diagram_json_path):
-            with open(diagram_json_path, 'rt') as f:
+            with open(diagram_json_path) as f:
                 json_data = json.load(f)
             if not any(part['type'] == target_board for part in json_data['parts']):
                 logging.warning(
@@ -124,7 +124,7 @@ class WokwiCLI(DuplicateStdoutPopen):
                 ['esp:RX', '$serialMonitor:TX', ''],
             ],
         }
-        with open(diagram_json_path, 'wt') as f:
+        with open(diagram_json_path, 'w') as f:
             f.write(json.dumps(diagram, indent=2))
 
     def _hard_reset(self):
