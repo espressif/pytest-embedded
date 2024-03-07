@@ -98,7 +98,7 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self._log(s, 'read')
         return s
 
-    def terminate(self, force=False):
+    def terminate(self, force=False):  # noqa
         """
         Close the temporary file stream and itself.
         """
@@ -177,14 +177,12 @@ class DuplicateStdoutPopen(subprocess.Popen):
         self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
 
-        kwargs.update(
-            {
-                'bufsize': 0,
-                'stdin': subprocess.PIPE,
-                'stdout': self._fw,
-                'stderr': self._fw,
-            }
-        )
+        kwargs.update({
+            'bufsize': 0,
+            'stdin': subprocess.PIPE,
+            'stdout': self._fw,
+            'stderr': self._fw,
+        })
 
         self._cmd = cmd
         logging.info('Executing %s', ' '.join(cmd) if isinstance(cmd, list) else cmd)

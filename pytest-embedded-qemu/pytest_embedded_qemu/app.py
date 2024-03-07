@@ -17,14 +17,14 @@ class IdfFlashImageMaker:
     Create a single image for QEMU based on the `IdfApp`'s partition table and all the flash files.
     """
 
-    XTENSA_FLASH_BIN_SIZES = [
+    XTENSA_FLASH_BIN_SIZES: t.ClassVar[t.List[t.Tuple[int, str]]] = [
         (2 * 1024 * 1024, '2MB'),
         (4 * 1024 * 1024, '4MB'),
         (8 * 1024 * 1024, '8MB'),
         (16 * 1024 * 1024, '16MB'),
     ]
 
-    RISCV_FLASH_BIN_SIZES = [
+    RISCV_FLASH_BIN_SIZES: t.ClassVar[t.List[t.Tuple[int, str]]] = [
         (256 * 1024, '256KB'),
         (512 * 1024, '512KB'),
         (1 * 1024 * 1024, '1MB'),

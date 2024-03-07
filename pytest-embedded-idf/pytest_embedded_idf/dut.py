@@ -14,8 +14,10 @@ from pytest_embedded_serial.dut import SerialDut
 from pytest_embedded_serial_esp import EspSerial
 
 from .app import IdfApp
-from .unity_tester import UnittestMenuCase  # noqa # keep backward compatibility
-from .unity_tester import IdfUnityDutMixin
+from .unity_tester import (
+    IdfUnityDutMixin,
+    UnittestMenuCase,  # noqa # keep backward compatibility
+)
 
 
 class IdfDut(IdfUnityDutMixin, SerialDut):
@@ -45,7 +47,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         self,
         app: IdfApp,
         skip_check_coredump: bool = False,
-        panic_output_decode_script: str = None,
+        panic_output_decode_script: t.Optional[str] = None,
         **kwargs,
     ) -> None:
         self.target = app.target
@@ -117,7 +119,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
                 '-n',
                 self.app.elf_file,
                 '-ex',
-                "target remote | \"{python}\" \"{script}\" --target {target} \"{output_file}\"".format(
+                'target remote | "{python}" "{script}" --target {target} "{output_file}"'.format(
                     python=sys.executable,
                     script=self.panic_output_decode_script,
                     target=self.target,
@@ -128,7 +130,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             ]
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             logging.info('\n\nBacktrace:\n')
-            logging.info(output.decode())  # noqa: E999
+            logging.info(output.decode())
         except subprocess.CalledProcessError as e:
             logging.debug(f'Failed to run gdb_panic_server.py script: {e}\n{e.output}\n\n')
             logging.info(panic_output.decode())
@@ -137,7 +139,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
                 try:
                     os.unlink(panic_output_file.name)
                 except OSError as e:
-                    logging.debug(f'Couldn\'t remove temporary panic output file ({e})')
+                    logging.debug(f"Couldn't remove temporary panic output file ({e})")
 
     def _check_coredump(self) -> None:
         """
@@ -267,22 +269,22 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
 
     def flash_via_jtag(self):
         if not self.openocd:
-            logging.warning('no openocd instance created. can\'t flash via openocd `program_esp`')
+            logging.warning("no openocd instance created. can't flash via openocd `program_esp`")
             return
 
         if self.app.is_loadable_elf:
             # loadable elf flash to ram. no cache.
             # load via test script.
             # For example:
-            # self.gdb.write('mon reset halt')
-            # self.gdb.write('thb *0x40007d54')
-            # self.gdb.write('c')
-            # self.gdb.write('load')
+            # >>> self.gdb.write('mon reset halt')
+            # >>> self.gdb.write('thb *0x40007d54')
+            # >>> self.gdb.write('c')
+            # >>> self.gdb.write('load')
             return
 
         for _f in self.app.flash_files:
             if _f.encrypted:
-                raise ValueError('Encrypted files can\'t be flashed in via JTAG')
+                raise ValueError("Encrypted files can't be flashed in via JTAG")
             self.openocd.write(f'program_esp {_f.file_path} {hex(_f.offset)} verify')
 
         if self._meta:

@@ -24,12 +24,12 @@ __getattr__ = lazy_load(
 
 
 __all__ = [
-    'IdfApp',
-    'IdfSerial',
-    'IdfDut',
     'CaseTester',
-    'LinuxSerial',
+    'IdfApp',
+    'IdfDut',
+    'IdfSerial',
     'LinuxDut',
+    'LinuxSerial',
     'UnittestMenuCase',
 ]
 

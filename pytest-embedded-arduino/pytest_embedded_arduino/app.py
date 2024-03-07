@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Tuple
+from typing import ClassVar, Dict, List, Tuple
 
 from pytest_embedded.app import App
 
@@ -17,7 +17,7 @@ class ArduinoApp(App):
     """
 
     #: dict of flash settings
-    flash_settings = {
+    flash_settings: ClassVar[Dict[str, Dict[str, str]]] = {
         'esp32': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
         'esp32s2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
         'esp32c3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
@@ -27,7 +27,7 @@ class ArduinoApp(App):
     }
 
     #: dict of binaries' offset.
-    binary_offsets = {
+    binary_offsets: ClassVar[Dict[str, List[int]]] = {
         'esp32': [0x1000, 0x8000, 0x10000],
         'esp32s2': [0x1000, 0x8000, 0x10000],
         'esp32c3': [0x0, 0x8000, 0x10000],

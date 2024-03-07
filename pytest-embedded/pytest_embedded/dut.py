@@ -64,8 +64,8 @@ class Dut(_InjectMixinCls):
         """
         self._q.put(to_bytes(s))
 
-    def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:  # noqa
-        @functools.wraps(func)  # noqa
+    def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:
+        @functools.wraps(func)
         def wrapper(
             self, pattern, *args, expect_all: bool = False, not_matching: List[Union[str, re.Pattern]] = (), **kwargs
         ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
@@ -73,10 +73,10 @@ class Dut(_InjectMixinCls):
             res = []
             while patterns:
                 try:
-                    index = func(self, pattern, *args, **kwargs)  # noqa
+                    index = func(self, pattern, *args, **kwargs)
                 except (pexpect.EOF, pexpect.TIMEOUT) as e:
                     debug_str = (
-                        f'Not found "{str(pattern)}"\n'
+                        f'Not found "{pattern!s}"\n'
                         f'Bytes in current buffer (color code eliminated): {self.pexpect_proc.buffer_debug_str}\n'
                         f'Please check the full log here: {self.logfile}'
                     )
@@ -108,8 +108,8 @@ class Dut(_InjectMixinCls):
 
         return wrapper
 
-    @_pexpect_func  # noqa
-    def expect(self, pattern, **kwargs) -> Match:  # noqa
+    @_pexpect_func
+    def expect(self, pattern, **kwargs) -> Match:
         """
         Expect the `pattern` from the internal buffer. All the arguments will be passed to `pexpect.expect()`.
 
@@ -130,8 +130,8 @@ class Dut(_InjectMixinCls):
         """
         return self.pexpect_proc.expect(pattern, **kwargs)
 
-    @_pexpect_func  # noqa
-    def expect_exact(self, pattern, **kwargs) -> Match:  # noqa
+    @_pexpect_func
+    def expect_exact(self, pattern, **kwargs) -> Match:
         """
         Expect the `pattern` from the internal buffer. All the arguments will be passed to `pexpect.expect_exact()`.
 

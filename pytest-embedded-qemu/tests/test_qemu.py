@@ -124,13 +124,14 @@ def test_pre_flash_enc_qemu(testdir):
         '-s',
         '--embedded-services', 'idf,qemu',
         '--app-path', app_path,
-        '--qemu-extra-args',f'-drive file={efuses_path},if=none,format=raw,id=efuse'
+        '--qemu-extra-args', f'-drive file={efuses_path},if=none,format=raw,id=efuse'
         ' -global driver=nvram.esp32.efuse,property=drive,value=efuse',
         '--encrypt', 'true',
         '--keyfile', keyfile_path,
     )
 
     result.assert_outcomes(passed=1)
+
 
 @qemu_bin_required
 def test_qemu_use_idf_mixin_methods(testdir):

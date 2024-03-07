@@ -174,7 +174,7 @@ def test_parallel_run(parallel_count, parallel_index, res):
     fake_items = [_FakeItem(name='1'), _FakeItem(name='2'), _FakeItem(name='3'),
                   _FakeItem(name='4'), _FakeItem(name='5')]
     fake_plugin = PytestEmbedded(parallel_count, parallel_index)
-    fake_plugin.pytest_collection_modifyitems(fake_items)  # noqa
+    fake_plugin.pytest_collection_modifyitems(fake_items)
     assert len(fake_items) == res
 
 
@@ -491,7 +491,6 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     assert junit_report[1].find('failure') is not None
 
 
-
 def test_duplicate_stdout_popen(testdir):
     testdir.makepyfile(r"""
         import pytest
@@ -574,7 +573,7 @@ def test_duplicate_module_name(testdir, capsys):
 @pytest.mark.temp_disable_packages('pytest_embedded_serial', 'pytest_embedded_idf')
 def test_temp_disable_packages():
     with pytest.raises(ImportError):
-        import pytest_embedded_serial.serial  # noqa
+        import pytest_embedded_serial.serial
 
     with pytest.raises(ImportError):
         import pytest_embedded_serial  # noqa

@@ -22,7 +22,7 @@ class Gdb(DuplicateStdoutPopen):
 
         self._gdb_first_prompt_matched = False
 
-        super().__init__(cmd=[gdb_prog_path] + gdb_cli_args, **kwargs)
+        super().__init__(cmd=[gdb_prog_path, *gdb_cli_args], **kwargs)
 
     def write(self, s: AnyStr, non_blocking: bool = False, timeout: float = 30) -> Optional[str]:
         super().write(s)

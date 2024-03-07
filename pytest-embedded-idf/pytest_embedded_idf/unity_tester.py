@@ -30,7 +30,7 @@ WAIT_FOR_MENU_TIMEOUT = 10
 READY_PATTERN_LIST = [
     'Press ENTER to see the list of tests',
     'Enter test for running',
-    'Enter next test, or \'enter\' to see menu',
+    "Enter next test, or 'enter' to see menu",
 ]
 
 
@@ -262,7 +262,7 @@ class IdfUnityDutMixin:
             _case = args[0]
 
             if _case.type not in func.__name__:
-                logging.warning('The %s case can\'t be executed with %s function.', _case.type, func.__name__)
+                logging.warning("The %s case can't be executed with %s function.", _case.type, func.__name__)
                 return
 
             try:
@@ -281,7 +281,7 @@ class IdfUnityDutMixin:
                     if _timeout < 0:  # pexpect process would expect 30s if < 0
                         _timeout = 0
                     self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=_timeout)
-                except Exception:  # result block missing # noqa
+                except Exception:  # result block missing
                     pass
                 else:  # result block exists
                     _log = remove_asci_color_code(self.pexpect_proc.before)
@@ -451,7 +451,7 @@ class _MultiDevTestDut:
     WAIT_SIGNAL_PREFIX = 'Waiting for signal: '
     UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
     UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
-    signal_pattern_list = [
+    signal_pattern_list: t.ClassVar[t.List[str]] = [
         UNITY_SEND_SIGNAL_REGEX,  # The dut send a signal
         UNITY_WAIT_SIGNAL_REGEX,  # The dut is blocked and waiting for a signal
         UNITY_SUMMARY_LINE_REGEX,  # Means the case finished

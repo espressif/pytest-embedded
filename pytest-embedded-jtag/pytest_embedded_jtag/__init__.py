@@ -4,8 +4,8 @@ from .gdb import Gdb
 from .openocd import OpenOcd
 
 __all__ = [
-    'OpenOcd',
     'Gdb',
+    'OpenOcd',
 ]
 
 __version__ = '1.8.1'

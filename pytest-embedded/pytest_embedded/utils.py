@@ -148,7 +148,7 @@ def find_by_suffix(suffix: str, path: str) -> t.List[str]:
 
 
 _ANSI_COLOR_CODE_RE = re.compile(
-    r'''
+    r"""
     \x1B  # ESC
     (?:   # 7-bit C1 Fe (except CSI)
         [@-Z\\-_]
@@ -158,7 +158,7 @@ _ANSI_COLOR_CODE_RE = re.compile(
         [ -/]*  # Intermediate bytes
         [@-~]   # Final byte
     )
-''',
+""",
     re.VERBOSE,
 )
 

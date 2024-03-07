@@ -41,7 +41,7 @@ class LinuxSerial(DuplicateStdoutPopen):
         self.app = app
 
         if not hasattr(self.app, 'target'):
-            raise ValueError(f'Idf app not parsable. Please check if it\'s valid: {self.app.binary_path}')
+            raise ValueError(f"Idf app not parsable. Please check if it's valid: {self.app.binary_path}")
 
         if self.app.target != 'linux':
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: "linux".')
