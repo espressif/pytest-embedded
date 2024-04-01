@@ -245,7 +245,7 @@ class JunitMerger:
             if len(_junit_files) > 1:
                 _data = None
                 for _junit_file in _junit_files:
-                    logging.info(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
+                    logging.debug(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
                     _junit = ET.parse(_junit_file)
                     _root = _junit.getroot()
 
@@ -270,14 +270,14 @@ class JunitMerger:
             # multi-dut, single junit file
             elif _junit_files[0] != merged_dut_junit_filepath:
                 _junit_file = _junit_files[0]
-                logging.info(f'Rename {_junit_file} to {merged_dut_junit_filepath}')
+                logging.debug(f'Rename {_junit_file} to {merged_dut_junit_filepath}')
                 os.rename(_junit_file, merged_dut_junit_filepath)
 
             _merged_multi_dut_junit_files.append(merged_dut_junit_filepath)
 
         # second round, merge the test case junit report back to the main junit report
         for file in _merged_multi_dut_junit_files:
-            logging.info(f'Merging {file} to {self.junit_path}')
+            logging.debug(f'Merging {file} to {self.junit_path}')
             merging_xml = ET.parse(file)
             merging_cases = merging_xml.findall('testcase')
             merging_parent = merging_xml.getroot()
@@ -315,4 +315,4 @@ class JunitMerger:
                 self.failed = True
 
         self.junit.write(self.junit_path)
-        logging.info(f'Merged junit report dumped to {os.path.realpath(self.junit_path)}')
+        logging.debug(f'Merged junit report dumped to {os.path.realpath(self.junit_path)}')
