@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v1.8.2 (2024-04-02)
+
+### Feat
+
+- **idf**: support `flash` other IdfApp object
+
+### Fix
+
+- **unity**: change json files related log level from info to debug
+- deprecate `use_esptool` args correctly
+- wrong app.binary_path if app_path is different with cwd
+
 ## v1.8.1 (2024-03-01)
 
 ### Fix
