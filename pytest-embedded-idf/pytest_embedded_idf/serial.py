@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import logging
+import os
 import tempfile
 from typing import Optional, TextIO, Union
 
@@ -161,6 +162,8 @@ class IdfSerial(EspSerial):
                 else:
                     _args.append(str(v))
 
+        if '--baud' not in _args:
+            _args.extend(['--baud', os.getenv('ESPBAUD', '1000000')])
         _args.append('write_flash')
 
         if self.erase_nvs:
