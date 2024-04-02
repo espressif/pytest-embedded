@@ -136,23 +136,29 @@ class EspSerial(Serial):
 
         super()._post_init()
 
-    def use_esptool(hard_reset_after: bool = True, no_stub: bool = False):  # noqa: ARG002
+    def use_esptool(hard_reset_after: Optional[bool] = None, no_stub: Optional[bool] = None):
         """
         1. tell the redirect serial thread to stop reading from the `pyserial` instance
-        2. esptool reuse the `pyserial` instance and call `run_stub()`
-        3. call to the decorated function, could use `self.stub` inside the function as the stubbed loader
-        4. call `hard_reset()`, if `hard_reset_after` is True
-        5. tell the redirect serial thread to continue reading from serial
+        2. esptool reuse the `pyserial` instance and call `esptool.main()` to do the actual work
+        3. tell the redirect serial thread to continue reading from serial
 
         Args:
-            hard_reset_after: run hard reset after
-            no_stub: disable launching the flasher stub
+            hard_reset_after: run hard reset after (deprecated)
+            no_stub: disable launching the flasher stub (deprecated)
         """
-        warn(
-            "The 'no_stub' parameter is now read directly from `flasher_args.json` "
-            'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
-            DeprecationWarning,
-        )
+        if hard_reset_after is not None:
+            warn(
+                "The 'hard_reset_after' parameter is now read directly from `flasher_args.json` "
+                'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
+                DeprecationWarning,
+            )
+
+        if no_stub is not None:
+            warn(
+                "The 'no_stub' parameter is now read directly from `flasher_args.json` "
+                'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
+                DeprecationWarning,
+            )
 
         def decorator(func):
             @functools.wraps(func)
