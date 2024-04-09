@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.8.3 (2024-04-09)
+
+### Fix
+
+- change baud when flash
+
 ## v1.8.2 (2024-04-02)
 
 ### Feat

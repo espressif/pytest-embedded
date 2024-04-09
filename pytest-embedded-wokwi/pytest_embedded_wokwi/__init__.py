@@ -8,4 +8,4 @@ __all__ = [
     'WokwiDut',
 ]
 
-__version__ = '1.8.2'
+__version__ = '1.8.3'
