@@ -163,7 +163,7 @@ class IdfSerial(EspSerial):
                     _args.append(str(v))
 
         if '--baud' not in _args:
-            _args.extend(['--baud', os.getenv('ESPBAUD', '1000000')])
+            _args.extend(['--baud', os.getenv('ESPBAUD', '921600')])
         _args.append('write_flash')
 
         if self.erase_nvs:
