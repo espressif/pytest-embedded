@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.8.4 (2024-04-23)
+
+### Fix
+
+- non-standard default baud rate
+
 ## v1.8.3 (2024-04-09)
 
 ### Fix
