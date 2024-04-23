@@ -2,7 +2,8 @@
 
 from .app import App
 from .dut import Dut
+from .dut_factory import DutFactory
 
-__all__ = ['App', 'Dut']
+__all__ = ['App', 'Dut', 'DutFactory']
 
 __version__ = '1.8.4'
