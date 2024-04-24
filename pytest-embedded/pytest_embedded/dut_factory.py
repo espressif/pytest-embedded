@@ -29,8 +29,13 @@ def _drop_none_kwargs(kwargs: t.Dict[t.Any, t.Any]):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-_ctx = multiprocessing.get_context()
+if sys.platform == 'darwin':
+    _ctx = multiprocessing.get_context('fork')
+else:
+    _ctx = multiprocessing.get_context()
+
 _stdout = sys.__stdout__
+
 dut_global_index = 0
 
 PARAMETRIZED_FIXTURES_CACHE = {}
@@ -41,7 +46,7 @@ It helps to obtain the necessary information for a custom DUT, such as '_meta', 
 
 
 def msg_queue_gn() -> MessageQueue:
-    return MessageQueue(ctx=_ctx)
+    return MessageQueue()
 
 
 def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
