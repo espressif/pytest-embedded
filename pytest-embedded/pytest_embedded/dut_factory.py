@@ -297,6 +297,7 @@ def _fixture_classes_and_options_fn(
                     'msg_queue': msg_queue,
                     'app': None,
                     'meta': _meta,
+                    'firmware_resolver': None,
                 })
         elif fixture == 'dut':
             classes[fixture] = Dut
@@ -326,8 +327,12 @@ def _fixture_classes_and_options_fn(
                     from pytest_embedded_wokwi.idf import IDFFirmwareResolver
 
                     kwargs['wokwi'].update({'firmware_resolver': IDFFirmwareResolver()})
+                elif 'arduino' in _services:
+                    from pytest_embedded_wokwi.arduino import ArduinoFirmwareResolver
+
+                    kwargs['wokwi'].update({'firmware_resolver': ArduinoFirmwareResolver()})
                 else:
-                    raise SystemExit('wokwi service should be used together with idf service')
+                    raise SystemExit('wokwi service should be used together with idf or arduino service')
             elif 'qemu' in _services:
                 from pytest_embedded_qemu import QemuDut
 
