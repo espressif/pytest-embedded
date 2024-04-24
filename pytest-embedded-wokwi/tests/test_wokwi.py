@@ -36,3 +36,23 @@ def test_pexpect_by_wokwi_esp32(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_pexpect_by_wokwi_esp32_arduino(testdir):
+    testdir.makepyfile("""
+        import pexpect
+        import pytest
+
+        def test_pexpect_by_wokwi(dut):
+            dut.expect('Hello Arduino!')
+            with pytest.raises(pexpect.TIMEOUT):
+                dut.expect('foo bar not found', timeout=1)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services', 'arduino,wokwi',
+        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_arduino'),
+    )
+
+    result.assert_outcomes(passed=1)

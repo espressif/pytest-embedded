@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import typing as t
 from pathlib import Path
 
@@ -101,9 +102,16 @@ class WokwiCLI(DuplicateStdoutPopen):
 
     def create_diagram_json(self):
         app = self.app
-        diagram_json_path = os.path.join(app.app_path, 'diagram.json')
         target_board = target_to_board[app.target]
 
+        # Check for specific target.diagram.json file first
+        diagram_json_path = os.path.join(app.app_path, (app.target + '.diagram.json'))
+        if os.path.exists(diagram_json_path):
+            shutil.copyfile(diagram_json_path, os.path.join(app.app_path, 'diagram.json'))
+            return
+
+        # Check for common diagram.json file
+        diagram_json_path = os.path.join(app.app_path, 'diagram.json')
         if os.path.exists(diagram_json_path):
             with open(diagram_json_path) as f:
                 json_data = json.load(f)
