@@ -29,19 +29,25 @@ def _drop_none_kwargs(kwargs: t.Dict[t.Any, t.Any]):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-_ctx = multiprocessing.get_context()
-_stdout = sys.__stdout__
-dut_global_index = 0
+if sys.platform == 'darwin':
+    _ctx = multiprocessing.get_context('fork')
+else:
+    _ctx = multiprocessing.get_context()
 
+_stdout = sys.__stdout__
+
+
+# This variable is used to keep track of the number of DUTs created.
+DUT_GLOBAL_INDEX = 0
+
+
+# This variable holds values that were used in 'parametrize_fixtures'.
+# It helps to obtain the necessary information for a custom DUT, such as '_meta', '_services', and 'test_case_name'.
 PARAMETRIZED_FIXTURES_CACHE = {}
-"""
-This variable holds values that were used in 'parametrize_fixtures'.
-It helps to obtain the necessary information for a custom DUT, such as '_meta', '_services', and 'test_case_name'.
-"""
 
 
 def msg_queue_gn() -> MessageQueue:
-    return MessageQueue(ctx=_ctx)
+    return MessageQueue()
 
 
 def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
@@ -451,8 +457,8 @@ def dut_gn(
     qemu: t.Optional['Qemu'],
     wokwi: t.Optional['WokwiCLI'],
 ) -> t.Union[Dut, t.List[Dut]]:
-    global dut_global_index
-    dut_global_index += 1
+    global DUT_GLOBAL_INDEX
+    DUT_GLOBAL_INDEX += 1
 
     kwargs = _fixture_classes_and_options.kwargs['dut']
     mixins = _fixture_classes_and_options.mixins['dut']
@@ -543,8 +549,8 @@ class DutFactory:
 
     @classmethod
     def close(cls):
-        global dut_global_index
-        dut_global_index = 0
+        global DUT_GLOBAL_INDEX
+        DUT_GLOBAL_INDEX = 0
         if hasattr(cls, 'obj_stack'):
             while cls.obj_stack:
                 layout = DutFactory.obj_stack.pop()
@@ -655,11 +661,11 @@ class DutFactory:
             layout.append(msg_queue)
 
             _pexpect_logfile = os.path.join(
-                PARAMETRIZED_FIXTURES_CACHE['_meta'].logdir, f'custom-dut-{dut_global_index}.txt'
+                PARAMETRIZED_FIXTURES_CACHE['_meta'].logdir, f'custom-dut-{DUT_GLOBAL_INDEX}.txt'
             )
             logging.debug('You can get your custom DUT log file at the following path: %s.', _pexpect_logfile)
 
-            _listener = _listener_gn(msg_queue, _pexpect_logfile, True, dut_global_index, dut_global_index + 1)
+            _listener = _listener_gn(msg_queue, _pexpect_logfile, True, DUT_GLOBAL_INDEX, DUT_GLOBAL_INDEX + 1)
             layout.append(_listener)
 
             _pexpect_fr = _pexpect_fr_gn(_pexpect_logfile, _listener)
@@ -705,7 +711,7 @@ class DutFactory:
                 'test_case_name': PARAMETRIZED_FIXTURES_CACHE['test_case_name'],
                 '_meta': PARAMETRIZED_FIXTURES_CACHE['_meta'],
                 # pre-initialized fixtures
-                'dut_index': dut_global_index,
+                'dut_index': DUT_GLOBAL_INDEX,
                 '_pexpect_logfile': _pexpect_logfile,
                 'pexpect_proc': pexpect_proc,
                 'msg_queue': msg_queue,

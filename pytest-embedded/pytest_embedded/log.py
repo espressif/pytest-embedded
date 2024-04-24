@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import subprocess
+import sys
 import tempfile
 import textwrap
 import uuid
@@ -16,8 +17,18 @@ from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
 from .utils import Meta, remove_asci_color_code, to_bytes, to_str
 
+if sys.platform == 'darwin':
+    _ctx = multiprocessing.get_context('fork')
+else:
+    _ctx = multiprocessing.get_context()
+
 
 class MessageQueue(queues.Queue):
+    def __init__(self, *args, **kwargs):
+        if 'ctx' not in kwargs:
+            kwargs['ctx'] = _ctx
+        super().__init__(*args, **kwargs)
+
     def put(self, obj, **kwargs):
         if not isinstance(obj, (str, bytes)):
             super().put(obj, **kwargs)
@@ -133,7 +144,7 @@ def live_print_call(*args, msg_queue: Optional[MessageQueue] = None, expect_retu
         raise subprocess.CalledProcessError(process.returncode, process.args)
 
 
-class _PopenRedirectProcess(multiprocessing.Process):
+class _PopenRedirectProcess(_ctx.Process):
     def __init__(self, msg_queue: MessageQueue, logfile: str):
         self._q = msg_queue
 
