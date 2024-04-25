@@ -299,15 +299,6 @@ def _fixture_classes_and_options_fn(
                     'meta': _meta,
                     'firmware_resolver': None,
                 })
-
-                classes[fixture] = WokwiCLI
-                kwargs[fixture].update({
-                    'wokwi_cli_path': wokwi_cli_path,
-                    'wokwi_timeout': wokwi_timeout,
-                    'msg_queue': msg_queue,
-                    'app': None,
-                    'meta': _meta,
-                })
         elif fixture == 'dut':
             classes[fixture] = Dut
             kwargs[fixture] = {
