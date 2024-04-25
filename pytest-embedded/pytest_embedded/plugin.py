@@ -641,11 +641,6 @@ def _pexpect_logfile(test_case_tempdir, logfile_extension, dut_index, dut_total)
     return os.path.join(test_case_tempdir, f'{name}{logfile_extension}')
 
 
-# Suppress UserWarning on resource_tracker.py
-if sys.platform == 'darwin':
-    multiprocessing.set_start_method('fork')
-
-
 @pytest.fixture
 @multi_dut_generator_fixture
 def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
