@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.9.0 (2024-04-25)
+
+### Feat
+
+- **wokwi**: Support Arduino
+- Add `DutFactory` to create dut object inside the test functions
+
+### Fix
+
+- multiprocessing with context instead of set_start_method globally on macos
+
 ## v1.8.4 (2024-04-23)
 
 ### Fix
