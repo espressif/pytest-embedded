@@ -290,25 +290,14 @@ def _fixture_classes_and_options_fn(
             if 'wokwi' in _services:
                 from pytest_embedded_wokwi import WokwiCLI
 
-                if 'idf' in _services:
-                    from pytest_embedded_wokwi.idf import IDFFirmwareResolver
-
-                    resolver = IDFFirmwareResolver
-                    app = IdfApp
-                elif 'arduino' in _services:
-                    from pytest_embedded_wokwi.arduino import ArduinoFirmwareResolver
-
-                    resolver = ArduinoFirmwareResolver
-                    app = ArduinoApp
-
                 classes[fixture] = WokwiCLI
                 kwargs[fixture].update({
                     'wokwi_cli_path': wokwi_cli_path,
                     'wokwi_timeout': wokwi_timeout,
                     'msg_queue': msg_queue,
-                    'app': app,
+                    'app': None,
                     'meta': _meta,
-                    'firmware_resolver': resolver,
+                    'firmware_resolver': None,
                 })
 
                 classes[fixture] = WokwiCLI
