@@ -1,12 +1,12 @@
 {
   "additionalFiles": "",
-  "builtInLibrariesFolders": "/private/var/folders/t6/v8mgvn9950q9j_wkb3kp1mv40000gn/T/AppTranslocation/5BC795C6-A892-4411-BEA2-AFD13C97CB9D/d/Arduino.app/Contents/Java/libraries",
-  "builtInToolsFolders": "",
-  "compiler.optimization_flags": "",
-  "customBuildProperties": "build.warn_data_percentage=75",
+  "builtInLibrariesFolders": "",
+  "builtInToolsFolders": "/Applications/Arduino.app/Contents/Java/tools-builder",
+  "compiler.optimization_flags": "-Os",
+  "customBuildProperties": "",
   "fqbn": "espressif:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app",
-  "hardwareFolders": "/Users/ouss4/Library/Arduino15/packages,/Users/ouss4/Documents/Arduino/hardware",
-  "otherLibrariesFolders": "/Users/ouss4/Documents/Arduino/libraries",
-  "runtime.ide.version": "10607",
-  "sketchLocation": "/Users/ouss4/esp/pytest-embedded/examples/arduino/hello_world_arduino/hello_world_arduino.ino"
+  "hardwareFolders": "/Users/prochy/Documents/Arduino/hardware",
+  "otherLibrariesFolders": "/Users/prochy/Documents/Arduino/libraries",
+  "runtime.ide.version": "10810",
+  "sketchLocation": "/Users/prochy/Documents/Arduino/hardware/espressif/esp32/tests/hello_world/hello_world.ino"
 }
