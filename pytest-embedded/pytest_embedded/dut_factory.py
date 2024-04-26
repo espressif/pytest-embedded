@@ -10,8 +10,6 @@ import typing as t
 from collections import defaultdict
 from pathlib import Path
 
-from pytest_embedded_idf import CaseTester
-
 if t.TYPE_CHECKING:
     from pytest_embedded_idf import LinuxSerial
     from pytest_embedded_idf.dut import IdfDut
@@ -568,6 +566,8 @@ class DutFactory:
 
     @classmethod
     def unity_tester(cls, *args: 'IdfDut'):
+        from pytest_embedded_idf import CaseTester
+
         return CaseTester(args)
 
     @classmethod
