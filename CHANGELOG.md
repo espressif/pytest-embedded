@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.9.1 (2024-04-26)
+
+### Fix
+
+- remove required optional dependencies 'idf'
+
 ## v1.9.0 (2024-04-25)
 
 ### Feat
