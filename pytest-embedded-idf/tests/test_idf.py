@@ -716,6 +716,69 @@ def test_dut_run_all_single_board_cases(testdir):
     assert multi_stage.attrib['name'] == 'multiple_stages_test'
 
 
+def test_dut_run_all_single_board_cases_group(testdir):
+    testdir.makepyfile(r"""
+        def test_dut_run_all_single_board_cases(dut):
+            dut.run_all_single_board_cases(group="normal_case", timeout=10)
+    """)
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '1'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '1'
+
+
+def test_dut_run_all_single_board_cases_invert_group(testdir):
+    testdir.makepyfile(r"""
+        def test_dut_run_all_single_board_cases(dut):
+            dut.run_all_single_board_cases(group="!normal_case", timeout=10)
+    """)
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '0'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '1'
+
+
+def test_dut_run_all_single_board_cases_by_names(testdir):
+    testdir.makepyfile(r"""
+        def test_dut_run_all_single_board_cases(dut):
+            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
+    """)
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '0'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'
+
+
 def test_unity_test_case_runner(testdir):
     testdir.makepyfile(r"""
         def test_unity_test_case_runner(unity_tester):
