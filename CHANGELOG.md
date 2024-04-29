@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v1.10.0 (2024-04-29)
+
+### Feat
+
+- **wokwi**: Add scenario path parameter
+
+### Refactor
+
+- **pytest8.2**: stash session_tempdir in a cleaner way
+- **py3.12**: use datetime.now(timezone.utc) instead of utcnow()
+- **py3.12**: use shutil.copytree instead of distutils
+
 ## v1.9.1 (2024-04-26)
 
 ### Fix
