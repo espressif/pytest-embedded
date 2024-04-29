@@ -1,4 +1,3 @@
-import datetime
 import errno
 import logging
 import multiprocessing
@@ -15,7 +14,7 @@ import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
 from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
-from .utils import Meta, remove_asci_color_code, to_bytes, to_str
+from .utils import Meta, remove_asci_color_code, to_bytes, to_str, utcnow_str
 
 if sys.platform == 'darwin':
     _ctx = multiprocessing.get_context('fork')
@@ -176,7 +175,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
         else:
             logdir = os.path.join(
                 tempfile.gettempdir(),
-                datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S'),
+                utcnow_str(),
             )
             os.makedirs(logdir, exist_ok=True)
             logfile_extension = '.log'

@@ -1,5 +1,4 @@
 import contextlib
-import datetime
 import dbm
 import functools
 import gc
@@ -58,6 +57,7 @@ from .utils import (
     UnknownServiceError,
     find_by_suffix,
     to_list,
+    utcnow_str,
 )
 
 if t.TYPE_CHECKING:
@@ -564,7 +564,7 @@ def session_tempdir(session_root_logdir) -> str:
     _tmpdir = os.path.join(
         session_root_logdir,
         'pytest-embedded',
-        f'{datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S-%f")}',
+        utcnow_str(),
     )
     os.makedirs(_tmpdir, exist_ok=True)
     return _tmpdir

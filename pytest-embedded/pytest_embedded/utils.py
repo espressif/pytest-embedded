@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import functools
 import importlib
 import logging
@@ -154,6 +155,10 @@ def find_by_suffix(suffix: str, path: str) -> t.List[str]:
                 res.append(os.path.join(root, file))
 
     return res
+
+
+def utcnow_str() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d_%H-%M-%S-%f')
 
 
 _ANSI_COLOR_CODE_RE = re.compile(
