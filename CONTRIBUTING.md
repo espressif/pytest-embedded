@@ -12,13 +12,29 @@ We use [commitizen](https://github.com/commitizen-tools/commitizen) to auto gene
 You don't need to install it or know anything about the tool itself, but please follow
 the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) rule when writing commit messages.
 
+## Install Virtual Environment
+
+We recommend using virtual environment for development. You can create one by
+
+```shell
+$ python -m venv .venv
+$ source .venv/bin/activate
+```
+
+## Install Dependencies
+
+We recommend to install the local subpackages in editable mode.
+
+```shell
+$ pip install -r requirements.txt
+$ bash foreach.sh install-editable
+```
+
 ## Running Tests
 
 By default, all tests under all plugins would be run.
 
 ```shell
-$ pip install -r requirements.txt
-$ bash foreach.sh install
 $ # export DONT_SKIP_JTAG_TESTS=1 (when you have a jtag connection)
 $ pytest
 ```
