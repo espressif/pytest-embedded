@@ -268,6 +268,10 @@ def pytest_addoption(parser):
         type=_gte_one_int,
         help='Simulation timeout in milliseconds (Default: 86400000)',
     )
+    wokwi_group.addoption(
+        '--wokwi-scenario',
+        help='Path to the wokwi scenario file (Default: None)',
+    )
 
 
 ###########
@@ -945,6 +949,13 @@ def wokwi_timeout(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'wokwi_timeout', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def wokwi_scenario(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'wokwi_scenario', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -1001,6 +1012,7 @@ def parametrize_fixtures(
     qemu_extra_args,
     wokwi_cli_path,
     wokwi_timeout,
+    wokwi_scenario,
     skip_regenerate_image,
     encrypt,
     keyfile,
