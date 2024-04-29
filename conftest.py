@@ -1,11 +1,12 @@
 import os
+import shutil
 import sys
-from distutils.dir_util import copy_tree
 from typing import List, Pattern
 
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
+from _pytest.legacypath import Testdir
 
 pytest_plugins = [
     'pytester',
@@ -13,8 +14,17 @@ pytest_plugins = [
 
 
 @pytest.fixture(autouse=True)
-def copy_fixtures(testdir):
-    copy_tree(os.path.join(os.path.dirname(__file__), 'tests', 'fixtures'), str(testdir.tmpdir))
+def copy_fixtures(testdir: Testdir):
+    fixture_dir = os.path.join(os.path.dirname(__file__), 'tests', 'fixtures')
+    for item in os.listdir(fixture_dir):
+        if item == '__pycache__':
+            continue
+
+        if os.path.isfile(os.path.join(fixture_dir, item)):
+            shutil.copy(os.path.join(fixture_dir, item), os.path.join(str(testdir.tmpdir), item))
+        else:
+            shutil.copytree(os.path.join(fixture_dir, item), os.path.join(str(testdir.tmpdir), item))
+
     yield
 
 
