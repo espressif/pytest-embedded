@@ -147,6 +147,7 @@ def _fixture_classes_and_options_fn(
     qemu_extra_args,
     wokwi_cli_path,
     wokwi_timeout,
+    wokwi_scenario,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -298,6 +299,7 @@ def _fixture_classes_and_options_fn(
                 kwargs[fixture].update({
                     'wokwi_cli_path': wokwi_cli_path,
                     'wokwi_timeout': wokwi_timeout,
+                    'wokwi_scenario': wokwi_scenario,
                     'msg_queue': msg_queue,
                     'app': None,
                     'meta': _meta,
@@ -603,6 +605,7 @@ class DutFactory:
         qemu_extra_args: t.Optional[str] = None,
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = 0,
+        wokwi_scenario: t.Optional[str] = None,
         skip_regenerate_image: t.Optional[bool] = None,
         encrypt: t.Optional[bool] = None,
         keyfile: t.Optional[str] = None,
@@ -648,6 +651,7 @@ class DutFactory:
         - qemu_extra_args: Additional QEMU arguments.
         - wokwi_cli_path: Wokwi CLI path.
         - wokwi_timeout: Wokwi timeout.
+        - wokwi_scenario: Wokwi scenario path.
         - skip_regenerate_image: Skip image regeneration flag.
         - encrypt: Encryption flag.
         - keyfile: Keyfile for encryption.
@@ -709,6 +713,7 @@ class DutFactory:
                 'qemu_extra_args': qemu_extra_args,
                 'wokwi_cli_path': wokwi_cli_path,
                 'wokwi_timeout': wokwi_timeout,
+                'wokwi_scenario': wokwi_scenario,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,
                 'keyfile': keyfile,

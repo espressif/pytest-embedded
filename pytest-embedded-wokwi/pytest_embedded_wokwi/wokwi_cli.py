@@ -40,6 +40,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         firmware_resolver: IDFFirmwareResolver,
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = None,
+        wokwi_scenario: t.Optional[str] = None,
         app: t.Optional['IdfApp'] = None,
         **kwargs,
     ):
@@ -57,6 +58,8 @@ class WokwiCLI(DuplicateStdoutPopen):
         cmd = [wokwi_cli, '--interactive', app.app_path]
         if (wokwi_timeout is not None) and (wokwi_timeout > 0):
             cmd.extend(['--timeout', str(wokwi_timeout)])
+        if (wokwi_scenario is not None) and os.path.exists(wokwi_scenario):
+            cmd.extend(['--scenario', wokwi_scenario])
 
         super().__init__(
             cmd=cmd,
