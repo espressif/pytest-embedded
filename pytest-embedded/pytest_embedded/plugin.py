@@ -19,14 +19,9 @@ from operator import itemgetter
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import (
-    FixtureDef,
     FixtureRequest,
-    SubRequest,
-    call_fixture_func,
-    resolve_fixture_function,
 )
 from _pytest.main import Session
-from _pytest.outcomes import TEST_OUTCOME
 from _pytest.python import Function
 
 from .app import App
@@ -559,7 +554,7 @@ def logfile_extension(request: FixtureRequest) -> str:
 
 
 @pytest.fixture(scope='session')
-def session_tempdir(session_root_logdir) -> str:
+def session_tempdir(request: FixtureRequest, session_root_logdir: str) -> str:
     """Session scoped temp dir for pytest-embedded"""
     _tmpdir = os.path.join(
         session_root_logdir,
@@ -567,6 +562,9 @@ def session_tempdir(session_root_logdir) -> str:
         utcnow_str(),
     )
     os.makedirs(_tmpdir, exist_ok=True)
+
+    request.config.stash[_session_tempdir_key] = _tmpdir
+
     return _tmpdir
 
 
@@ -1186,41 +1184,6 @@ class PytestEmbedded:
             for case in failed_cases:
                 logging.error(f'  - {case.name}')
             raise AssertionError('Unity test failed')
-
-    @staticmethod
-    def _pytest_fixturedef_get_kwargs(fixturedef: FixtureDef[t.Any], request: SubRequest) -> t.Dict[str, t.Any]:
-        kwargs = {}
-        for argname in fixturedef.argnames:
-            fixdef = request._get_active_fixturedef(argname)
-            assert fixdef.cached_result is not None
-            result, _, _ = fixdef.cached_result
-            request._check_scope(argname, request._scope, fixdef._scope)
-            kwargs[argname] = result
-
-        return kwargs
-
-    @staticmethod
-    def _pytest_fixturedef_exec(fixturedef: FixtureDef[t.Any], request: SubRequest, kwargs: t.Dict[str, t.Any]):
-        fixturefunc = resolve_fixture_function(fixturedef, request)
-        my_cache_key = fixturedef.cache_key(request)
-        try:
-            result = call_fixture_func(fixturefunc, request, kwargs)
-        except TEST_OUTCOME:
-            exc_info = sys.exc_info()
-            assert exc_info[0] is not None
-            fixturedef.cached_result = (None, my_cache_key, exc_info)
-            raise
-        fixturedef.cached_result = (result, my_cache_key, None)
-        return result
-
-    @pytest.hookimpl(tryfirst=True)
-    def pytest_fixture_setup(self, fixturedef: FixtureDef[t.Any], request: SubRequest):
-        # record session_tempdir in session stash
-        if fixturedef.argname == 'session_tempdir':
-            kwargs = self._pytest_fixturedef_get_kwargs(fixturedef, request)
-            val = self._pytest_fixturedef_exec(fixturedef, request, kwargs)
-            request.config.stash[_session_tempdir_key] = val
-            return val
 
     @staticmethod
     def _duplicate_items(items: t.List[_T]) -> t.List[_T]:
