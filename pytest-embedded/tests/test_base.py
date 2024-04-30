@@ -1,6 +1,5 @@
 import os
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -162,20 +161,21 @@ def test_default_app_path(testdir):
     (2, 1, 3),
     (2, 2, 2),
 ])
-def test_parallel_run(parallel_count, parallel_index, res):
-    from pytest_embedded.plugin import PytestEmbedded
+def test_parallel_run(testdir, parallel_count, parallel_index, res):
+    testdir.makepyfile(r"""
+        def test_1(dut): pass
+        def test_2(dut): pass
+        def test_3(dut): pass
+        def test_4(dut): pass
+        def test_5(dut): pass
+    """)
 
-    @dataclass
-    class _FakeItem:
-        name: str
-        path = Path('.')
+    result = testdir.runpytest(
+        '--parallel-count', parallel_count,
+        '--parallel-index', parallel_index,
+    )
 
-    # _Fake instances are used in order to pass `pytest_collection_modifyitems` hook
-    fake_items = [_FakeItem(name='1'), _FakeItem(name='2'), _FakeItem(name='3'),
-                  _FakeItem(name='4'), _FakeItem(name='5')]
-    fake_plugin = PytestEmbedded(parallel_count, parallel_index)
-    fake_plugin.pytest_collection_modifyitems(fake_items)
-    assert len(fake_items) == res
+    result.assert_outcomes(passed=res)
 
 
 def test_expect(testdir):
