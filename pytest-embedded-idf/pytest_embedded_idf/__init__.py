@@ -17,8 +17,8 @@ __getattr__ = lazy_load(
         'CaseTester': CaseTester,
     },
     {
-        'IdfSerial': '.serial',
-        'IdfDut': '.dut',
+        'IdfSerial': '.serial',  # requires esp
+        'IdfDut': '.dut',  # requires esp
     },
 )
 
