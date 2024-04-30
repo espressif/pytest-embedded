@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.10.1 (2024-04-30)
+
+### Fix
+
+- **arduino**: stop require optional dependency 'esp'
+- **qemu**: stop require optional dependency 'idf'
+
 ## v1.10.0 (2024-04-29)
 
 ### Feat
