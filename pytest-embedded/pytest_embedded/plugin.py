@@ -156,6 +156,12 @@ def pytest_addoption(parser):
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
     esp_group.addoption('--beta-target', help='serial target beta version chip type. (Default: same as [--target])')
     esp_group.addoption(
+        '--add-target-as-marker',
+        help='add target param as a function marker. Useful in CI with runners with different tags.'
+        'y/yes/true for True and n/no/false for False. '
+        '(Default: False, parametrization not supported, `|` will be escaped to `-`)',
+    )
+    esp_group.addoption(
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
@@ -1160,6 +1166,7 @@ def pytest_configure(config: Config) -> None:
         parallel_index=config.getoption('parallel_index'),
         check_duplicates=config.getoption('check_duplicates', False),
         prettify_junit_report=_str_bool(config.getoption('prettify_junit_report', False)),
+        add_target_as_marker=_str_bool(config.getoption('add_target_as_marker', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
 
@@ -1178,11 +1185,13 @@ class PytestEmbedded:
         parallel_index: int = 1,
         check_duplicates: bool = False,
         prettify_junit_report: bool = False,
+        add_target_as_marker: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
         self.check_duplicates = check_duplicates
         self.prettify_junit_report = prettify_junit_report
+        self.add_target_as_marker = add_target_as_marker
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: t.Iterable[Dut]) -> None:
@@ -1207,8 +1216,21 @@ class PytestEmbedded:
 
         return duplicates
 
-    @pytest.hookimpl(trylast=True)
+    @pytest.hookimpl(hookwrapper=True, trylast=True)
     def pytest_collection_modifyitems(self, items: t.List[Function]):
+        if self.add_target_as_marker:
+            for item in items:
+                item_target = item.callspec.getparam('target')
+
+                if not isinstance(item_target, str):
+                    raise ValueError(f'`target` should be a string, got {type(item_target)} instead')
+
+                if item_target:
+                    # https://github.com/pytest-dev/pytest/pull/12277
+                    item.add_marker(item_target.replace('|', '-'))  # '|' is not supported until 8.2.0
+
+        yield
+
         if self.check_duplicates:
             duplicated_test_cases = self._duplicate_items([test.name for test in items])
             if duplicated_test_cases:
