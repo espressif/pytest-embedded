@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.10.2 (2024-04-30)
+
+### Feat
+
+- **esp**: support add target as marker ('|' will be escaped to '-')
+
+### Fix
+
+- **wokwi**: error when bin,elf file not under app_path
+
 ## v1.10.1 (2024-04-30)
 
 ### Fix
