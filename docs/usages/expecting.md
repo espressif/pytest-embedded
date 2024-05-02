@@ -1,4 +1,4 @@
-# Expecting
+# Expecting Functions
 
 While we're doing tests, most of our jobs is to expect a string or a pattern, and do assertions. This is supported by
 functions `expect()`, `expect_exact()`, and `expect_unity_test_output()`.

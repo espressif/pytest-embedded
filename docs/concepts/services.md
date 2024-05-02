@@ -33,23 +33,23 @@ graph LR
 
 Activate a service would enable a set of fixtures or add some extra functionalities to a few fixtures.
 
-```{include} ../pytest-embedded-serial/README.md
+```{include} ../../pytest-embedded-serial/README.md
 ```
 
-```{include} ../pytest-embedded-serial-esp/README.md
+```{include} ../../pytest-embedded-serial-esp/README.md
 ```
 
-```{include} ../pytest-embedded-idf/README.md
+```{include} ../../pytest-embedded-idf/README.md
 ```
 
-```{include} ../pytest-embedded-jtag/README.md
+```{include} ../../pytest-embedded-jtag/README.md
 ```
 
-```{include} ../pytest-embedded-qemu/README.md
+```{include} ../../pytest-embedded-qemu/README.md
 ```
 
-```{include} ../pytest-embedded-arduino/README.md
+```{include} ../../pytest-embedded-arduino/README.md
 ```
 
-```{include} ../pytest-embedded-wokwi/README.md
+```{include} ../../pytest-embedded-wokwi/README.md
 ```

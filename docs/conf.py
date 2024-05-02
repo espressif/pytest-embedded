@@ -3,13 +3,17 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'pytest-embedded'
 project_homepage = 'https://github.com/espressif/pytest-embedded'
-copyright = '2023, Espressif Systems (Shanghai) Co., Ltd.'  # noqa: A001
+copyright = f'2023-{datetime.now().year}, Espressif Systems (Shanghai) Co., Ltd.'  # noqa: A001
 author = 'Fu Hanxi'
+version = '1.x'
+release = '1.x'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
