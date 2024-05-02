@@ -8,18 +8,25 @@ Please refer to instructions under the "fixtures defined from pytest_embedded.pl
 
 Please refer to the instructions under the "embedded" or "embedded-[SERVICE]" groups of the output of `pytest --help`.
 
-## Dependency Graph
+## Dependency Graph for Services
+
+The arrow points from the dependent service to the service it depends on. For example, `pytest-embedded-serial-esp` depends on `pytest-embedded-serial`.
 
 ```{mermaid}
 graph LR
-    pytest_embedded --> pytest_embedded_serial
-    pytest_embedded -->|pytest_embedded_serial_esp is an optional dependency| pytest_embedded_idf
-    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_qemu
-    pytest_embedded -->|pytest_embedded_serial is an optional dependency| pytest_embedded_arduino
-    pytest_embedded -->|pytest_embedded_idf is an optional dependency| pytest_embedded_wokwi
-
-    pytest_embedded_serial --> pytest_embedded_serial_esp
-    pytest_embedded_serial --> pytest_embedded_jtag
+    pytest-embedded-serial
+    
+    pytest-embedded-serial-esp --> pytest-embedded-serial
+    
+    pytest-embedded-jtag --> pytest-embedded-serial
+    
+    pytest-embedded-idf -->|optional, support test on espressif chips| pytest-embedded-serial-esp
+    pytest-embedded-idf -->|optional, support test on qemu| pytest-embedded-qemu
+    pytest-embedded-idf -->|optional, support test on wokwi| pytest-embedded-wokwi
+    
+    pytest-embedded-arduino -->|optional, support test on espressif chips| pytest-embedded-serial-esp
+    pytest-embedded-arduino -->|optional, support test on qemu| pytest-embedded-qemu
+    pytest-embedded-arduino -->|optional, support test on wokwi| pytest-embedded-wokwi
 ```
 
 ## Supported Services
