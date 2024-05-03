@@ -10,7 +10,7 @@ All of these functions share these possible keyword arguments:
 
    Set the timeout in seconds for this expect statement. (Default: 30 s)
 
-   Will throw an ``pexpect.TIMEOUT`` exception if it exceeded the specified value.
+   Will throw an :obj:`pexpect.TIMEOUT` exception if it exceeded the specified value.
 
 -  ``expect_all``.
 
@@ -24,9 +24,9 @@ All of these functions share these possible keyword arguments:
  :func:`~pytest_embedded.dut.Dut.expect`
 *****************************************
 
-``pattern`` can be ``str`` or ``bytes``, or a compiled regex with ``bytes``.
+``pattern`` can be :obj:`str` or :obj:`bytes`, or a compiled regex with :obj:`bytes`.
 
-If the pattern is ``str`` or ``bytes``, it will convert to compiled regex with ``bytes`` and then run the function.
+If the pattern is :obj:`str` or :obj:`bytes`, it will convert to compiled regex with :obj:`bytes` and then run the function.
 
 .. code:: python
 
@@ -40,7 +40,7 @@ If the pattern is ``str`` or ``bytes``, it will convert to compiled regex with `
        dut.expect('[be]{2}')
        dut.expect(re.compile(b'redirected'))
 
-If expecting success, the return value would be a ``re.Match`` object.
+If expecting success, the return value would be a :obj:`re.Match` object.
 
 .. code:: python
 
@@ -54,7 +54,7 @@ If expecting success, the return value would be a ``re.Match`` object.
        assert res.group(1) == b'would'
        assert res.group(2).decode('utf-8') == 'redirected'
 
-You can get the bytes read before timeout by expecting a ``pexpect.TIMEOUT`` object
+You can get the bytes read before timeout by expecting a :obj:`pexpect.TIMEOUT` object.
 
 .. code:: python
 
@@ -74,7 +74,7 @@ You can get the bytes read before timeout by expecting a ``pexpect.TIMEOUT`` obj
        res = dut.expect(pexpect.TIMEOUT, timeout=3)
        assert res == b'11'
 
-You can also get all bytes in the pexpect process buffer by expecting a ``pexpect.EOF`` object.
+You can also get all bytes in the pexpect process buffer by expecting a :obj:`pexpect.EOF` object.
 
 .. code:: python
 
@@ -92,7 +92,7 @@ You can also get all bytes in the pexpect process buffer by expecting a ``pexpec
 
 .. note::
 
-   The pexpect process would only read from the process into the buffer when running expecting functions. If you're expecting ``pexpect.EOF`` as the first statement, it would return an empty byte string
+   The pexpect process would only read from the process into the buffer when running expecting functions. If you're expecting :obj:`pexpect.EOF` as the first statement, it would return an empty byte string
 
    .. code:: python
 
@@ -108,7 +108,7 @@ You can also get all bytes in the pexpect process buffer by expecting a ``pexpec
           res = dut.expect(pexpect.EOF, timeout=None)
           assert res == b""
 
-What's more, argument `pattern` could be a list of all supported types.
+What's more, argument ``pattern`` could be a list of all supported types.
 
 .. code:: python
 
@@ -128,15 +128,15 @@ What's more, argument `pattern` could be a list of all supported types.
        for _ in range(4):
            dut.expect(pattern_list)
 
-If you set ``expect_all`` to ``True``, the ``expect()`` function would return with a list of returned values of each item.
+If you set ``expect_all`` to ``True``, the :func:`~pytest_embedded.dut.Dut.expect` function would return with a list of returned values of each item.
 
 ***********************************************
  :func:`~pytest_embedded.dut.Dut.expect_exact`
 ***********************************************
 
-``pattern`` can be ``str`` or ``bytes``.
+``pattern`` can be :obj:`str` or :obj:`bytes`.
 
-If the pattern is ``str``, would convert to ``bytes`` and then run the function.
+If the pattern is :obj:`str`, would convert to :obj:`bytes` and then run the function.
 
 .. code:: python
 
@@ -146,7 +146,7 @@ If the pattern is ``str``, would convert to ``bytes`` and then run the function.
        dut.expect_exact('this would')
        dut.expect_exact(b'be redirected')
 
-Same as ``expect(pattern, **kwargs)``, argument ``pattern`` could be a list of all supported types.
+Same as :func:`~pytest_embedded.dut.Dut.expect` function, argument ``pattern`` could be a list of all supported types.
 
 .. code:: python
 
@@ -169,7 +169,7 @@ Same as ``expect(pattern, **kwargs)``, argument ``pattern`` could be a list of a
 
 This function would parse the output as the unity output. The default value of ``timeout`` is 60 seconds.
 
-When the test script ends, the DUT object would raise ``AssertionError`` if any unity test case’s result is “FAIL”.
+When the test script ends, the DUT object would raise :obj:`AssertionError` if any unity test case’s result is “FAIL”.
 
 What’s more, it would dump the junit report under a temp folder and would combine the junit report into the main one if you use ``pytest --junitxml`` feature.
 

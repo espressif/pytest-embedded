@@ -22,6 +22,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
     'sphinx_copybutton',
     'sphinx_tabs.tabs',
     'sphinxcontrib.mermaid',
@@ -37,3 +38,11 @@ html_css_files = ['theme_overrides.css']
 html_logo = '_static/espressif-logo.svg'
 html_static_path = ['_static']
 html_theme = 'sphinx_rtd_theme'
+
+# -- Options for intersphinx extension ---------------------------------------
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'pytest': ('https://docs.pytest.org/en/stable', None),
+    'pexpect': ('https://pexpect.readthedocs.io/en/stable', None),
+}
