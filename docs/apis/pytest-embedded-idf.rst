@@ -1,5 +1,6 @@
-pytest-embedded-idf
-===================
+#####################
+ pytest-embedded-idf
+#####################
 
 .. automodule:: pytest_embedded_idf.app
    :members:

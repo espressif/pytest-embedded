@@ -119,12 +119,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
                 '-n',
                 self.app.elf_file,
                 '-ex',
-                'target remote | "{python}" "{script}" --target {target} "{output_file}"'.format(
-                    python=sys.executable,
-                    script=self.panic_output_decode_script,
-                    target=self.target,
-                    output_file=panic_output_file.name,
-                ),
+                f'target remote | "{sys.executable}" "{self.panic_output_decode_script}" --target {self.target} "{panic_output_file.name}"',  # noqa: E501
                 '-ex',
                 'bt',
             ]

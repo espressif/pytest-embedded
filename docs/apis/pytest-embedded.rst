@@ -1,5 +1,6 @@
-pytest-embedded
-===============
+#################
+ pytest-embedded
+#################
 
 .. automodule:: pytest_embedded.app
    :members:
@@ -20,7 +21,6 @@ pytest-embedded
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 .. automodule:: pytest_embedded.plugin
    :members:

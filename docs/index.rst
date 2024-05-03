@@ -1,34 +1,35 @@
-pytest-embedded |version| Documentation
-========================================
+#########################################
+ pytest-embedded |version| Documentation
+#########################################
 
 .. include:: ../README.md
-    :parser: myst_parser.sphinx_
+   :parser: myst_parser.sphinx_
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Key Concepts
-    :glob:
-    :hidden:
+   :maxdepth: 2
+   :caption: Key Concepts
+   :glob:
+   :hidden:
 
-    concepts/*
-
-.. toctree::
-    :caption: Usages
-    :glob:
-    :hidden:
-
-    usages/*
+   concepts/*
 
 .. toctree::
-    :caption: API Reference
-    :hidden:
-    :glob:
+   :caption: Usages
+   :glob:
+   :hidden:
 
-    apis/*
+   usages/*
 
 .. toctree::
-    :caption: Other Information
-    :hidden:
+   :caption: API Reference
+   :hidden:
+   :glob:
 
-    CHANGELOG
-    CONTRIBUTING
+   apis/*
+
+.. toctree::
+   :caption: Other Information
+   :hidden:
+
+   CHANGELOG
+   CONTRIBUTING

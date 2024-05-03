@@ -1,5 +1,6 @@
-pytest-embedded-wokwi
-=====================
+#######################
+ pytest-embedded-wokwi
+#######################
 
 .. automodule:: pytest_embedded_wokwi.arduino
    :members:

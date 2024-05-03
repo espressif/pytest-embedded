@@ -1,5 +1,6 @@
-pytest-embedded-jtag
-====================
+######################
+ pytest-embedded-jtag
+######################
 
 .. automodule:: pytest_embedded_jtag.gdb
    :members:

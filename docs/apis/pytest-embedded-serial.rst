@@ -1,5 +1,6 @@
-pytest-embedded-serial
-======================
+########################
+ pytest-embedded-serial
+########################
 
 .. automodule:: pytest_embedded_serial.dut
    :members:

@@ -1,5 +1,6 @@
-pytest-embedded-arduino
-=======================
+#########################
+ pytest-embedded-arduino
+#########################
 
 .. automodule:: pytest_embedded_arduino.app
    :members:

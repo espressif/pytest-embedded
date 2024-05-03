@@ -15,15 +15,15 @@ The arrow points from the dependent service to the service it depends on. For ex
 ```{mermaid}
 graph LR
     pytest-embedded-serial
-    
+
     pytest-embedded-serial-esp --> pytest-embedded-serial
-    
+
     pytest-embedded-jtag --> pytest-embedded-serial
-    
+
     pytest-embedded-idf -->|optional, support test on espressif chips| pytest-embedded-serial-esp
     pytest-embedded-idf -->|optional, support test on qemu| pytest-embedded-qemu
     pytest-embedded-idf -->|optional, support test on wokwi| pytest-embedded-wokwi
-    
+
     pytest-embedded-arduino -->|optional, support test on espressif chips| pytest-embedded-serial-esp
     pytest-embedded-arduino -->|optional, support test on qemu| pytest-embedded-qemu
     pytest-embedded-arduino -->|optional, support test on wokwi| pytest-embedded-wokwi

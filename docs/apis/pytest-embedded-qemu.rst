@@ -1,5 +1,6 @@
-pytest-embedded-qemu
-====================
+######################
+ pytest-embedded-qemu
+######################
 
 .. automodule:: pytest_embedded_qemu.app
    :members:
