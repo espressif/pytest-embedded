@@ -418,27 +418,74 @@ class IdfUnityDutMixin:
 
     def run_all_single_board_cases(
         self,
-        group: t.Optional[str] = None,
+        group: t.Optional[t.Union[str, list]] = None,
         reset: bool = False,
         timeout: float = 30,
         run_ignore_cases: bool = False,
+        name: t.Optional[t.Union[str, list]] = None,
+        attributes: t.Optional[dict] = None,
     ) -> None:
         """
         Run all single board cases, including multi_stage cases, and normal cases
 
+        Note:
+             If a group, name, and attributes are used together,
+             then if test case matches any of them, it will be selected.
+
         Args:
-            group: test case group
-            reset: whether to perform a hardware reset before running a case
-            timeout: timeout. (Default: 30 seconds)
-            run_ignore_cases: run ignored test cases or not
+            group: test case group or a list of test case groups to run. Supports 'and' with '&'.
+                Supports group inversion with '!'.
+            reset: Whether to perform a hardware reset before running a test case.
+            timeout: Timeout in seconds. (Default: 30 seconds)
+            run_ignore_cases: Whether to run ignored test cases or not.
+            name: test case name or a list of test case names to run.
+            attributes: Dictionary of attributes to filter and run test cases.
         """
+        if group is None:
+            group = []
+        if isinstance(group, str):
+            group: t.List[str] = [group]
+        group: t.List[t.List[str]] = [[_and.strip() for _and in _or.split('&')] for _or in group]
+
+        if isinstance(name, str):
+            name: t.List[str] = [name]
+
+        def validate_group(case_groups):
+            if not group:
+                return True
+
+            for _or in group:
+                for _and in _or:
+                    invert = _and.startswith('!')
+                    _and = _and.lstrip('!')
+                    result = _and in case_groups
+                    if invert:
+                        result = not result
+                    if not result:
+                        break
+                else:
+                    return True
+
+            return False
+
         for case in self.test_menu:
-            if not group or group in case.groups:
-                if not case.is_ignored or run_ignore_cases:
-                    if case.type == 'normal':
-                        self._run_normal_case(case, reset=reset, timeout=timeout)
-                    elif case.type == 'multi_stage':
-                        self._run_multi_stage_case(case, reset=reset, timeout=timeout)
+            selected = False
+            if not group and not name and not attributes:
+                selected = True
+            if group and validate_group(case.groups):
+                selected = True
+            if name and case.name in name:
+                selected = True
+            if attributes and all(case.attributes.get(k) == v for k, v in attributes.items()):
+                selected = True
+
+            if not selected:
+                continue
+            if not case.is_ignored or run_ignore_cases:
+                if case.type == 'normal':
+                    self._run_normal_case(case, reset=reset, timeout=timeout)
+                elif case.type == 'multi_stage':
+                    self._run_multi_stage_case(case, reset=reset, timeout=timeout)
 
 
 class _MultiDevTestDut:
