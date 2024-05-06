@@ -416,6 +416,34 @@ class IdfUnityDutMixin:
         else:
             raise ValueError(f'single-board test case {name} not found')
 
+    @staticmethod
+    def _select_to_run(group, name, attributes, case_groups, case_name, case_attributes):
+        def validate_group():
+            for _or in group:
+                for _and in _or:
+                    invert = _and.startswith('!')
+                    _and = _and.lstrip('!')
+                    result = _and in case_groups
+                    if invert:
+                        result = not result
+                    if not result:
+                        break
+                else:
+                    return True
+
+            return False
+
+        if not group and not name and not attributes:
+            return True
+        if group and validate_group():
+            return True
+        if name and case_name in name:
+            return True
+        if attributes and all(case_attributes.get(k) == v for k, v in attributes.items()):
+            return True
+
+        return False
+
     def run_all_single_board_cases(
         self,
         group: t.Optional[t.Union[str, list]] = None,
@@ -424,6 +452,7 @@ class IdfUnityDutMixin:
         run_ignore_cases: bool = False,
         name: t.Optional[t.Union[str, list]] = None,
         attributes: t.Optional[dict] = None,
+        dry_run: bool = False,
     ) -> None:
         """
         Run all single board cases, including multi_stage cases, and normal cases
@@ -440,6 +469,8 @@ class IdfUnityDutMixin:
             run_ignore_cases: Whether to run ignored test cases or not.
             name: test case name or a list of test case names to run.
             attributes: Dictionary of attributes to filter and run test cases.
+            dry_run: If True, then just show a list of test case names without running them.
+                (please set the logging level as INFO to see them)
         """
         if group is None:
             group = []
@@ -450,38 +481,15 @@ class IdfUnityDutMixin:
         if isinstance(name, str):
             name: t.List[str] = [name]
 
-        def validate_group(case_groups):
-            if not group:
-                return True
-
-            for _or in group:
-                for _and in _or:
-                    invert = _and.startswith('!')
-                    _and = _and.lstrip('!')
-                    result = _and in case_groups
-                    if invert:
-                        result = not result
-                    if not result:
-                        break
-                else:
-                    return True
-
-            return False
-
         for case in self.test_menu:
-            selected = False
-            if not group and not name and not attributes:
-                selected = True
-            if group and validate_group(case.groups):
-                selected = True
-            if name and case.name in name:
-                selected = True
-            if attributes and all(case.attributes.get(k) == v for k, v in attributes.items()):
-                selected = True
-
+            selected = self._select_to_run(group, name, attributes, case.groups, case.name, case.attributes)
             if not selected:
                 continue
+
             if not case.is_ignored or run_ignore_cases:
+                if dry_run:
+                    logging.info('[dry run] %s | %s', case.index, case.name)
+                    continue
                 if case.type == 'normal':
                     self._run_normal_case(case, reset=reset, timeout=timeout)
                 elif case.type == 'multi_stage':
