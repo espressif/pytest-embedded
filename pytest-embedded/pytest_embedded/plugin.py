@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import dbm
 import functools
@@ -9,7 +10,6 @@ import multiprocessing
 import os
 import shelve
 import subprocess
-import sys
 import tempfile
 import typing as t
 import xml.dom.minidom
@@ -295,8 +295,7 @@ def _gte_one_int(v) -> int:
         if v >= 1:
             return v
 
-    print('"count" value should be a integer greater or equal to 1')
-    sys.exit(1)
+    raise argparse.ArgumentTypeError('should be a integer greater or equal to 1')
 
 
 def _str_bool(v: str) -> t.Union[bool, str, None]:
