@@ -696,10 +696,10 @@ def pexpect_proc(_pexpect_fr) -> PexpectProcess:
 def redirect(msg_queue: MessageQueue) -> t.Callable[..., contextlib.redirect_stdout]:
     """
     A context manager that could help duplicate all the `sys.stdout` to `msg_queue`.
-    ```python
-    with redirect():
-        print('this should be logged and sent to pexpect_proc')
-    ```
+
+    Examples:
+        >>> with redirect():
+        >>>    print('this should be logged and sent to pexpect_proc')
     """
 
     def _inner():

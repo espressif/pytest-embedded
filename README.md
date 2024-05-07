@@ -6,8 +6,6 @@ A pytest plugin that has multiple services available for various functionalities
 
 ## Installation
 
-All packages are published to PyPI. Please install them via `pip`.
-
 [![pytest-embedded](https://img.shields.io/pypi/v/pytest-embedded?color=green&label=pytest-embedded)](https://pypi.org/project/pytest-embedded/)
 [![pytest-embedded-serial](https://img.shields.io/pypi/v/pytest-embedded-serial?color=green&label=pytest-embedded-serial)](https://pypi.org/project/pytest-embedded-serial/)
 [![pytest-embedded-serial-esp](https://img.shields.io/pypi/v/pytest-embedded-serial-esp?color=green&label=pytest-embedded-serial-esp)](https://pypi.org/project/pytest-embedded-serial-esp/)
@@ -16,9 +14,17 @@ All packages are published to PyPI. Please install them via `pip`.
 [![pytest-embedded-arduino](https://img.shields.io/pypi/v/pytest-embedded-arduino?color=green&label=pytest-embedded-arduino)](https://pypi.org/project/pytest-embedded-arduino/)
 [![pytest-embedded-wokwi](https://img.shields.io/pypi/v/pytest-embedded-wokwi?color=green&label=pytest-embedded-wokwi)](https://pypi.org/project/pytest-embedded-wokwi/)
 
-## Quick Example
+Packages under this repo mainly use semantic versioning. Sometimes a bug fix version may contain some non-breaking new features as well.
 
-- `pip install pytest-embedded`
+It is recommended to use `~=1.0` to get rid of breaking changes, and use the latest new features. For example,
+
+```shell
+pip install -U pytest-embedded~=1.0
+```
+
+## Quickstart
+
+- `pip install -U pytest-embedded~=1.0`
 - Create a file `test_basic.py`
 
 ```python
@@ -60,8 +66,7 @@ The `print` line is also duplicated to console output.
 
 ## Extra Services
 
-You can activate more services with `pytest --embedded-services service[,service]` to enable extra fixtures and functionalities.
-These services are provided by several optional dependencies. You can install them via `pip` as well.
+You can activate more services with `pytest --embedded-services service[,service]` to enable extra fixtures and functionalities. These services are provided by several optional dependencies. You can install them via `pip` as well.
 
 Available services:
 
@@ -77,7 +82,3 @@ Available services:
 
 - Documentation is hosted at [https://docs.espressif.com/projects/pytest-embedded/en/latest/](https://docs.espressif.com/projects/pytest-embedded/en/latest/)
 - More examples under [examples](https://github.com/espressif/pytest-embedded/tree/main/examples)
-
-## Versioning
-
-Packages under this repo mainly use semantic versioning. Sometimes a bug fix version may contain some non-breaking new features as well. It is recommended to use `pytest-embdded~=1.0` to get rid of breaking changes, and use the latest new features.
