@@ -615,7 +615,7 @@ class _MultiDevTestDut:
                         else:
                             # Keep waiting the signal
                             if _start_time + self.runtest_timeout < time.perf_counter():
-                                raise TIMEOUT('Not receive signal %r' % wait_sig)
+                                raise TIMEOUT(f'Not receive signal {wait_sig!r}')
                             continue
 
                         self.shared_message_query[self.dut_index].remove((sig_name, sig_data))
