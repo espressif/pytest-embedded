@@ -5,7 +5,6 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 import pytest
-
 from pytest_embedded_idf.dut import IdfDut
 
 toolchain_required = pytest.mark.skipif(
