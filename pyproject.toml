@@ -21,9 +21,6 @@ version_files = [
     "pytest-embedded-wokwi/pyproject.toml",
 ]
 
-[tool.isort]
-profile = 'black'
-
 [tool.pytest.ini_options]
 norecursedirs = 'examples/*'
 addopts = "-s"
