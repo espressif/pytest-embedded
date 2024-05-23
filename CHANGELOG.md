@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.10.3 (2024-05-23)
+
+### Feat
+
+- dry run single board unity test
+- flexible choices for run_all_single_board_cases
+
+### Fix
+
+- improve error message when CLI argument is wrong
+
 ## v1.10.2 (2024-04-30)
 
 ### Feat
