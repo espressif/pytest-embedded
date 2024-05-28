@@ -18,18 +18,17 @@ res=0
 
 # one-time command
 pip install -U pip
-if [ "$action" = "install-editable" ]; then
-  pip install -U flit
-elif [ "$action" = "build" ]; then
+if [ "$action" = "build" ]; then
   pip install -U flit
 elif [ "$action" = "publish" ]; then
   pip install -U flit
 fi
 
+# for-loop each package
 for pkg in $DEFAULT_PACKAGES; do
   pushd "$pkg"
   if [ "$action" = "install-editable" ]; then
-    flit install -s
+    pip install -e .
   elif [ "$action" = "install" ]; then
     pip install .
   elif [ "$action" = "uninstall" ]; then

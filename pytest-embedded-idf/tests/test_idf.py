@@ -5,7 +5,6 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 import pytest
-
 from pytest_embedded_idf.dut import IdfDut
 
 toolchain_required = pytest.mark.skipif(
@@ -184,7 +183,8 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
         import pexpect
         import pytest
 
-        def test_idf_serial_flash(dut):
+        def test_idf_serial_flash_with_erase_nvs(dut):
+            dut.expect('Erasing region')  # from "erase-nvs"
             dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
