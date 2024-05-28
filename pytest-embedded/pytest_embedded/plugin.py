@@ -162,6 +162,11 @@ def pytest_addoption(parser):
         '(Default: False, parametrization not supported, `|` will be escaped to `-`)',
     )
     esp_group.addoption(
+        '--flash-port',
+        help='serial port for flashing. Only set this value when the flashing port is different from the serial port '
+        'set with --port. (Default: None)',
+    )
+    esp_group.addoption(
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
@@ -784,6 +789,13 @@ def beta_target(request: FixtureRequest) -> t.Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
+def flash_port(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'flash_port', None)
+
+
+@pytest.fixture
+@multi_dut_argument
 def skip_autoflash(request: FixtureRequest) -> t.Optional[bool]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
@@ -997,6 +1009,7 @@ def parametrize_fixtures(
     target,
     beta_target,
     baud,
+    flash_port,
     skip_autoflash,
     erase_all,
     esptool_baud,
