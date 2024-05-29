@@ -5,7 +5,6 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 import pytest
-
 from pytest_embedded_idf.dut import IdfDut
 
 toolchain_required = pytest.mark.skipif(
@@ -184,7 +183,8 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
         import pexpect
         import pytest
 
-        def test_idf_serial_flash(dut):
+        def test_idf_serial_flash_with_erase_nvs(dut):
+            dut.expect('Erasing region')  # from "erase-nvs"
             dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
@@ -680,6 +680,70 @@ def test_idf_multi_hard_reset_and_expect(testdir):
     )
 
     result.assert_outcomes(passed=1)
+
+
+def test_select_to_run():
+    from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
+
+    assert IdfUnityDutMixin._select_to_run(
+        None, None, None,
+        None, None, None
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        None, ['name_hello', 'name_world'], None,
+        None, 'name_hello', None
+    )
+
+    assert not IdfUnityDutMixin._select_to_run(
+        None, ['name_hello', 'name_world'], None,
+        None, 'name_hel', None
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        None, None, {"red": 255},
+        None, None, {"red": 255, "green": 10, "blue": 33}
+    )
+
+    assert not IdfUnityDutMixin._select_to_run(
+        None, None, {"red": 25},
+        None, None, {"red": 255, "green": 10, "blue": 33}
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        None, None, {"red": 255, "green": 10},
+        None, None, {"red": 255, "green": 10, "blue": 33}
+    )
+
+    assert not IdfUnityDutMixin._select_to_run(
+        None, None, {"red": 255, "green": 0},
+        None, None, {"red": 255, "green": 10, "blue": 33}
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        [['hello']], None, None,
+        ['hello', 'world'], None, None
+    )
+
+    assert not IdfUnityDutMixin._select_to_run(
+        [['!hello']], None, None,
+        ['hello', 'world'], None, None
+    )
+
+    assert not IdfUnityDutMixin._select_to_run(
+        [['hello', '!world']], None, None,
+        ['hello', 'world'], None, None
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        [['hello', '!world'], ['sun']], None, None,
+        ['hello', 'world', 'sun'], None, None
+    )
+
+    assert IdfUnityDutMixin._select_to_run(
+        [['hello', '!w']], None, None,
+        ['hello', 'world'], None, None
+    )
 
 
 def test_dut_run_all_single_board_cases(testdir):

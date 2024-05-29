@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import shutil
 import typing as t
 from pathlib import Path
 
@@ -41,6 +40,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = None,
         wokwi_scenario: t.Optional[str] = None,
+        wokwi_diagram: t.Optional[str] = None,
         app: t.Optional['IdfApp'] = None,
         **kwargs,
     ):
@@ -52,7 +52,8 @@ class WokwiCLI(DuplicateStdoutPopen):
         self.firmware_resolver = firmware_resolver
 
         self.create_wokwi_toml()
-        self.create_diagram_json()
+        if wokwi_diagram is None:
+            self.create_diagram_json()
 
         wokwi_cli = wokwi_cli_path or self.wokwi_cli_executable
         cmd = [wokwi_cli, '--interactive', app.app_path]
@@ -60,6 +61,8 @@ class WokwiCLI(DuplicateStdoutPopen):
             cmd.extend(['--timeout', str(wokwi_timeout)])
         if (wokwi_scenario is not None) and os.path.exists(wokwi_scenario):
             cmd.extend(['--scenario', wokwi_scenario])
+        if (wokwi_diagram is not None) and os.path.exists(wokwi_diagram):
+            cmd.extend(['--diagram-file', wokwi_diagram])
 
         super().__init__(
             cmd=cmd,
@@ -106,22 +109,6 @@ class WokwiCLI(DuplicateStdoutPopen):
     def create_diagram_json(self):
         app = self.app
         target_board = target_to_board[app.target]
-
-        # Check for specific target.diagram.json file first
-        diagram_json_path = os.path.join(app.app_path, (app.target + '.diagram.json'))
-        if os.path.exists(diagram_json_path):
-            # If there is also common diagram.json file, backup it first to diagram.json.old
-            if os.path.exists(os.path.join(app.app_path, 'diagram.json')):
-                logging.warning(
-                    'using %s instead. backup the original diagram.json to diagram.json.old', diagram_json_path
-                )
-                shutil.copyfile(
-                    os.path.join(app.app_path, 'diagram.json'),
-                    os.path.join(app.app_path, 'diagram.json.old'),
-                )
-            # Copy target.diagram.json to diagram.json
-            shutil.copyfile(diagram_json_path, os.path.join(app.app_path, 'diagram.json'))
-            return
 
         # Check for common diagram.json file
         diagram_json_path = os.path.join(app.app_path, 'diagram.json')

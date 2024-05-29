@@ -119,12 +119,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
                 '-n',
                 self.app.elf_file,
                 '-ex',
-                'target remote | "{python}" "{script}" --target {target} "{output_file}"'.format(
-                    python=sys.executable,
-                    script=self.panic_output_decode_script,
-                    target=self.target,
-                    output_file=panic_output_file.name,
-                ),
+                f'target remote | "{sys.executable}" "{self.panic_output_decode_script}" --target {self.target} "{panic_output_file.name}"',  # noqa: E501
                 '-ex',
                 'bt',
             ]
@@ -269,7 +264,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
 
     def flash_via_jtag(self):
         if not self.openocd:
-            logging.warning("no openocd instance created. can't flash via openocd `program_esp`")
+            logging.debug('no openocd instance created. NOT flashing via openocd `program_esp`')
             return
 
         if self.app.is_loadable_elf:

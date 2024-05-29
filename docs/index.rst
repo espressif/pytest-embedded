@@ -1,20 +1,34 @@
-.. pytest-embedded documentation master file, created by
-   sphinx-quickstart on Fri Jun  2 13:00:14 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to pytest-embedded's documentation!
-===========================================
+#########################################
+ pytest-embedded |version| Documentation
+#########################################
 
 .. include:: ../README.md
    :parser: myst_parser.sphinx_
 
 .. toctree::
+   :caption: Key Concepts
+   :glob:
    :hidden:
 
-   key_concepts
-   services
-   expecting
-   api
+   concepts/*
+
+.. toctree::
+   :caption: Usages
+   :glob:
+   :hidden:
+
+   usages/*
+
+.. toctree::
+   :caption: API Reference
+   :hidden:
+   :glob:
+
+   apis/*
+
+.. toctree::
+   :caption: Other Information
+   :hidden:
+
    CHANGELOG
    CONTRIBUTING

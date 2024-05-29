@@ -1,3 +1,4 @@
+import argparse
 import contextlib
 import dbm
 import functools
@@ -9,7 +10,6 @@ import multiprocessing
 import os
 import shelve
 import subprocess
-import sys
 import tempfile
 import typing as t
 import xml.dom.minidom
@@ -162,6 +162,11 @@ def pytest_addoption(parser):
         '(Default: False, parametrization not supported, `|` will be escaped to `-`)',
     )
     esp_group.addoption(
+        '--flash-port',
+        help='serial port for flashing. Only set this value when the flashing port is different from the serial port '
+        'set with --port. (Default: None)',
+    )
+    esp_group.addoption(
         '--skip-autoflash',
         help='y/yes/true for True and n/no/false for False. Set to True to disable auto flash. (Default: False)',
     )
@@ -279,6 +284,11 @@ def pytest_addoption(parser):
         help='Path to the wokwi scenario file (Default: None)',
     )
 
+    wokwi_group.addoption(
+        '--wokwi-diagram',
+        help='Path to the wokwi diagram file (Default: None)',
+    )
+
 
 ###########
 # helpers #
@@ -295,8 +305,7 @@ def _gte_one_int(v) -> int:
         if v >= 1:
             return v
 
-    print('"count" value should be a integer greater or equal to 1')
-    sys.exit(1)
+    raise argparse.ArgumentTypeError('should be a integer greater or equal to 1')
 
 
 def _str_bool(v: str) -> t.Union[bool, str, None]:
@@ -696,10 +705,10 @@ def pexpect_proc(_pexpect_fr) -> PexpectProcess:
 def redirect(msg_queue: MessageQueue) -> t.Callable[..., contextlib.redirect_stdout]:
     """
     A context manager that could help duplicate all the `sys.stdout` to `msg_queue`.
-    ```python
-    with redirect():
-        print('this should be logged and sent to pexpect_proc')
-    ```
+
+    Examples:
+        >>> with redirect():
+        >>>    print('this should be logged and sent to pexpect_proc')
     """
 
     def _inner():
@@ -781,6 +790,13 @@ def target(request: FixtureRequest) -> t.Optional[str]:
 def beta_target(request: FixtureRequest) -> t.Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'beta_target', None)
+
+
+@pytest.fixture
+@multi_dut_argument
+def flash_port(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'flash_port', None)
 
 
 @pytest.fixture
@@ -962,6 +978,13 @@ def wokwi_scenario(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'wokwi_scenario', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def wokwi_diagram(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'wokwi_diagram', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -998,6 +1021,7 @@ def parametrize_fixtures(
     target,
     beta_target,
     baud,
+    flash_port,
     skip_autoflash,
     erase_all,
     esptool_baud,
@@ -1019,6 +1043,7 @@ def parametrize_fixtures(
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,
+    wokwi_diagram,
     skip_regenerate_image,
     encrypt,
     keyfile,

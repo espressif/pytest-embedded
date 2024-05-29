@@ -127,6 +127,7 @@ def _fixture_classes_and_options_fn(
     target,
     beta_target,
     baud,
+    flash_port,
     skip_autoflash,
     erase_all,
     esptool_baud,
@@ -148,6 +149,7 @@ def _fixture_classes_and_options_fn(
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,
+    wokwi_diagram,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -210,6 +212,7 @@ def _fixture_classes_and_options_fn(
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'esp_flash_force': esp_flash_force,
+                    'flash_port': flash_port,
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
                     'meta': _meta,
@@ -300,6 +303,7 @@ def _fixture_classes_and_options_fn(
                     'wokwi_cli_path': wokwi_cli_path,
                     'wokwi_timeout': wokwi_timeout,
                     'wokwi_scenario': wokwi_scenario,
+                    'wokwi_diagram': wokwi_diagram,
                     'msg_queue': msg_queue,
                     'app': None,
                     'meta': _meta,
@@ -542,15 +546,14 @@ def _close_or_terminate(obj):
 
 
 class DutFactory:
+    # ruff: noqa: ERA001
+    # Stores the objects that required by each dut
+    # [
+    #    [openocd, gdb, serial, qemu, wokwi, dut]  # dut-0
+    #    [openocd, gdb, serial, qemu, wokwi, dut]  # dut-1
+    #    ...
+    # ]
     obj_stack: t.ClassVar[t.List[t.List[t.Any]]] = []
-    """
-        Stores the objects that required by each dut
-        [
-           [openocd, gdb, serial, qemu, wokwi, dut]  # dut-0
-           [openocd, gdb, serial, qemu, wokwi, dut]  # dut-1
-           ...
-        ]
-    """
 
     @classmethod
     def close(cls):
@@ -585,6 +588,7 @@ class DutFactory:
         target: t.Optional[str] = None,
         beta_target: t.Optional[str] = None,
         baud: t.Optional[int] = None,
+        flash_port: t.Optional[str] = None,
         skip_autoflash: t.Optional[bool] = None,
         erase_all: t.Optional[bool] = None,
         esptool_baud: t.Optional[int] = None,
@@ -606,6 +610,7 @@ class DutFactory:
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = 0,
         wokwi_scenario: t.Optional[str] = None,
+        wokwi_diagram: t.Optional[str] = None,
         skip_regenerate_image: t.Optional[bool] = None,
         encrypt: t.Optional[bool] = None,
         keyfile: t.Optional[str] = None,
@@ -622,46 +627,48 @@ class DutFactory:
             4. (dut_factory.py) Add it to DutFactory.create.
 
         Args:
-        - embedded_services: Comma-separated list of embedded services.
-        - app_path: Path to the application.
-        - build_dir: Directory for build output (default is 'build').
-        - port: Port configuration.
-        - port_location: Port location.
-        - port_mac: Port MAC address.
-        - target: Target configuration.
-        - beta_target: Beta target configuration.
-        - baud: Baud rate.
-        - skip_autoflash: Skip autoflash flag.
-        - erase_all: Erase all flag.
-        - esptool_baud: ESP tool baud rate.
-        - esp_flash_force: ESP flash force flag.
-        - part_tool: Part tool configuration.
-        - confirm_target_elf_sha256: Confirm target ELF SHA256.
-        - erase_nvs: Erase NVS flag.
-        - skip_check_coredump: Skip coredump check flag.
-        - panic_output_decode_script: Panic output decode script.
-        - openocd_prog_path: OpenOCD program path.
-        - openocd_cli_args: OpenOCD CLI arguments.
-        - gdb_prog_path: GDB program path.
-        - gdb_cli_args: GDB CLI arguments.
-        - no_gdb: No GDB flag.
-        - qemu_image_path: QEMU image path.
-        - qemu_prog_path: QEMU program path.
-        - qemu_cli_args: QEMU CLI arguments.
-        - qemu_extra_args: Additional QEMU arguments.
-        - wokwi_cli_path: Wokwi CLI path.
-        - wokwi_timeout: Wokwi timeout.
-        - wokwi_scenario: Wokwi scenario path.
-        - skip_regenerate_image: Skip image regeneration flag.
-        - encrypt: Encryption flag.
-        - keyfile: Keyfile for encryption.
+            embedded_services: Comma-separated list of embedded services.
+            app_path: Path to the application.
+            build_dir: Directory for build output (default is 'build').
+            port: Port configuration.
+            port_location: Port location.
+            port_mac: Port MAC address.
+            target: Target configuration.
+            beta_target: Beta target configuration.
+            baud: Baud rate.
+            flash_port: Port used for flashing the app. Will use the same port as 'port' if not specified.
+            skip_autoflash: Skip autoflash flag.
+            erase_all: Erase all flag.
+            esptool_baud: ESP tool baud rate.
+            esp_flash_force: ESP flash force flag.
+            part_tool: Part tool configuration.
+            confirm_target_elf_sha256: Confirm target ELF SHA256.
+            erase_nvs: Erase NVS flag.
+            skip_check_coredump: Skip coredump check flag.
+            panic_output_decode_script: Panic output decode script.
+            openocd_prog_path: OpenOCD program path.
+            openocd_cli_args: OpenOCD CLI arguments.
+            gdb_prog_path: GDB program path.
+            gdb_cli_args: GDB CLI arguments.
+            no_gdb: No GDB flag.
+            qemu_image_path: QEMU image path.
+            qemu_prog_path: QEMU program path.
+            qemu_cli_args: QEMU CLI arguments.
+            qemu_extra_args: Additional QEMU arguments.
+            wokwi_cli_path: Wokwi CLI path.
+            wokwi_timeout: Wokwi timeout.
+            wokwi_scenario: Wokwi scenario path.
+            wokwi_diagram: Wokwi diagram path.
+            skip_regenerate_image: Skip image regeneration flag.
+            encrypt: Encryption flag.
+            keyfile: Keyfile for encryption.
 
         Returns:
-        - DUT object: The created Device Under Test object.
+            DUT object: The created Device Under Test object.
 
         Examples:
-        >>> foo = DutFactory.create(embedded_services='idf,esp', app_path='path_to_hello_world')
-        >>> foo.expect_exact('Hello world!')
+            >>> foo = DutFactory.create(embedded_services='idf,esp', app_path='path_to_hello_world')
+            >>> foo.expect_exact('Hello world!')
         """
         layout = []
         try:
@@ -693,6 +700,7 @@ class DutFactory:
                 'target': target,
                 'beta_target': beta_target,
                 'baud': baud,
+                'flash_port': flash_port,
                 'skip_autoflash': skip_autoflash,
                 'erase_all': erase_all,
                 'esptool_baud': esptool_baud,
@@ -714,6 +722,7 @@ class DutFactory:
                 'wokwi_cli_path': wokwi_cli_path,
                 'wokwi_timeout': wokwi_timeout,
                 'wokwi_scenario': wokwi_scenario,
+                'wokwi_diagram': wokwi_diagram,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,
                 'keyfile': keyfile,
