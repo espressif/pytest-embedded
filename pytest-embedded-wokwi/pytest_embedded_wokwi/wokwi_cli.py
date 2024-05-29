@@ -5,9 +5,13 @@ import shutil
 import typing as t
 from pathlib import Path
 
+import pexpect
 import toml
+from packaging.version import Version
 from pytest_embedded import __version__
 from pytest_embedded.log import DuplicateStdoutPopen
+
+from pytest_embedded_wokwi import WOKWI_CLI_MINIMUM_VERSION
 
 from .idf import IDFFirmwareResolver
 
@@ -32,7 +36,6 @@ class WokwiCLI(DuplicateStdoutPopen):
     """
 
     SOURCE = 'Wokwi'
-
     WOKWI_CLI_PATH = 'wokwi-cli'
 
     def __init__(
@@ -41,6 +44,7 @@ class WokwiCLI(DuplicateStdoutPopen):
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = None,
         wokwi_scenario: t.Optional[str] = None,
+        wokwi_diagram: t.Optional[str] = None,
         app: t.Optional['IdfApp'] = None,
         **kwargs,
     ):
@@ -51,8 +55,28 @@ class WokwiCLI(DuplicateStdoutPopen):
         self.app = app
         self.firmware_resolver = firmware_resolver
 
+        # first need to check if wokwi-cli exists in PATH
+        if shutil.which('wokwi-cli') is None:
+            raise RuntimeError('Please install wokwi-cli, by running: curl -L https://wokwi.com/ci/install.sh | sh')
+
+        child = pexpect.spawn('wokwi-cli --help')
+        try:
+            child.expect(r'Wokwi CLI v(\d+\.\d+\.\d+)', timeout=1)
+            wokwi_cli_version = child.match.group(1).decode('utf-8')
+        except pexpect.TIMEOUT:
+            logging.warning('Failed to get wokwi-cli version, assume version requirements satisfied')
+        else:
+            if Version(wokwi_cli_version) < Version(WOKWI_CLI_MINIMUM_VERSION):
+                raise ValueError(
+                    f'Wokwi CLI version {wokwi_cli_version} is not supported. '
+                    f'Minimum version required: {WOKWI_CLI_MINIMUM_VERSION}. '
+                    f'To update Wokwi CLI run: curl -L https://wokwi.com/ci/install.sh | sh'
+                )
+
         self.create_wokwi_toml()
-        self.create_diagram_json()
+
+        if wokwi_diagram is None:
+            self.create_diagram_json()
 
         wokwi_cli = wokwi_cli_path or self.wokwi_cli_executable
         cmd = [wokwi_cli, '--interactive', app.app_path]
@@ -60,6 +84,8 @@ class WokwiCLI(DuplicateStdoutPopen):
             cmd.extend(['--timeout', str(wokwi_timeout)])
         if (wokwi_scenario is not None) and os.path.exists(wokwi_scenario):
             cmd.extend(['--scenario', wokwi_scenario])
+        if (wokwi_diagram is not None) and os.path.exists(wokwi_diagram):
+            cmd.extend(['--diagram-file', wokwi_diagram])
 
         super().__init__(
             cmd=cmd,
@@ -106,22 +132,6 @@ class WokwiCLI(DuplicateStdoutPopen):
     def create_diagram_json(self):
         app = self.app
         target_board = target_to_board[app.target]
-
-        # Check for specific target.diagram.json file first
-        diagram_json_path = os.path.join(app.app_path, (app.target + '.diagram.json'))
-        if os.path.exists(diagram_json_path):
-            # If there is also common diagram.json file, backup it first to diagram.json.old
-            if os.path.exists(os.path.join(app.app_path, 'diagram.json')):
-                logging.warning(
-                    'using %s instead. backup the original diagram.json to diagram.json.old', diagram_json_path
-                )
-                shutil.copyfile(
-                    os.path.join(app.app_path, 'diagram.json'),
-                    os.path.join(app.app_path, 'diagram.json.old'),
-                )
-            # Copy target.diagram.json to diagram.json
-            shutil.copyfile(diagram_json_path, os.path.join(app.app_path, 'diagram.json'))
-            return
 
         # Check for common diagram.json file
         diagram_json_path = os.path.join(app.app_path, 'diagram.json')

@@ -283,6 +283,10 @@ def pytest_addoption(parser):
         '--wokwi-scenario',
         help='Path to the wokwi scenario file (Default: None)',
     )
+    wokwi_group.addoption(
+        '--wokwi-diagram',
+        help='Path to the wokwi diagram file (Default: None)',
+    )
 
 
 ###########
@@ -973,6 +977,13 @@ def wokwi_scenario(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'wokwi_scenario', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def wokwi_diagram(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'wokwi_diagram', None)
+
+
 ####################
 # Private Fixtures #
 ####################
@@ -1031,6 +1042,7 @@ def parametrize_fixtures(
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,
+    wokwi_diagram,
     skip_regenerate_image,
     encrypt,
     keyfile,
