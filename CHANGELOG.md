@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.11.0rc0 (2024-05-31)
+
+### Feat
+
+- **wokwi**: Add support for specifying diagram path
+- **esp**: support flash with a different port
+
 ## v1.10.3 (2024-05-23)
 
 ### Feat
