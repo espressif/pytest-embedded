@@ -54,6 +54,7 @@ def test_pexpect_by_wokwi_esp32_arduino(testdir):
         '-s',
         '--embedded-services', 'arduino,wokwi',
         '--app-path', os.path.join(testdir.tmpdir, 'hello_world_arduino'),
+        '--wokwi-diagram', os.path.join(testdir.tmpdir, 'hello_world_arduino/esp32.diagram.json'),
     )
 
     result.assert_outcomes(passed=1)

@@ -149,6 +149,7 @@ def _fixture_classes_and_options_fn(
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,
+    wokwi_diagram,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -302,6 +303,7 @@ def _fixture_classes_and_options_fn(
                     'wokwi_cli_path': wokwi_cli_path,
                     'wokwi_timeout': wokwi_timeout,
                     'wokwi_scenario': wokwi_scenario,
+                    'wokwi_diagram': wokwi_diagram,
                     'msg_queue': msg_queue,
                     'app': None,
                     'meta': _meta,
@@ -608,6 +610,7 @@ class DutFactory:
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = 0,
         wokwi_scenario: t.Optional[str] = None,
+        wokwi_diagram: t.Optional[str] = None,
         skip_regenerate_image: t.Optional[bool] = None,
         encrypt: t.Optional[bool] = None,
         keyfile: t.Optional[str] = None,
@@ -655,6 +658,7 @@ class DutFactory:
             wokwi_cli_path: Wokwi CLI path.
             wokwi_timeout: Wokwi timeout.
             wokwi_scenario: Wokwi scenario path.
+            wokwi_diagram: Wokwi diagram path.
             skip_regenerate_image: Skip image regeneration flag.
             encrypt: Encryption flag.
             keyfile: Keyfile for encryption.
@@ -718,6 +722,7 @@ class DutFactory:
                 'wokwi_cli_path': wokwi_cli_path,
                 'wokwi_timeout': wokwi_timeout,
                 'wokwi_scenario': wokwi_scenario,
+                'wokwi_diagram': wokwi_diagram,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,
                 'keyfile': keyfile,

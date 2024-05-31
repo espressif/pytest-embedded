@@ -1,9 +1,12 @@
 """Make pytest-embedded plugin work with the Wokwi CLI."""
 
-from .dut import WokwiDut
-from .wokwi_cli import WokwiCLI
+WOKWI_CLI_MINIMUM_VERSION = '0.10.1'
+
+from .dut import WokwiDut  # noqa
+from .wokwi_cli import WokwiCLI  # noqa
 
 __all__ = [
+    'WOKWI_CLI_MINIMUM_VERSION',
     'WokwiCLI',
     'WokwiDut',
 ]
