@@ -254,6 +254,10 @@ def pytest_addoption(parser):
         help='QEMU cli extra arguments, will append to the argument list. (Default: None)',
     )
     qemu_group.addoption(
+        '--qemu-efuse-path',
+        help='This option makes it possible to use efuse in QEMU when it is set up.',
+    )
+    qemu_group.addoption(
         '--skip-regenerate-image',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to disable auto regenerate image. (Default: False)',
@@ -934,6 +938,13 @@ def qemu_extra_args(request: FixtureRequest) -> t.Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
+def qemu_efuse_path(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'qemu_efuse_path', None)
+
+
+@pytest.fixture
+@multi_dut_argument
 def skip_regenerate_image(request: FixtureRequest) -> t.Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
@@ -1039,6 +1050,7 @@ def parametrize_fixtures(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
+    qemu_efuse_path,
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,

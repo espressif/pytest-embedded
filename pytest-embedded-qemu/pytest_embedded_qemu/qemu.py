@@ -1,4 +1,6 @@
 import asyncio
+import binascii
+import logging
 import os
 import shlex
 import socket
@@ -11,6 +13,43 @@ from . import DEFAULT_IMAGE_FN
 
 if t.TYPE_CHECKING:
     from .app import QemuApp
+
+QEMU_DEFAULT_EFUSE = {
+    'esp32': binascii.unhexlify(
+        '00000000000000000000000000800000000000000000100000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000'
+    ),
+    'esp32c3': binascii.unhexlify(
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000c00'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '000000000000000000000000000000000000000000000000'
+    ),
+}
 
 
 class Qemu(DuplicateStdoutPopen):
@@ -37,6 +76,7 @@ class Qemu(DuplicateStdoutPopen):
         qemu_prog_path: t.Optional[str] = None,
         qemu_cli_args: t.Optional[str] = None,
         qemu_extra_args: t.Optional[str] = None,
+        qemu_efuse_path: t.Optional[str] = None,
         app: t.Optional['QemuApp'] = None,
         **kwargs,
     ):
@@ -55,10 +95,27 @@ class Qemu(DuplicateStdoutPopen):
 
         qemu_prog_path = qemu_prog_path or self.qemu_prog_name
 
+        self.current_qemu_executable_path = qemu_prog_path
+        self.image_path = image_path
+        self.efuse_path = qemu_efuse_path
+
         if qemu_cli_args:
             qemu_cli_args = qemu_cli_args.strip('"').strip("'")
         qemu_cli_args = shlex.split(qemu_cli_args or self.qemu_default_args)
         qemu_extra_args = shlex.split(qemu_extra_args or '')
+
+        if self.efuse_path:
+            logging.debug('The eFuse file will be saved to: %s', self.efuse_path)
+            with open(self.efuse_path, 'wb') as f:
+                f.write(QEMU_DEFAULT_EFUSE[self.app.target])
+            qemu_extra_args += [
+                '-global',
+                f'driver={self.app.target}.gpio,property=strap_mode,value=0x08',
+                '-drive',
+                f'file={self.efuse_path},if=none,format=raw,id=efuse',
+                '-global',
+                f'driver=nvram.{self.app.target}.efuse,property=drive,value=efuse',
+            ]
 
         self.qmp_addr = None
         self.qmp_port = None
@@ -86,6 +143,47 @@ class Qemu(DuplicateStdoutPopen):
             cmd=[qemu_prog_path, *qemu_cli_args, *qemu_extra_args, '-drive', f'file={image_path},if=mtd,format=raw'],
             **kwargs,
         )
+
+    def execute_efuse_command(self, command: str):
+        import espefuse
+        import pexpect
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', 0))
+            _, available_port = s.getsockname()
+
+        run_qemu_command = [
+            '-nographic',
+            '-machine',
+            self.app.target,
+            '-drive',
+            f'file={self.image_path},if=mtd,format=raw',
+            '-global',
+            f'driver={self.app.target}.gpio,property=strap_mode,value=0x0f',
+            '-drive',
+            f'file={self.efuse_path},if=none,format=raw,id=efuse',
+            '-global',
+            f'driver=nvram.{self.app.target}.efuse,property=drive,value=efuse',
+            '-serial',
+            f'tcp::{available_port},server,nowait',
+        ]
+        try:
+            child = pexpect.spawn(self.current_qemu_executable_path, run_qemu_command)
+            res = shlex.split(command)
+            child.expect('qemu')
+
+            res = [r for r in res if r != '--do-not-confirm']
+            espefuse.main([
+                '--port',
+                f'socket://localhost:{available_port}',
+                '--before',
+                'no_reset',
+                '--do-not-confirm',
+                *res,
+            ])
+            self._hard_reset()
+        finally:
+            child.terminate()
 
     @property
     def qemu_prog_name(self):
