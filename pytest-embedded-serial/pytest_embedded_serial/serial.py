@@ -110,11 +110,9 @@ class Serial:
         return killed
 
     def _post_init(self):
-        """Run after setting attributes"""
         pass
 
     def _start(self):
-        """Usually flash the device and start the redirect thread here"""
         pass
 
     def _finalize_init(self):

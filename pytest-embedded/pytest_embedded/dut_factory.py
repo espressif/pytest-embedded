@@ -127,7 +127,6 @@ def _fixture_classes_and_options_fn(
     target,
     beta_target,
     baud,
-    flash_port,
     skip_autoflash,
     erase_all,
     esptool_baud,
@@ -212,7 +211,6 @@ def _fixture_classes_and_options_fn(
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'esp_flash_force': esp_flash_force,
-                    'flash_port': flash_port,
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
                     'meta': _meta,
@@ -588,7 +586,6 @@ class DutFactory:
         target: t.Optional[str] = None,
         beta_target: t.Optional[str] = None,
         baud: t.Optional[int] = None,
-        flash_port: t.Optional[str] = None,
         skip_autoflash: t.Optional[bool] = None,
         erase_all: t.Optional[bool] = None,
         esptool_baud: t.Optional[int] = None,
@@ -636,7 +633,6 @@ class DutFactory:
             target: Target configuration.
             beta_target: Beta target configuration.
             baud: Baud rate.
-            flash_port: Port used for flashing the app. Will use the same port as 'port' if not specified.
             skip_autoflash: Skip autoflash flag.
             erase_all: Erase all flag.
             esptool_baud: ESP tool baud rate.
@@ -700,7 +696,6 @@ class DutFactory:
                 'target': target,
                 'beta_target': beta_target,
                 'baud': baud,
-                'flash_port': flash_port,
                 'skip_autoflash': skip_autoflash,
                 'erase_all': erase_all,
                 'esptool_baud': esptool_baud,

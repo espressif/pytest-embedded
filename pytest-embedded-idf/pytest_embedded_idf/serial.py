@@ -3,11 +3,9 @@ import hashlib
 import logging
 import os
 import tempfile
-import time
 from typing import Optional, TextIO, Union
 
 import esptool
-from pytest_embedded.log import MessageQueue
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import IdfApp
@@ -46,56 +44,9 @@ class IdfSerial(EspSerial):
             **kwargs,
         )
 
-    def _before_init_port(self, q: MessageQueue):
-        if not self.flash_port:
-            return
-
-        self.occupied_ports[self.flash_port] = None
-        logging.debug(f'occupied {self.flash_port}')
-
-        if self.erase_all:
-            self.skip_autoflash = False  # do we really need it? may be a breaking change if removed
-
-            cmd = ['--port', self.flash_port, 'erase_flash']
-            if self._force_flag():
-                cmd.append('--force')
-
-            with contextlib.redirect_stdout(q):
-                esptool.main(cmd)
-
-            if self._meta:
-                self._meta.drop_port_app_cache(self.flash_port)
-
-        if self.skip_autoflash:
-            return
-
-        if self.erase_nvs:
-            _args, _kwargs = self._get_erase_nvs_cli_args(port=self.flash_port)
-            with contextlib.redirect_stdout(q):
-                esptool.main(_args, **_kwargs)
-
-                # this is required to wait for the reset happened after erase the nvs partition
-                time.sleep(1)
-
-        _args, _kwargs = self._get_flash_cli_args(port=self.flash_port)
-        with contextlib.redirect_stdout(q):
-            esptool.main(_args, **_kwargs)
-
-        # after flash caches
-        # here instead of ``_finalize_init`` to avoid occupying the port wrongly while multi-DUT test case
-        self._flashed_with_different_port = True
-        if self._meta:
-            self._meta.set_port_target_cache(self.flash_port, self.app.target)
-            self._meta.set_port_app_cache(self.flash_port, self.app)
-
-        # this is required to wait for the reset happened after flashing
-        time.sleep(1)
-
     def _post_init(self):
-        if self._flashed_with_different_port:
-            pass
-        elif self.erase_all:
-            self.skip_autoflash = False  # do we really need it? may be a breaking change if removed
+        if self.erase_all:
+            self.skip_autoflash = False
         elif self._meta and self._meta.hit_port_app_cache(self.port, self.app):
             if self.confirm_target_elf_sha256:
                 if self.is_target_flashed_same_elf():
@@ -115,13 +66,6 @@ class IdfSerial(EspSerial):
         super()._post_init()
 
     def _start(self):
-        if self._flashed_with_different_port:
-            if self._meta:
-                self._meta.set_port_app_cache(self.port, self.app)
-
-            super()._start()
-            return
-
         if self.skip_autoflash:
             logging.info('Skipping auto flash...')
             super()._start()
@@ -130,13 +74,6 @@ class IdfSerial(EspSerial):
                 self.load_ram()
             else:
                 self.flash()
-
-    def close(self):
-        if self._flashed_with_different_port:
-            self.occupied_ports.pop(self.flash_port, None)
-            logging.debug(f'released {self.flash_port}')
-
-        super().close()
 
     def load_ram(self) -> None:
         if not self.app.is_loadable_elf:
@@ -194,12 +131,11 @@ class IdfSerial(EspSerial):
         else:
             super().erase_flash()
 
-    def _get_flash_cli_args(
-        self,
-        *,
-        app: Optional[IdfApp] = None,
-        port: Optional[str] = None,
-    ):
+    @EspSerial.use_esptool()
+    def flash(self, app: Optional[IdfApp] = None) -> None:
+        """
+        Flash the `app.flash_files` to the dut
+        """
         if not app:
             app = self.app
 
@@ -212,8 +148,6 @@ class IdfSerial(EspSerial):
             return
 
         _args = []
-        _kwargs = {}
-
         for k, v in app.flash_args['extra_esptool_args'].items():
             if isinstance(v, bool):
                 if k == 'stub':
@@ -231,6 +165,17 @@ class IdfSerial(EspSerial):
         if '--baud' not in _args:
             _args.extend(['--baud', os.getenv('ESPBAUD', '921600')])
         _args.append('write_flash')
+
+        if self.erase_nvs:
+            esptool.main(
+                [
+                    'erase_region',
+                    str(app.partition_table['nvs']['offset']),
+                    str(app.partition_table['nvs']['size']),
+                ],
+                esp=self.esp,
+            )
+            self.esp.connect()
 
         encrypt_files = []
         flash_files = []
@@ -250,46 +195,7 @@ class IdfSerial(EspSerial):
 
         _args.extend([*app.flash_args['write_flash_args'], *self._force_flag(app)])
 
-        if port:
-            _args = ['--port', port, *_args]
-        else:
-            _kwargs.update({'esp': self.esp})
-
-        return _args, _kwargs
-
-    def _get_erase_nvs_cli_args(self, app: Optional[IdfApp] = None, port: Optional[str] = None):
-        if not app:
-            app = self.app
-
-        _args = [
-            'erase_region',
-            str(app.partition_table['nvs']['offset']),
-            str(app.partition_table['nvs']['size']),
-        ]
-        _kwargs = {}
-
-        if port:
-            _args = ['--port', port, *_args]
-        else:
-            _kwargs.update({'esp': self.esp})
-
-        return _args, _kwargs
-
-    @EspSerial.use_esptool()
-    def flash(self, app: Optional[IdfApp] = None) -> None:
-        """
-        Flash the app to the target device, or the app provided.
-        """
-        if not app:
-            app = self.app
-
-        if self.erase_nvs:
-            _args, _kwargs = self._get_erase_nvs_cli_args(app=app)
-            esptool.main(_args, **_kwargs)
-            self.esp.connect()
-
-        _args, _kwargs = self._get_flash_cli_args(app=app)
-        esptool.main(_args, **_kwargs)
+        esptool.main(_args, esp=self.esp)
 
         if self._meta:
             self._meta.set_port_app_cache(self.port, app)
