@@ -3,7 +3,7 @@ import functools
 import logging
 import subprocess
 import warnings
-from typing import Optional
+from typing import List, Optional
 from warnings import warn
 
 import esptool
@@ -62,14 +62,16 @@ class EspSerial(Serial):
         skip_autoflash: bool = False,
         erase_all: bool = False,
         meta: Optional[Meta] = None,
+        ports_to_occupy: List[str] = (),
         **kwargs,
     ) -> None:
         self._meta = meta
 
         esptool_target = beta_target or target or 'auto'
-        if port is None:
-            available_ports = esptool.get_port_list()
-            ports = list(set(available_ports) - set(self.occupied_ports.keys()))
+        if port is None or port.endswith('*'):
+            port_filter = port.strip('*') if port else ''
+            available_ports = [_p for _p in esptool.get_port_list() if port_filter in _p]
+            ports = list(set(available_ports) - set(self.occupied_ports.keys()) - set(ports_to_occupy))
 
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
             # esptool will reverse the list
@@ -125,7 +127,9 @@ class EspSerial(Serial):
         self.esptool_baud = esptool_baud
         self.esp_flash_force = esp_flash_force
 
-        super().__init__(msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, **kwargs)
+        super().__init__(
+            msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, ports_to_occupy=ports_to_occupy, **kwargs
+        )
 
     def _post_init(self):
         if self._meta:

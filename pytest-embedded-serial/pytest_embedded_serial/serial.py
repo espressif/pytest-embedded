@@ -5,7 +5,7 @@ import multiprocessing
 import queue
 import threading
 import time
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 import serial as pyserial
 from pytest_embedded.log import MessageQueue
@@ -47,6 +47,8 @@ class Serial:
         port_location: Optional[str] = None,
         baud: int = DEFAULT_BAUDRATE,
         meta: Optional[Meta] = None,
+        stop_after_init: bool = False,
+        ports_to_occupy: List[str] = (),
         **kwargs,
     ):
         self._q = msg_queue
@@ -54,6 +56,7 @@ class Serial:
         self._redirect_thread: _SerialRedirectThread = None  # type: ignore
 
         self.baud = baud
+        self.ports_to_occupy = ports_to_occupy if ports_to_occupy else []
 
         if isinstance(port, pyserial.SerialBase):
             self.proc = port
@@ -86,11 +89,15 @@ class Serial:
             port_config.update(**kwargs)
             self.proc = pyserial.serial_for_url(self.port, **port_config)
 
+        self.ports_to_occupy.append(self.port)
         self._post_init()
         self._start()
-        self._finalize_init()
 
-        self.start_redirect_thread()
+        self._finalize_init()
+        if not stop_after_init:
+            self.start_redirect_thread()
+        else:
+            self.close()
 
     def start_redirect_thread(self) -> None:
         if self._redirect_thread and self._redirect_thread.is_alive():
@@ -116,14 +123,22 @@ class Serial:
         pass
 
     def _finalize_init(self):
-        self.occupied_ports[self.port] = None
-        logging.debug(f'occupied {self.port}')
+        occupied_ports = []
+        for port in self.ports_to_occupy:
+            if port not in self.occupied_ports:
+                self.occupied_ports[port] = None
+                occupied_ports.append(port)
+                logging.debug(f'occupied {port}')
+            else:
+                logging.warning(f'port {port} is already occupied')
+        self.ports_to_occupy = occupied_ports
 
     def close(self):
         self.stop_redirect_thread()
         self.proc.close()
-        self.occupied_ports.pop(self.port, None)
-        logging.debug(f'released {self.port}')
+        for port in self.ports_to_occupy:
+            self.occupied_ports.pop(port, None)
+            logging.debug(f'released {port}')
 
     @contextlib.contextmanager
     def disable_redirect_thread(self) -> bool:

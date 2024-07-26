@@ -6,6 +6,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import time
 import typing as t
 from collections import defaultdict
 from pathlib import Path
@@ -127,6 +128,7 @@ def _fixture_classes_and_options_fn(
     target,
     beta_target,
     baud,
+    flash_port,
     skip_autoflash,
     erase_all,
     esptool_baud,
@@ -159,6 +161,7 @@ def _fixture_classes_and_options_fn(
     pexpect_proc,
     msg_queue,
     _meta,
+    **kwargs,
 ) -> ClassCliOptions:
     classes: t.Dict[str, type] = {}
     mixins: t.Dict[str, t.List[type]] = defaultdict(list)
@@ -211,6 +214,7 @@ def _fixture_classes_and_options_fn(
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
                     'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or EspSerial.ESPTOOL_DEFAULT_BAUDRATE),
                     'esp_flash_force': esp_flash_force,
+                    'flash_port': flash_port,
                     'skip_autoflash': skip_autoflash,
                     'erase_all': erase_all,
                     'meta': _meta,
@@ -408,6 +412,22 @@ def serial_gn(_fixture_classes_and_options, msg_queue, app) -> t.Optional[t.Unio
     kwargs = _fixture_classes_and_options.kwargs['serial']
     if 'app' in kwargs and kwargs['app'] is None:
         kwargs['app'] = app
+
+    if kwargs.get('flash_port'):
+        operation_port = kwargs.pop('port', None)
+        if operation_port is None:
+            raise SystemExit('If the flash port was set up, the port should also be set up.')
+
+        flash_port = kwargs.pop('flash_port')
+        kwargs['stop_after_init'] = True
+        kwargs['port'] = flash_port
+        flash_serial = cls(**_drop_none_kwargs(kwargs))
+        time.sleep(3)  # time for device restart
+        kwargs['stop_after_init'] = False
+        kwargs['port'] = operation_port
+        kwargs['skip_autoflash'] = True
+        kwargs['ports_to_occupy'] = [flash_serial.port]
+
     return cls(**_drop_none_kwargs(kwargs))
 
 
@@ -586,6 +606,7 @@ class DutFactory:
         target: t.Optional[str] = None,
         beta_target: t.Optional[str] = None,
         baud: t.Optional[int] = None,
+        flash_port: t.Optional[str] = None,
         skip_autoflash: t.Optional[bool] = None,
         erase_all: t.Optional[bool] = None,
         esptool_baud: t.Optional[int] = None,
@@ -633,6 +654,7 @@ class DutFactory:
             target: Target configuration.
             beta_target: Beta target configuration.
             baud: Baud rate.
+            flash_port: Port used for flashing the app.
             skip_autoflash: Skip autoflash flag.
             erase_all: Erase all flag.
             esptool_baud: ESP tool baud rate.
@@ -696,6 +718,7 @@ class DutFactory:
                 'target': target,
                 'beta_target': beta_target,
                 'baud': baud,
+                'flash_port': flash_port,
                 'skip_autoflash': skip_autoflash,
                 'erase_all': erase_all,
                 'esptool_baud': esptool_baud,
