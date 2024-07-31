@@ -163,8 +163,8 @@ def pytest_addoption(parser):
     )
     esp_group.addoption(
         '--flash-port',
-        help='serial port for flashing. Only set this value when the flashing port is different from the serial port '
-        'set with --port. (Default: None)',
+        help='serial port for flashing. Only set this value when the flashing port is different from the serial port.'
+        '(Default: None)',
     )
     esp_group.addoption(
         '--skip-autoflash',

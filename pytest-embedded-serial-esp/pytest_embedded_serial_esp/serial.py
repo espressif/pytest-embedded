@@ -3,7 +3,7 @@ import functools
 import logging
 import subprocess
 import warnings
-from typing import Optional
+from typing import List, Optional
 from warnings import warn
 
 import esptool
@@ -43,7 +43,7 @@ class EsptoolArgs:
 
 class EspSerial(Serial):
     """
-    Serial class for ports connected to espressif products. Each object could be treated as one target chip.
+    Serial class for ports connected to espressif products
     """
 
     ESPTOOL_DEFAULT_BAUDRATE = 921600
@@ -58,44 +58,20 @@ class EspSerial(Serial):
         port_mac: Optional[str] = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
-        flash_port: Optional[str] = None,  # more like a "reverse-dependency" for arduino and idf
-        esp_flash_force: bool = False,  # more like a "reverse-dependency" for arduino and idf
-        skip_autoflash: bool = False,  # more like a "reverse-dependency" for arduino and idf
+        esp_flash_force: bool = False,
+        skip_autoflash: bool = False,
         erase_all: bool = False,
         meta: Optional[Meta] = None,
+        ports_to_occupy: List[str] = (),
         **kwargs,
     ) -> None:
-        # the "--chip" option in esptool, for beta chips, the target name and the name in esptool are different
-        esptool_target = beta_target or target or 'auto'
-
-        if esptool_target not in ['auto', *ESPTOOL_CHIPS]:
-            raise ValueError(
-                f'esptool version {ESPTOOL_VERSION} not support target {esptool_target}\n'
-                f'Supported targets: {ESPTOOL_CHIPS}'
-            )
-
         self._meta = meta
-        self.esp_flash_force = esp_flash_force
-        self.skip_autoflash = skip_autoflash
-        self.flash_port = flash_port
-        self._flashed_with_different_port = False
 
-        self.erase_all = erase_all
-        self.esptool_baud = esptool_baud
-
-        self._before_init_port(msg_queue)
-
-        # the "--chip" option in esptool, for beta chips, the target name and the name in esptool are different
         esptool_target = beta_target or target or 'auto'
-        if esptool_target not in ['auto', *ESPTOOL_CHIPS]:
-            raise ValueError(
-                f'esptool version {ESPTOOL_VERSION} not support target {esptool_target}\n'
-                f'Supported targets: {ESPTOOL_CHIPS}'
-            )
-
-        if port is None:  # auto detect port
-            available_ports = esptool.get_port_list()
-            ports = list(set(available_ports) - set(self.occupied_ports.keys()))
+        if port is None or port.endswith('*'):
+            port_filter = port.strip('*') if port else ''
+            available_ports = [_p for _p in esptool.get_port_list() if port_filter in _p]
+            ports = list(set(available_ports) - set(self.occupied_ports.keys()) - set(ports_to_occupy))
 
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
             # esptool will reverse the list
@@ -123,6 +99,12 @@ class EspSerial(Serial):
                 ports = [port]
 
         # normal loader
+        if esptool_target not in ['auto', *ESPTOOL_CHIPS]:
+            raise ValueError(
+                f'esptool version {ESPTOOL_VERSION} not support target {esptool_target}\n'
+                f'Supported targets: {ESPTOOL_CHIPS}'
+            )
+
         with contextlib.redirect_stdout(msg_queue):
             self.esp = esptool.get_default_connected_device(
                 ports,
@@ -140,25 +122,23 @@ class EspSerial(Serial):
 
         self.target = target
 
-        super().__init__(msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, **kwargs)
+        self.skip_autoflash = skip_autoflash
+        self.erase_all = erase_all
+        self.esptool_baud = esptool_baud
+        self.esp_flash_force = esp_flash_force
 
-    def _before_init_port(self, q: MessageQueue):
-        pass
+        super().__init__(
+            msg_queue=msg_queue, port=self.esp._port, baud=baud, meta=meta, ports_to_occupy=ports_to_occupy, **kwargs
+        )
 
     def _post_init(self):
         if self._meta:
             self._meta.set_port_target_cache(self.port, self.target)
 
-        if self.erase_all and not self._flashed_with_different_port:
+        if self.erase_all:
             esptool.main(['erase_flash'], esp=self.esp)
 
-            if self._meta:
-                self._meta.drop_port_app_cache(self.port)
-
         super()._post_init()
-
-    def _start(self):
-        self.hard_reset()
 
     def use_esptool(hard_reset_after: Optional[bool] = None, no_stub: Optional[bool] = None):
         """
@@ -198,6 +178,9 @@ class EspSerial(Serial):
             return wrapper
 
         return decorator
+
+    def _start(self):
+        self.hard_reset()
 
     def hard_reset(self):
         """Hard reset your espressif device"""

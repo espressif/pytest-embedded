@@ -264,7 +264,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
 
     def flash_via_jtag(self):
         if not self.openocd:
-            logging.debug('no openocd instance created. NOT flashing via openocd `program_esp`')
+            logging.debug("no openocd instance created. can't flash via openocd `program_esp`")
             return
 
         if self.app.is_loadable_elf:
