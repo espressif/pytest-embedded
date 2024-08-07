@@ -44,4 +44,5 @@ class SerialDut(Dut):
 
     def setup_jtag(self):
         if self.gdb:
+            self.gdb.write('set remotetimeout 10')
             self.gdb.write(f'target extended-remote :{self.openocd.gdb_port}')
