@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.1 (2024-08-07)
+
+### Fix
+
+- **jtag**: set gdb remote timeout to 10s by default
+
 ## v1.11.0 (2024-07-31)
 
 ### Feat
