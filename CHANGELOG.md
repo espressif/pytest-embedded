@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.2 (2024-08-09)
+
+### Fix
+
+- **jtag**: gdb write "remotetimeout" stop waiting for response
+
 ## v1.11.1 (2024-08-07)
 
 ### Fix
