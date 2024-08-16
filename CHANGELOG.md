@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.4 (2024-08-16)
+
+### Fix
+
+- **jtag**: flush previous gdb responses before the first gdb command
+
 ## v1.11.3 (2024-08-09)
 
 ### Revert
