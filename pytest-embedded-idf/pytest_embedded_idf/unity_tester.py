@@ -828,7 +828,7 @@ class CaseTester:
         """
         if isinstance(dut, Iterable):
             self.is_multi_dut = True
-            self.dut: t.List['IdfDut'] = list(dut)
+            self.dut: t.List[IdfDut] = list(dut)
             self.first_dut = self.dut[0]
             self.test_menu = self.first_dut.test_menu
         else:
