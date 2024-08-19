@@ -399,9 +399,7 @@ class IdfUnityDutMixin:
             self._get_ready(timeout)
             self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
-            # here we can't use confirm_write because the sub cases won't print anything
-            # can't rely on time.sleep either cause it will break some time-related child cases
-            self.write(str(sub_case['index']))
+            self.confirm_write(str(sub_case['index']), expect_str=f"Running stage {sub_case['index']}...")
 
             _timestamp = time.perf_counter()
 
