@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.5 (2024-08-19)
+
+### Fix
+
+- **wokwi**: pexpect.spawn not working on windows. use subprocess instead
+
 ## v1.11.4 (2024-08-16)
 
 ### Fix
