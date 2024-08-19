@@ -1,11 +1,12 @@
 import json
 import logging
 import os
+import re
 import shutil
+import subprocess
 import typing as t
 from pathlib import Path
 
-import pexpect
 import toml
 from packaging.version import Version
 from pytest_embedded import __version__
@@ -59,11 +60,10 @@ class WokwiCLI(DuplicateStdoutPopen):
         if shutil.which('wokwi-cli') is None:
             raise RuntimeError('Please install wokwi-cli, by running: curl -L https://wokwi.com/ci/install.sh | sh')
 
-        child = pexpect.spawn('wokwi-cli --help')
+        output = subprocess.check_output(['wokwi-cli', '--help'])
         try:
-            child.expect(r'Wokwi CLI v(\d+\.\d+\.\d+)', timeout=1)
-            wokwi_cli_version = child.match.group(1).decode('utf-8')
-        except pexpect.TIMEOUT:
+            wokwi_cli_version = re.match(r'Wokwi CLI v(\d+\.\d+\.\d+)', output.decode('utf-8')).group(1)
+        except AttributeError:
             logging.warning('Failed to get wokwi-cli version, assume version requirements satisfied')
         else:
             if Version(wokwi_cli_version) < Version(WOKWI_CLI_MINIMUM_VERSION):
