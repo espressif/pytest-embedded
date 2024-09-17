@@ -6,9 +6,7 @@ from pytest_embedded.utils import to_bytes
 from .serial import Serial
 
 if TYPE_CHECKING:
-    from telnetlib import Telnet
-
-    from pytest_embedded_jtag import Gdb, OpenOcd
+    from pytest_embedded_jtag import Gdb, OpenOcd, Telnet
 
 
 class SerialDut(Dut):
