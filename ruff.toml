@@ -66,5 +66,8 @@ select = [
 
 [format]
 quote-style = "single"
-exclude = ["**/tests/*"]
+exclude = [
+    "**/tests/*",
+    "pytest-embedded-jtag/pytest_embedded_jtag/_telnetlib/telnetlib.py"
+]
 docstring-code-format = true
