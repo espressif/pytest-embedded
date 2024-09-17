@@ -36,10 +36,7 @@ To do:
 import selectors
 import socket
 import sys
-import warnings
 from time import monotonic as _time
-
-warnings._deprecated(__name__, remove=(3, 13))
 
 __all__ = ["Telnet"]
 
@@ -250,7 +247,7 @@ class Telnet:
 
         """
         if self.debuglevel > 0:
-            print('Telnet(%s,%s):' % (self.host, self.port), end=' ')
+            print(f'Telnet({self.host},{self.port}):', end=' ')
             if args:
                 print(msg % args)
             else:
@@ -447,7 +444,7 @@ class Telnet:
                     else:
                         self.iacseq += c
                 elif len(self.iacseq) == 1:
-                    # 'IAC: IAC CMD [OPTION only for WILL/WONT/DO/DONT]'
+                    # 'IAC: IAC CMD [OPTION only for WILL/WONT/DO/DONT]'  # noqa: ERA001
                     if c in (DO, DONT, WILL, WONT):
                         self.iacseq += c
                         continue
@@ -586,7 +583,7 @@ class Telnet:
             else:
                 sys.stdout.flush()
 
-    def expect(self, list, timeout=None):
+    def expect(self, list, timeout=None):  # noqa: A002
         """Read until one from a list of a regular expressions matches.
 
         The first argument is a list of regular expressions, either
@@ -609,11 +606,12 @@ class Telnet:
 
         """
         re = None
-        list = list[:]
+        list = list[:]  # noqa: A001
         indices = range(len(list))
         for i in indices:
             if not hasattr(list[i], "search"):
-                if not re: import re
+                if not re:
+                    import re
                 list[i] = re.compile(list[i])
         if timeout is not None:
             deadline = _time() + timeout
@@ -645,7 +643,7 @@ class Telnet:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback):  # noqa: A002
         self.close()
 
 
