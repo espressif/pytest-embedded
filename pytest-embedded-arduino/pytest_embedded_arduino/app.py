@@ -24,6 +24,7 @@ class ArduinoApp(App):
         'esp32s3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
         'esp32c6': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
         'esp32h2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '48m'},
+        'esp32p4': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
     }
 
     #: dict of binaries' offset.
@@ -34,6 +35,7 @@ class ArduinoApp(App):
         'esp32s3': [0x0, 0x8000, 0x10000],
         'esp32c6': [0x0, 0x8000, 0x10000],
         'esp32h2': [0x0, 0x8000, 0x10000],
+        'esp32p4': [0x2000, 0x8000, 0x10000],
     }
 
     def __init__(
