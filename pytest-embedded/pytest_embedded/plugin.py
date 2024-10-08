@@ -1326,4 +1326,4 @@ class PytestEmbedded:
             if self.prettify_junit_report:
                 _prettify_xml(_stash_junit_report_path)
 
-        exitstatus = int(modifier.failed)  # True -> 1  False -> 0
+        session.exitstatus = int(modifier.failed)  # True -> 1  False -> 0
