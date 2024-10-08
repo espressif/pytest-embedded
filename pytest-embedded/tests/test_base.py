@@ -1,8 +1,10 @@
 import os
+import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
+from _pytest.config import ExitCode
 
 
 def test_help(testdir):
@@ -632,3 +634,11 @@ def test_unclosed_file_handler(testdir):
         '-x',  # fail at the first fail
     )
     result.assert_outcomes(passed=1024)
+
+
+def test_suppress_no_test_collected_error():
+    ret_code = subprocess.call(['pytest'])
+    assert ret_code == ExitCode.NO_TESTS_COLLECTED
+
+    ret_code = subprocess.call(['pytest', '--suppress-no-test-collected-error', 'y'])
+    assert ret_code == 0
