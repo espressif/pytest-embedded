@@ -147,6 +147,7 @@ def _fixture_classes_and_options_fn(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
+    qemu_efuse_path,
     wokwi_cli_path,
     wokwi_timeout,
     wokwi_scenario,
@@ -183,6 +184,7 @@ def _fixture_classes_and_options_fn(
                         'encrypt': encrypt,
                         'keyfile': keyfile,
                         'qemu_prog_path': qemu_prog_path,
+                        'qemu_efuse_path': qemu_efuse_path,
                     })
                 else:
                     from pytest_embedded_idf import IdfApp
@@ -292,6 +294,7 @@ def _fixture_classes_and_options_fn(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
+                    'qemu_efuse_path': qemu_efuse_path,
                     'app': None,
                     'meta': _meta,
                     'dut_index': dut_index,
@@ -625,6 +628,7 @@ class DutFactory:
         qemu_prog_path: t.Optional[str] = None,
         qemu_cli_args: t.Optional[str] = None,
         qemu_extra_args: t.Optional[str] = None,
+        qemu_efuse_path: t.Optional[str] = None,
         wokwi_cli_path: t.Optional[str] = None,
         wokwi_timeout: t.Optional[int] = 0,
         wokwi_scenario: t.Optional[str] = None,
@@ -673,6 +677,7 @@ class DutFactory:
             qemu_prog_path: QEMU program path.
             qemu_cli_args: QEMU CLI arguments.
             qemu_extra_args: Additional QEMU arguments.
+            qemu_efuse_path: Efuse binary path.
             wokwi_cli_path: Wokwi CLI path.
             wokwi_timeout: Wokwi timeout.
             wokwi_scenario: Wokwi scenario path.
@@ -737,6 +742,7 @@ class DutFactory:
                 'qemu_prog_path': qemu_prog_path,
                 'qemu_cli_args': qemu_cli_args,
                 'qemu_extra_args': qemu_extra_args,
+                'qemu_efuse_path': qemu_efuse_path,
                 'wokwi_cli_path': wokwi_cli_path,
                 'wokwi_timeout': wokwi_timeout,
                 'wokwi_scenario': wokwi_scenario,
