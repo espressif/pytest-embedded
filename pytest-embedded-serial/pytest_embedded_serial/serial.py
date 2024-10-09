@@ -91,8 +91,11 @@ class Serial:
 
         self.ports_to_occupy.append(self.port)
         self._post_init()
-        self._start()
-
+        try:
+            self._start()
+        except Exception as e:
+            self.close()
+            raise e
         self._finalize_init()
         if not stop_after_init:
             self.start_redirect_thread()
