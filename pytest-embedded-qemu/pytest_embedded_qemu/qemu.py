@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import shlex
 import socket
@@ -21,7 +22,6 @@ class Qemu(DuplicateStdoutPopen):
     SOURCE = 'QEMU'
 
     QEMU_PROG_PATH = 'qemu-system-xtensa'
-    QEMU_PROG_FMT = 'qemu-system-{}'
 
     QEMU_DEFAULT_ARGS = '-nographic -machine esp32'
     QEMU_DEFAULT_FMT = '-nographic -machine {}'
@@ -90,11 +90,9 @@ class Qemu(DuplicateStdoutPopen):
     @property
     def qemu_prog_name(self):
         if self.app:
-            try:
-                return self.QEMU_PROG_FMT.format('xtensa' if self.app.is_xtensa else 'riscv32')
-            except AttributeError:
-                pass
+            return self.app.qemu_prog_path
 
+        logging.warning('App not set, use default qemu program name "%s"', self.QEMU_DEFAULT_PROG_PATH)
         return self.QEMU_PROG_PATH
 
     @property
