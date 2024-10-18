@@ -137,6 +137,7 @@ class QemuApp(IdfApp):
     """
 
     QEMU_VERSION_REGEX = re.compile(r'QEMU emulator version (\d+\.\d+\.\d+)')
+    QEMU_PROG_FMT = 'qemu-system-{}'
 
     # the qemu version shouldn't change in the same session
     _QEMU_VERSION = None
@@ -162,8 +163,11 @@ class QemuApp(IdfApp):
         if self.encrypt:
             self.encrypted_image_path = os.path.join(self.binary_path, ENCRYPTED_IMAGE_FN)
 
-        self.qemu_prog_path = kwargs.get('qemu_prog_path', 'qemu-system-xtensa')
         self.create_image()
+
+    @property
+    def qemu_prog_path(self) -> str:
+        return self.QEMU_PROG_FMT.format('xtensa' if self.is_xtensa else 'riscv32')
 
     @property
     def qemu_version(self) -> Version:
