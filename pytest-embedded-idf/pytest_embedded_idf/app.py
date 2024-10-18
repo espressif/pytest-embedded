@@ -27,7 +27,15 @@ class IdfApp(App):
     """
 
     XTENSA_TARGETS: ClassVar[List[str]] = ['esp32', 'esp32s2', 'esp32s3']
-    RISCV32_TARGETS: ClassVar[List[str]] = ['esp32c3', 'esp32h2', 'esp32c2', 'esp32c6']
+    RISCV32_TARGETS: ClassVar[List[str]] = [
+        'esp32c3',
+        'esp32c2',
+        'esp32c6',
+        'esp32c5',
+        'esp32p4',
+        'esp32h2',
+        'esp32c61',
+    ]
 
     FLASH_ARGS_FILENAME = 'flash_args'
     FLASH_PROJECT_ARGS_FILENAME = 'flash_project_args'
