@@ -11,4 +11,4 @@ __all__ = [
     'WokwiDut',
 ]
 
-__version__ = '1.11.5'
+__version__ = '1.11.6'

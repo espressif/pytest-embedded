@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v1.11.6 (2024-10-18)
+
+### Feat
+
+- **arduino**: Support ESP32-P4
+
+### Fix
+
+- add more supported targets into App.RISCV32_TARGETS
+- **qemu**: get default toolchain path correctly based on target
+- **serial**: close serial port when exception happens
+
+### Refactor
+
+- **jtag**: remove deprecate warning from telnetlib.py by pulling telnetlib.py from python v3.12.6
+
 ## v1.11.5 (2024-08-19)
 
 ### Fix
