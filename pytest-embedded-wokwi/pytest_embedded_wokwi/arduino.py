@@ -12,4 +12,4 @@ class ArduinoFirmwareResolver:
 
     def resolve_firmware(self, app: 'ArduinoApp'):
         # get path of ino.bin file
-        return Path(app.binary_path, app.sketch + '.ino.bin')
+        return Path(app.binary_path, app.sketch + '.ino.merged.bin')
