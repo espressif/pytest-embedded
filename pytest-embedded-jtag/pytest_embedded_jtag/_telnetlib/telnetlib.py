@@ -232,7 +232,10 @@ class Telnet:
         self.host = host
         self.port = port
         self.timeout = timeout
-        sys.audit("telnetlib.Telnet.open", self, host, port)
+        try:
+            sys.audit("telnetlib.Telnet.open", self, host, port)
+        except AttributeError:
+            pass
         self.sock = socket.create_connection((host, port), timeout)
 
     def __del__(self):
@@ -288,7 +291,10 @@ class Telnet:
         """
         if IAC in buffer:
             buffer = buffer.replace(IAC, IAC+IAC)
-        sys.audit("telnetlib.Telnet.write", self, buffer)
+        try:
+            sys.audit("telnetlib.Telnet.write", self, buffer)
+        except AttributeError:
+            pass
         self.msg("send %r", buffer)
         self.sock.sendall(buffer)
 
