@@ -1,6 +1,6 @@
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.11.6"
+version = "1.11.7"
 tag_format = "v$version"
 version_files = [
     "pytest-embedded/pytest_embedded/__init__.py",

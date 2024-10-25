@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.7 (2024-10-25)
+
+### Fix
+
+- **jtag**: bypass telnet sysaudit on python 3.7
+
 ## v1.11.6 (2024-10-18)
 
 ### Feat

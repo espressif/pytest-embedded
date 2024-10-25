@@ -30,7 +30,7 @@ dynamic = ["version", "description"]
 requires-python = ">=3.7"
 
 dependencies = [
-    "pytest-embedded~=1.11.6",
+    "pytest-embedded~=1.11.7",
     "pyserial~=3.0",
 ]
 
