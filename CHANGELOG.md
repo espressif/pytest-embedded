@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.11.8 (2024-10-29)
+
+### Fix
+
+- **wokwi**: Use merged bin to ensure partition and bootloader flashing
+
 ## v1.11.7 (2024-10-25)
 
 ### Fix
