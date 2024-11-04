@@ -24,16 +24,17 @@ SERVICE_LIB_NAMES = {
     'qemu': f'{BASE_LIB_NAME}-qemu',
     'arduino': f'{BASE_LIB_NAME}-arduino',
     'wokwi': f'{BASE_LIB_NAME}-wokwi',
+    'nuttx': f'{BASE_LIB_NAME}-nuttx',
 }
 
 FIXTURES_SERVICES = {
-    'app': ['base', 'idf', 'qemu', 'arduino'],
-    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino'],
+    'app': ['base', 'idf', 'qemu', 'arduino', 'nuttx'],
+    'serial': ['serial', 'jtag', 'esp', 'idf', 'arduino', 'nuttx'],
     'openocd': ['jtag'],
     'gdb': ['jtag'],
     'qemu': ['qemu'],
     'wokwi': ['wokwi'],
-    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf', 'wokwi'],
+    'dut': ['base', 'serial', 'jtag', 'qemu', 'idf', 'wokwi', 'nuttx'],
 }
 
 

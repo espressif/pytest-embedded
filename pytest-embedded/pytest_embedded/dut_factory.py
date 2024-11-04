@@ -195,6 +195,13 @@ def _fixture_classes_and_options_fn(
                 from pytest_embedded_arduino import ArduinoApp
 
                 classes[fixture] = ArduinoApp
+            elif 'nuttx' in _services and 'esp' in _services:
+                from pytest_embedded_nuttx import NuttxApp
+
+                classes[fixture] = NuttxApp
+                kwargs[fixture].update({
+                    'target': target,
+                })
             else:
                 from .app import App
 
@@ -234,6 +241,15 @@ def _fixture_classes_and_options_fn(
                     classes[fixture] = ArduinoSerial
                     kwargs[fixture].update({
                         'app': None,
+                    })
+                elif 'nuttx' in _services:
+                    from pytest_embedded_nuttx import NuttxSerial
+
+                    classes[fixture] = NuttxSerial
+                    kwargs[fixture].update({
+                        'app': None,
+                        'baud': int(baud or NuttxSerial.SERIAL_BAUDRATE),
+                        'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or NuttxSerial.FLASH_BAUDRATE),
                     })
                 else:
                     from pytest_embedded_serial_esp import EspSerial
@@ -375,6 +391,20 @@ def _fixture_classes_and_options_fn(
                     kwargs[fixture].update({
                         'skip_check_coredump': skip_check_coredump,
                         'panic_output_decode_script': panic_output_decode_script,
+                    })
+                elif 'esp' in _services and 'nuttx' in _services:
+                    from pytest_embedded_nuttx import NuttxEspDut
+
+                    classes[fixture] = NuttxEspDut
+                    kwargs[fixture].update({
+                        'serial': None,
+                    })
+                elif 'nuttx' in _services:
+                    from pytest_embedded_nuttx import NuttxDut
+
+                    classes[fixture] = NuttxDut
+                    kwargs[fixture].update({
+                        'serial': None,
                     })
                 else:
                     from pytest_embedded_serial import SerialDut

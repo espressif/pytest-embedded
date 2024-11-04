@@ -16,6 +16,9 @@ The arrow points from the dependent service to the service it depends on. For ex
 graph LR
     pytest-embedded-serial
 
+    pytest-embedded-nuttx --> pytest-embedded-serial
+    pytest-embedded-nuttx -->|optional, support test on espressif chips| pytest-embedded-serial-esp
+
     pytest-embedded-serial-esp --> pytest-embedded-serial
 
     pytest-embedded-jtag --> pytest-embedded-serial
@@ -52,4 +55,7 @@ Activate a service would enable a set of fixtures or add some extra functionalit
 ```
 
 ```{include} ../../pytest-embedded-wokwi/README.md
+```
+
+```{include} ../../pytest-embedded-nuttx/README.md
 ```
