@@ -25,7 +25,7 @@ target_to_board = {
     'esp32c3': 'board-esp32-c3-devkitm-1',
     'esp32c6': 'board-esp32-c6-devkitc-1',
     'esp32h2': 'board-esp32-h2-devkitm-1',
-    'esp32p4': 'board-esp32-p4-preview',
+    'esp32p4': 'board-esp32-p4-function-ev',
     'esp32s2': 'board-esp32-s2-devkitm-1',
     'esp32s3': 'board-esp32-s3-devkitc-1',
 }
@@ -145,14 +145,21 @@ class WokwiCLI(DuplicateStdoutPopen):
                 )
             return
 
+        if app.target == 'esp32p4':
+            rx_pin = '38'
+            tx_pin = '37'
+        else:
+            rx_pin = 'RX'
+            tx_pin = 'TX'
+
         diagram = {
             'version': 1,
             'author': 'Uri Shaked',
             'editor': 'wokwi',
             'parts': [{'type': target_board, 'id': 'esp'}],
             'connections': [
-                ['esp:TX', '$serialMonitor:RX', ''],
-                ['esp:RX', '$serialMonitor:TX', ''],
+                ['esp:' + tx_pin, '$serialMonitor:RX', ''],
+                ['esp:' + rx_pin, '$serialMonitor:TX', ''],
             ],
         }
         with open(diagram_json_path, 'w') as f:
