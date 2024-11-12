@@ -11,6 +11,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-qemu \
   pytest-embedded-arduino \
   pytest-embedded-wokwi \
+  pytest-embedded-nuttx \
 "
 
 action=${1:-"install"}
