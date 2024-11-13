@@ -22,7 +22,7 @@ jobs:
         include:
           - python-version: '3.7'
             arch: 'ARM'
-          - python-version: '3.12'
+          - python-version: '3.13'
             arch: 'X64'
       fail-fast: false
     runs-on:
