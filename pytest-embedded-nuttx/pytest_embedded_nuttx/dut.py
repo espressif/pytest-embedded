@@ -1,12 +1,13 @@
 import logging
 import re
 from time import sleep
-from typing import AnyStr
+from typing import TYPE_CHECKING, AnyStr
 
 import pexpect
 from pytest_embedded_serial.dut import SerialDut
 
-from .app import NuttxApp
+if TYPE_CHECKING:
+    from .app import NuttxApp
 
 
 class NuttxDut(SerialDut):
@@ -83,7 +84,7 @@ class NuttxEspDut(NuttxDut):
 
     def __init__(
         self,
-        app: NuttxApp,
+        app: 'NuttxApp',
         **kwargs,
     ) -> None:
         self.target = app.target
