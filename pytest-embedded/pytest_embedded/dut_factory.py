@@ -362,12 +362,20 @@ def _fixture_classes_and_options_fn(
                 else:
                     raise SystemExit('wokwi service should be used together with idf or arduino service')
             elif 'qemu' in _services:
-                from pytest_embedded_qemu import QemuDut
+                if 'nuttx' in _services:
+                    from pytest_embedded_nuttx import NuttxQemuDut
 
-                classes[fixture] = QemuDut
-                kwargs[fixture].update({
-                    'qemu': None,
-                })
+                    classes[fixture] = NuttxQemuDut
+                    kwargs[fixture].update({
+                        'qemu': None,
+                    })
+                else:
+                    from pytest_embedded_qemu import QemuDut
+
+                    classes[fixture] = QemuDut
+                    kwargs[fixture].update({
+                        'qemu': None,
+                    })
             elif 'jtag' in _services:
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
@@ -400,9 +408,9 @@ def _fixture_classes_and_options_fn(
                         'serial': None,
                     })
                 elif 'nuttx' in _services:
-                    from pytest_embedded_nuttx import NuttxDut
+                    from pytest_embedded_nuttx import NuttxSerialDut
 
-                    classes[fixture] = NuttxDut
+                    classes[fixture] = NuttxSerialDut
                     kwargs[fixture].update({
                         'serial': None,
                     })

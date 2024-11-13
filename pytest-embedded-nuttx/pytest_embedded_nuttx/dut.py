@@ -4,25 +4,22 @@ from time import sleep
 from typing import TYPE_CHECKING, AnyStr
 
 import pexpect
+from pytest_embedded.dut import Dut
+from pytest_embedded_qemu.dut import QemuDut
+from pytest_embedded_qemu.qemu import Qemu
 from pytest_embedded_serial.dut import SerialDut
 
 if TYPE_CHECKING:
     from .app import NuttxApp
 
 
-class NuttxDut(SerialDut):
+class NuttxDut(Dut):
     """
     Generic DUT class for use with NuttX RTOS.
     """
 
     PROMPT_NSH = 'nsh>'
     PROMPT_TIMEOUT_S = 30
-
-    def __init__(
-        self,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
 
     def write(self, data: str) -> None:
         """
@@ -45,11 +42,14 @@ class NuttxDut(SerialDut):
         Matches the 'echo $?' response and extracts the integer value
         corresponding to the last program return code.
 
+        The first regex option on expect is for serial interface,
+        while the second will match QEMU.
+
         Returns:
             int: return code.
         """
         self.write('echo $?')
-        echo_match = self.expect(r'echo \$\?\r\n(\d+)', timeout=timeout)
+        echo_match = self.expect([r'echo \$\?\r\n(\d+)', r'echo \$\?\n*(\d+)\n'], timeout=timeout)
         ret_code = re.findall(r'\d+', echo_match.group().decode())
 
         if not ret_code:
@@ -75,8 +75,78 @@ class NuttxDut(SerialDut):
         ans = self.expect(pexpect.TIMEOUT, timeout=timeout)
         return ans.rstrip().decode()
 
+    def reset_to_nsh(self, ready_prompt: str = PROMPT_NSH) -> None:
+        """
+        Resets the board and waits until the Nuttshell prompt appears.
+        Defaults to 'nsh>'.
 
-class NuttxEspDut(NuttxDut):
+        Args:
+            ready_prompt (str): string on prompt that signals completion.
+
+        Returns:
+            None
+        """
+        if self.reset:
+            logging.info('Resetting board')
+            self.reset()
+        else:
+            logging.error('Resetting method not available')
+        self.expect(ready_prompt, timeout=self.PROMPT_TIMEOUT_S)
+
+
+class NuttxSerialDut(SerialDut, NuttxDut):
+    """
+    DUT class for serial ports connected to generic boards running NuttX
+    with NuttX RTOS.
+    """
+
+    def __init__(
+        self,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+
+    def reset(self) -> None:
+        """Reset the DUT by toggling the DTR line.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.serial.proc.dtr = False
+        sleep(0.2)
+        self.serial.proc.dtr = True
+
+
+class NuttxQemuDut(QemuDut, NuttxDut):
+    """
+    DUT class for QEMU usage of the NuttX RTOS.
+    """
+
+    def __init__(
+        self,
+        qemu: Qemu,
+        **kwargs,
+    ) -> None:
+        self.qemu = qemu
+
+        super().__init__(qemu=qemu, **kwargs)
+
+    def reset(self) -> None:
+        """Hard reset the DUT.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.hard_reset()
+
+
+class NuttxEspDut(NuttxSerialDut):
     """
     DUT class for serial ports connected to Espressif boards which are
     flashed with NuttX RTOS.
@@ -91,16 +161,14 @@ class NuttxEspDut(NuttxDut):
 
         super().__init__(app=app, **kwargs)
 
-    def reset_to_nsh(self, ready_prompt: str = NuttxDut.PROMPT_NSH) -> None:
+    def reset(self) -> None:
         """
-        Resets the board and waits until the Nuttshell prompt appears.
-        Defaults to 'nsh>'.
+        Resets the board.
 
         Args:
-            ready_prompt (str): string on prompt that signals completion.
+            None.
 
         Returns:
-            None
+            None.
         """
         self.serial.hard_reset()
-        self.expect(ready_prompt, timeout=NuttxDut.PROMPT_TIMEOUT_S)
