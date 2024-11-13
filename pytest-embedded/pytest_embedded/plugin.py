@@ -129,6 +129,7 @@ def pytest_addoption(parser):
         '- qemu: use qemu simulator instead of the real target\n'
         '- arduino: auto-detect more app info with arduino specific rules, auto flash-in\n'
         '- wokwi: use wokwi simulator instead of the real target\n'
+        '- nuttx: service for nuttx project, optionally with espressif devices\n'
         'All the related CLI options are under the groups named by "embedded-<service>"',
     )
     base_group.addoption('--app-path', help='App path')
