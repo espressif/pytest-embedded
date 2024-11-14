@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.12.0 (2024-11-14)
+
+### Feat
+
+- **wokwi**: Use new boards for ESP32-P4
+- **nuttx**: Support new service `nuttx`
+
 ## v1.11.8 (2024-10-29)
 
 ### Fix
