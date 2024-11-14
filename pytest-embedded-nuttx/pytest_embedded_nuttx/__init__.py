@@ -20,4 +20,4 @@ __getattr__ = lazy_load(
 
 __all__ = ['NuttxApp', 'NuttxSerial', 'NuttxEspDut', 'NuttxDut']
 
-__version__ = '1.11.8'
+__version__ = '1.12.0'
