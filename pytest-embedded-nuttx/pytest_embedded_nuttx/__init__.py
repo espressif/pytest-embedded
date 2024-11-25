@@ -4,7 +4,6 @@ import importlib
 
 from pytest_embedded.utils import lazy_load
 
-from .app import NuttxApp
 from .dut import NuttxDut, NuttxEspDut, NuttxQemuDut, NuttxSerialDut
 
 __getattr__ = lazy_load(

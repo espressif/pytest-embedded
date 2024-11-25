@@ -107,14 +107,7 @@ class NuttxSerialDut(SerialDut, NuttxDut):
         super().__init__(**kwargs)
 
     def reset(self) -> None:
-        """Reset the DUT by toggling the DTR line.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
+        """Reset the DUT by toggling the DTR line."""
         self.serial.proc.dtr = False
         sleep(0.2)
         self.serial.proc.dtr = True
@@ -135,14 +128,7 @@ class NuttxQemuDut(QemuDut, NuttxDut):
         super().__init__(qemu=qemu, **kwargs)
 
     def reset(self) -> None:
-        """Hard reset the DUT.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
+        """Hard reset the DUT."""
         self.hard_reset()
 
 
@@ -162,13 +148,5 @@ class NuttxEspDut(NuttxSerialDut):
         super().__init__(app=app, **kwargs)
 
     def reset(self) -> None:
-        """
-        Resets the board.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
+        """Resets the board."""
         self.serial.hard_reset()

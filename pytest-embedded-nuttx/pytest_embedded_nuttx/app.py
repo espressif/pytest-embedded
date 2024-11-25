@@ -53,10 +53,13 @@ class NuttxApp(App):
             if 'nuttx' in file_name:
                 if 'merged' in file_name:
                     merge_file = file_path
+                    logging.info('Merge file: %s', merge_file.as_posix())
                 else:
                     app_file = file_path
+                    logging.info('App file: %s', app_file.as_posix())
             if 'mcuboot-' in file_name:
                 bootloader_file = file_path
+                logging.info('Bootloader file: %s', bootloader_file.as_posix())
 
         if not app_file:
             logging.error('App file not found: %s', app_file)
