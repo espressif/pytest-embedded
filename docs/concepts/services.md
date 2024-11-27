@@ -18,6 +18,7 @@ graph LR
 
     pytest-embedded-nuttx --> pytest-embedded-serial
     pytest-embedded-nuttx -->|optional, support test on espressif chips| pytest-embedded-serial-esp
+    pytest-embedded-nuttx -->|optional, support test on qemu| pytest-embedded-qemu
 
     pytest-embedded-serial-esp --> pytest-embedded-serial
 
