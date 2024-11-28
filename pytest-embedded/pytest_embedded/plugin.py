@@ -43,7 +43,7 @@ from .dut_factory import (
     wokwi_gn,
 )
 from .log import MessageQueue, PexpectProcess
-from .unity import JunitMerger, escape_illegal_xml_chars
+from .unity import JunitMerger, UnityTestReportMode, escape_illegal_xml_chars
 from .utils import (
     SERVICE_LIB_NAMES,
     ClassCliOptions,
@@ -110,6 +110,16 @@ def pytest_addoption(parser):
         '--prettify-junit-report',
         help='y/yes/true for True and n/no/false for False. '
         'Set to True to prettify XML junit report. (Default: False)',
+    )
+    parser.addoption(
+        '--unity-test-report-mode',
+        choices=[UnityTestReportMode.REPLACE.value, UnityTestReportMode.MERGE.value],
+        default=UnityTestReportMode.REPLACE.value,
+        help=(
+            'Specify the behavior for handling Unity test cases in the main JUnit report. '
+            "'merge' includes them alongside the parent Python test case. "
+            "'replace' substitutes the parent Python test case with Unity test cases (default)."
+        ),
     )
 
     # supports parametrization
@@ -1183,7 +1193,9 @@ _junit_report_path_key = pytest.StashKey[str]()
 
 
 def pytest_configure(config: Config) -> None:
-    config.stash[_junit_merger_key] = JunitMerger(config.option.xmlpath)
+    config.stash[_junit_merger_key] = JunitMerger(
+        config.option.xmlpath, config.getoption('unity_test_report_mode', default='replace')
+    )
     config.stash[_junit_report_path_key] = config.option.xmlpath
 
     config.stash[_pytest_embedded_key] = PytestEmbedded(

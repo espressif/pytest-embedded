@@ -76,6 +76,11 @@ class TestFormat(enum.Enum):
     FIXTURE = 1
 
 
+class UnityTestReportMode(str, enum.Enum):
+    REPLACE = 'replace'
+    MERGE = 'merge'
+
+
 class TestCase:
     def __init__(self, name: str, result: str, **kwargs):
         self.name = name
@@ -206,8 +211,9 @@ class JunitMerger:
     SUB_JUNIT_FILENAME = 'dut.xml'
     # multi-dut junit reports should be dut-[INDEX].xml
 
-    def __init__(self, main_junit: Optional[str]) -> None:
+    def __init__(self, main_junit: Optional[str], unity_test_report_mode: Optional[str] = None) -> None:
         self.junit_path = main_junit
+        self.unity_test_report_mode = unity_test_report_mode or UnityTestReportMode.REPLACE.value
 
         self._junit = None
 
@@ -291,9 +297,13 @@ class JunitMerger:
                 raise ValueError(f'Could\'t find test case {test_case_name}, dumped into "debug.xml" for debugging')
 
             junit_case_is_fail = junit_case.find('failure') is not None
-            junit_parent.remove(junit_case)
+
+            junit_case.attrib['is_unity_case'] = '0'
+            if self.unity_test_report_mode == UnityTestReportMode.REPLACE.value:
+                junit_parent.remove(junit_case)
 
             for case in merging_cases:
+                case.attrib['is_unity_case'] = '1'
                 junit_parent.append(case)
 
             junit_parent.attrib['errors'] = self._int_add(

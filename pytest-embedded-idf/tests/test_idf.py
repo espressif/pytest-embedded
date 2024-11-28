@@ -897,3 +897,93 @@ def test_erase_all_with_port_cache(testdir):
     )
 
     result.assert_outcomes(passed=2)
+
+
+def test_no_preserve_python_tests(testdir):
+    testdir.makepyfile(r"""
+        def test_python_case(dut):
+            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['tests'] == '2'
+    for testcase in junit_report.findall('testcase'):
+        assert testcase.attrib['is_unity_case'] == '1'
+
+def test_preserve_python_tests(testdir):
+    testdir.makepyfile(r"""
+        def test_python_case(dut):
+            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+        '--unity-test-report-mode', 'merge',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['tests'] == '2'
+    assert junit_report[0].attrib['is_unity_case'] == '0'
+    for testcase in junit_report[1:]:
+        assert testcase.attrib['is_unity_case'] == '1'
+
+
+def test_preserve_python_tests_with_failures(testdir):
+    testdir.makepyfile(r"""
+        def test_python_case(dut):
+            dut.run_all_single_board_cases(name=["normal_case1", "normal_case2"])
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+        '--unity-test-report-mode', 'merge',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['failures'] == '1'
+    assert junit_report[0].attrib['is_unity_case'] == '0'  # Python test case is preserved
+    assert junit_report[1].attrib['is_unity_case'] == '1'  # C test case
+    assert junit_report[1].find('failure') is None  # normal_case1 passed
+    assert junit_report[2].attrib['is_unity_case'] == '1'
+    assert junit_report[2].find('failure') is not None  # normal_case2 failed
+
+
+def test_python_func_attribute(testdir):
+    testdir.makepyfile(r"""
+        def test_python_case(dut):
+            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services', 'esp,idf',
+        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level', 'DEBUG',
+        '--junitxml', 'report.xml',
+        '--unity-test-report-mode', 'merge',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report[0].attrib['is_unity_case'] == '0'  # Python test case
+    for testcase in junit_report[1:]:
+        assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
