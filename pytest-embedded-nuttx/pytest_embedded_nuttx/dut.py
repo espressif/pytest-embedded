@@ -143,8 +143,6 @@ class NuttxEspDut(NuttxSerialDut):
         app: 'NuttxApp',
         **kwargs,
     ) -> None:
-        self.target = app.target
-
         super().__init__(app=app, **kwargs)
 
     def reset(self) -> None:
