@@ -108,8 +108,7 @@ def pytest_addoption(parser):
     )
     base_group.addoption(
         '--prettify-junit-report',
-        help='y/yes/true for True and n/no/false for False. '
-        'Set to True to prettify XML junit report. (Default: False)',
+        help='y/yes/true for True and n/no/false for False. Set to True to prettify XML junit report. (Default: False)',
     )
     parser.addoption(
         '--unity-test-report-mode',
@@ -125,7 +124,7 @@ def pytest_addoption(parser):
     # supports parametrization
     base_group.addoption('--root-logdir', help='set session-based root log dir. (Default: system temp folder)')
     base_group.addoption(
-        '--cache-dir', help='set root cache-dir for storing cache files. \n' '(Default: system temp folder)'
+        '--cache-dir', help='set root cache-dir for storing cache files. \n(Default: system temp folder)'
     )
     base_group.addoption(
         '--embedded-services',
@@ -271,8 +270,7 @@ def pytest_addoption(parser):
     )
     qemu_group.addoption(
         '--encrypt',
-        help='y/yes/true for True and n/no/false for False. '
-        'Set to True for pre-encryption workflow (Default: False)',
+        help='y/yes/true for True and n/no/false for False. Set to True for pre-encryption workflow (Default: False)',
     )
     qemu_group.addoption(
         '--keyfile',

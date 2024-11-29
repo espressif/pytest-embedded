@@ -198,7 +198,7 @@ class _SerialRedirectThread(threading.Thread):
                     return
                 except Exception as e:
                     logging.warning(
-                        'unknown error: %s.\n' 'Recommend to close the serial process by `dut.serial.close()`', str(e)
+                        'unknown error: %s.\nRecommend to close the serial process by `dut.serial.close()`', str(e)
                     )
                     return
 
