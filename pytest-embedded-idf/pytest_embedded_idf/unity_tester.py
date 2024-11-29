@@ -787,9 +787,9 @@ class MultiDevRunTestManager:
                     continue
 
                 if k not in output:
-                    output[k] = [f'[dut-{ind}]: {val}']
+                    output[k] = [val]
                 else:
-                    output[k].append(f'[dut-{ind}]: {val}')
+                    output[k].append(val)
 
         for k, val in output.items():
             if k in ('file', 'line'):
