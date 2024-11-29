@@ -113,7 +113,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         '--unity-test-report-mode',
-        choices=[UnityTestReportMode.REPLACE.value, UnityTestReportMode.MERGE.value],
+        choices=[mode.value for mode in UnityTestReportMode],
         default=UnityTestReportMode.REPLACE.value,
         help=(
             'Specify the behavior for handling Unity test cases in the main JUnit report. '
@@ -1194,7 +1194,7 @@ _junit_report_path_key = pytest.StashKey[str]()
 
 def pytest_configure(config: Config) -> None:
     config.stash[_junit_merger_key] = JunitMerger(
-        config.option.xmlpath, config.getoption('unity_test_report_mode', default='replace')
+        config.option.xmlpath, config.getoption('unity_test_report_mode', UnityTestReportMode.REPLACE.value)
     )
     config.stash[_junit_report_path_key] = config.option.xmlpath
 
