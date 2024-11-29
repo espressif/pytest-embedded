@@ -199,9 +199,6 @@ def _fixture_classes_and_options_fn(
                 from pytest_embedded_nuttx import NuttxApp
 
                 classes[fixture] = NuttxApp
-                kwargs[fixture].update({
-                    'target': target,
-                })
             else:
                 from .app import App
 
