@@ -1,4 +1,5 @@
 import logging
+import typing as t
 from pathlib import Path
 
 from pytest_embedded.app import App
@@ -22,17 +23,16 @@ class NuttxApp(App):
         super().__init__(**kwargs)
 
         self.file_extension = file_extension
-        files = self._get_bin_files()
-        self.app_file, self.bootloader_file, self.merge_file = files
+        self.app_file, self.bootloader_file, self.merge_file = self._get_bin_files()
 
-    def _get_bin_files(self) -> list:
+    def _get_bin_files(self) -> t.Tuple[t.Optional[Path], t.Optional[Path], t.Optional[Path]]:
         """
         Get path to binary files available in the app_path.
         If either the application image or bootloader is not found,
         None is returned.
 
         Returns:
-            list: path to application binary file and bootloader file.
+            tuple: path to application binary file and bootloader file.
         """
         search_path = Path(self.app_path)
         search_pattern = '*' + self.file_extension

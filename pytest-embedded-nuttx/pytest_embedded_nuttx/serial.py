@@ -5,6 +5,7 @@ from esptool.cmds import FLASH_MODES, LoadFirmwareImage
 from pytest_embedded_serial_esp.serial import EspSerial
 
 from .app import NuttxApp
+from .dut import NuttxSerialDut
 
 
 class NuttxSerial(EspSerial):
@@ -109,3 +110,22 @@ class NuttxSerial(EspSerial):
             ],
             esp=self.esp,
         )
+
+
+class NuttxEspDut(NuttxSerialDut):
+    """
+    DUT class for serial ports connected to Espressif boards which are
+    flashed with NuttX RTOS.
+    """
+
+    def __init__(
+        self,
+        app: NuttxApp,
+        **kwargs,
+    ) -> None:
+        super().__init__(app=app, **kwargs)
+
+    def reset(self) -> None:
+        """Resets the board."""
+        self.serial: NuttxSerial
+        self.serial.hard_reset()
