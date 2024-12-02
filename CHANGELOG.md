@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.12.1 (2024-12-02)
+
+### Feat
+
+- **unity**: add flag to preserve Python test cases and "is_unity_case" attribute
+
+### Fix
+
+- **nuttx**: optional dependency for qemu
+- **unity**: remove [dut-X] prefix from "line" and "file" attribute values in XML report
+
 ## v1.12.0 (2024-11-14)
 
 ### Feat
