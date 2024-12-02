@@ -55,7 +55,7 @@ _avoid_compatibility_chars = [
     (0x10FFFE, 0x10FFFF),
 ]
 ILLEGAL_XML_CHAR_REGEX = re.compile(
-    f"[{''.join([f'{chr(lower)}-{chr(upper)}' for lower, upper in _avoid_compatibility_chars])}]"
+    f'[{"".join([f"{chr(lower)}-{chr(upper)}" for lower, upper in _avoid_compatibility_chars])}]'
 )
 
 
@@ -183,7 +183,7 @@ class TestSuite:
             self.attrs['tests'] += 1
 
         if not self.testcases:
-            raise ValueError(f'unity test case not found, buffer:\n' f'{s}')
+            raise ValueError(f'unity test case not found, buffer:\n{s}')
 
     def to_xml(self) -> ET.Element:
         if self._xml:

@@ -4,22 +4,23 @@ import importlib
 
 from pytest_embedded.utils import lazy_load
 
-from .dut import NuttxDut, NuttxEspDut, NuttxQemuDut, NuttxSerialDut
+from .app import NuttxApp
+from .dut import NuttxDut, NuttxSerialDut
 
 __getattr__ = lazy_load(
     importlib.import_module(__name__),
     {
+        'NuttxApp': NuttxApp,
         'NuttxDut': NuttxDut,
         'NuttxSerialDut': NuttxSerialDut,
-        'NuttxEspDut': NuttxEspDut,  # requires 'esp' service
-        'NuttxQemuDut': NuttxQemuDut,  # requires 'qemu' service
     },
     {
-        'NuttxApp': '.app',  # requires 'esp' service
         'NuttxSerial': '.serial',  # requires 'esp' service
+        'NuttxEspDut': '.serial',  # requires 'esp' service
+        'NuttxQemuDut': '.qemu',  # requires 'qemu' service
     },
 )
 
-__all__ = ['NuttxApp', 'NuttxSerial', 'NuttxSerialDut', 'NuttxQemuDut', 'NuttxEspDut', 'NuttxDut']
+__all__ = ['NuttxApp', 'NuttxDut', 'NuttxEspDut', 'NuttxQemuDut', 'NuttxSerial', 'NuttxSerialDut']
 
 __version__ = '1.12.0'

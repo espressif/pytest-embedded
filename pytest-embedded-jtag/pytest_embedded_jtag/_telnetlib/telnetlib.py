@@ -474,21 +474,21 @@ class Telnet:
                             # We can't offer automatic processing of
                             # suboptions. Alas, we should not get any
                             # unless we did a WILL/DO before.
-                            self.msg('IAC %d not recognized' % ord(c))
+                            self.msg(f'IAC {ord(c):d} not recognized')
                 elif len(self.iacseq) == 2:
                     cmd = self.iacseq[1:2]
                     self.iacseq = b''
                     opt = c
                     if cmd in (DO, DONT):
                         self.msg('IAC %s %d',
-                            cmd == DO and 'DO' or 'DONT', ord(opt))
+                            (cmd == DO and 'DO') or 'DONT', ord(opt))
                         if self.option_callback:
                             self.option_callback(self.sock, cmd, opt)
                         else:
                             self.sock.sendall(IAC + WONT + opt)
                     elif cmd in (WILL, WONT):
                         self.msg('IAC %s %d',
-                            cmd == WILL and 'WILL' or 'WONT', ord(opt))
+                            (cmd == WILL and 'WILL') or 'WONT', ord(opt))
                         if self.option_callback:
                             self.option_callback(self.sock, cmd, opt)
                         else:

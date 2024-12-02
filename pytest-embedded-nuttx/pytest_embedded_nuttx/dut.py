@@ -1,16 +1,11 @@
 import logging
 import re
 from time import sleep
-from typing import TYPE_CHECKING, AnyStr
+from typing import AnyStr
 
 import pexpect
 from pytest_embedded.dut import Dut
-from pytest_embedded_qemu.dut import QemuDut
-from pytest_embedded_qemu.qemu import Qemu
-from pytest_embedded_serial.dut import SerialDut
-
-if TYPE_CHECKING:
-    from .app import NuttxApp
+from pytest_embedded_serial import SerialDut
 
 
 class NuttxDut(Dut):
@@ -111,40 +106,3 @@ class NuttxSerialDut(SerialDut, NuttxDut):
         self.serial.proc.dtr = False
         sleep(0.2)
         self.serial.proc.dtr = True
-
-
-class NuttxQemuDut(QemuDut, NuttxDut):
-    """
-    DUT class for QEMU usage of the NuttX RTOS.
-    """
-
-    def __init__(
-        self,
-        qemu: Qemu,
-        **kwargs,
-    ) -> None:
-        self.qemu = qemu
-
-        super().__init__(qemu=qemu, **kwargs)
-
-    def reset(self) -> None:
-        """Hard reset the DUT."""
-        self.hard_reset()
-
-
-class NuttxEspDut(NuttxSerialDut):
-    """
-    DUT class for serial ports connected to Espressif boards which are
-    flashed with NuttX RTOS.
-    """
-
-    def __init__(
-        self,
-        app: 'NuttxApp',
-        **kwargs,
-    ) -> None:
-        super().__init__(app=app, **kwargs)
-
-    def reset(self) -> None:
-        """Resets the board."""
-        self.serial.hard_reset()
