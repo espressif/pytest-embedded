@@ -987,3 +987,54 @@ def test_python_func_attribute(testdir):
     assert junit_report[0].attrib['is_unity_case'] == '0'  # Python test case
     for testcase in junit_report[1:]:
         assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
+
+
+def test_skip_if_soc(testdir):
+    EMBEDDED_SERVICES = ['--embedded-services', 'esp,idf']
+
+    def run_pytest_with_target(target):
+        count = len(target.split('|'))
+        return testdir.runpytest(*EMBEDDED_SERVICES, '--target', target, '--count', count)
+
+    testdir.makepyfile("""
+        import pytest
+        from esp_bool_parser.constants import SUPPORTED_TARGETS
+
+        @pytest.mark.skip_if_soc("SOC_ULP_LP_UART_SUPPORTED == 1")
+        @pytest.mark.parametrize('target', ['esp32', 'esp32s3', 'esp32c6'], indirect=True)
+        def test_lp_uart_wakeup():
+            pass
+
+        @pytest.mark.skip_if_soc("SOC_BLE_SUPPORTED == 1")
+        @pytest.mark.parametrize('target', SUPPORTED_TARGETS, indirect=True)
+        def test_ble():
+            pass
+
+        @pytest.mark.skip_if_soc("SOC_ADC_SAMPLE_FREQ_THRES_HIGH == 83333")
+        @pytest.mark.parametrize('target', SUPPORTED_TARGETS, indirect=True)
+        def test_adc():
+            pass
+
+    """)
+
+    result = testdir.runpytest('-s', *EMBEDDED_SERVICES)
+    result.assert_outcomes(passed=14, failed=0, skipped=5)
+
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.mark.skip_if_soc("SOC_ULP_LP_UART_SUPPORTED == 1")
+        def test_from_args():
+            pass
+
+    """)
+
+    results = [
+        (run_pytest_with_target('esp32'), {'passed': 0, 'failed': 0, 'skipped': 1}),
+        (run_pytest_with_target('esp32c5'), {'passed': 1, 'failed': 0, 'skipped': 0}),
+        (run_pytest_with_target('auto'), {'passed': 1, 'failed': 0, 'skipped': 0}),
+        (run_pytest_with_target('esp32|esp32'), {'passed': 1, 'failed': 0, 'skipped': 0}),
+    ]
+
+    for result, expected in results:
+        result.assert_outcomes(**expected)

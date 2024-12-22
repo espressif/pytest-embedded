@@ -33,6 +33,7 @@ requires-python = ">=3.7"
 dependencies = [
     "pytest-embedded~=1.12.1",
     "esp-idf-panic-decoder",
+    "esp-bool-parser>=0.1.2,<1"
 ]
 
 [project.optional-dependencies]
