@@ -3,19 +3,19 @@ name: Test Build Docs
 on:
   pull_request:
     paths:
-      - '**.py'
-      - 'docs/**'
-      - '*.md'
+      - "**.py"
+      - "docs/**"
+      - "*.md"
 
 jobs:
   test-build-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: "3.7"
       - name: Install dependencies
         run: |
           bash foreach.sh install

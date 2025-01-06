@@ -3,17 +3,17 @@ name: Upload Python Package
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: "3.7"
       - name: Build packages
         run: bash foreach.sh build
       - name: Publish packages
