@@ -988,50 +988,74 @@ def test_python_func_attribute(testdir):
     for testcase in junit_report[1:]:
         assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
 
+def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from esp_bool_parser import SOC_HEADERS, SUPPORTED_TARGETS
+    assert SOC_HEADERS == {
+        'esp32': {'SOC_A': 0, 'SOC_B': 1, 'SOC_C': 0},
+        'esp32s2': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 0},
+        'esp32c3': {'SOC_A': 1, 'SOC_B': 1, 'SOC_C': 1},
+        'esp32s3': {'SOC_A': 1, 'SOC_B': 0, 'SOC_C': 1},
+        'esp32c2': {'SOC_A': 0, 'SOC_B': 1, 'SOC_C': 0},
+        'esp32c6': {'SOC_A': 1, 'SOC_B': 0, 'SOC_C': 0},
+        'esp32h2': {'SOC_A': 0, 'SOC_B': 1, 'SOC_C': 1},
+        'esp32p4': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 1},
+        'linux': {},
+        'esp32c5': {'SOC_A': 1, 'SOC_B': 1, 'SOC_C': 0},
+        'esp32c61': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 1},
+        'esp32h21': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 0}
+    }
+    assert SUPPORTED_TARGETS == ['esp32', 'esp32s2', 'esp32c3', 'esp32s3', 'esp32c2', 'esp32c6', 'esp32h2', 'esp32p4']
 
-def test_skip_if_soc(testdir):
-    EMBEDDED_SERVICES = ['--embedded-services', 'esp,idf']
+
+def test_skip_if_soc(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from esp_bool_parser import SOC_HEADERS, SUPPORTED_TARGETS
+
+    def run_test_for_condition(condition, condition_func):
+        to_skip = sum([1 for t in SUPPORTED_TARGETS if condition_func(SOC_HEADERS[t])])
+        to_pass = len(SUPPORTED_TARGETS) - to_skip
+        testdir.makepyfile(f"""
+            import pytest
+            from esp_bool_parser.constants import SUPPORTED_TARGETS
+
+            @pytest.mark.skip_if_soc("{condition}")
+            @pytest.mark.parametrize('target', SUPPORTED_TARGETS, indirect=True)
+            def test_skip_if_for_condition():
+                pass
+        """)
+
+        result = testdir.runpytest('-s', '--embedded-services', 'esp,idf')
+        result.assert_outcomes(passed=to_pass, skipped=to_skip)
+
+
+    for c, cf in [
+        ('SOC_A == 1', lambda h: h['SOC_A'] == 1),
+        ('SOC_A == 1 or SOC_B == 1', lambda h: h['SOC_A'] == 1 or h['SOC_B'] == 1),
+        ('SOC_A == 1 and SOC_B == 1', lambda h: h['SOC_A'] == 1 and h['SOC_B'] == 1),
+        ('SOC_A == 1 or SOC_B == 1 and SOC_C == 1', lambda h: h['SOC_A'] == 1 or (h['SOC_B'] == 1 and h['SOC_C'] == 1)),
+        ('SOC_A == 1 and SOC_B == 0 or SOC_C == 1 ', lambda h: (h['SOC_A'] == 1 and h['SOC_B'] == 0) or h['SOC_C'] == 1), # noqa: E501
+    ]:
+        run_test_for_condition(c, cf)
+
+
+def test_skip_if_soc_target_in_args(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
 
     def run_pytest_with_target(target):
         count = len(target.split('|'))
-        return testdir.runpytest(*EMBEDDED_SERVICES, '--target', target, '--count', count)
-
-    testdir.makepyfile("""
-        import pytest
-        from esp_bool_parser.constants import SUPPORTED_TARGETS
-
-        @pytest.mark.skip_if_soc("SOC_ULP_LP_UART_SUPPORTED == 1")
-        @pytest.mark.parametrize('target', ['esp32', 'esp32s3', 'esp32c6'], indirect=True)
-        def test_lp_uart_wakeup():
-            pass
-
-        @pytest.mark.skip_if_soc("SOC_BLE_SUPPORTED == 1")
-        @pytest.mark.parametrize('target', SUPPORTED_TARGETS, indirect=True)
-        def test_ble():
-            pass
-
-        @pytest.mark.skip_if_soc("SOC_ADC_SAMPLE_FREQ_THRES_HIGH == 83333")
-        @pytest.mark.parametrize('target', SUPPORTED_TARGETS, indirect=True)
-        def test_adc():
-            pass
-
-    """)
-
-    result = testdir.runpytest('-s', *EMBEDDED_SERVICES)
-    result.assert_outcomes(passed=14, failed=0, skipped=5)
+        return testdir.runpytest( '--embedded-services', 'esp,idf', '--target', target, '--count', count)
 
     testdir.makepyfile("""
         import pytest
 
-        @pytest.mark.skip_if_soc("SOC_ULP_LP_UART_SUPPORTED == 1")
+        @pytest.mark.skip_if_soc("SOC_A == 1")
         def test_from_args():
             pass
 
     """)
 
     results = [
-        (run_pytest_with_target('esp32'), {'passed': 0, 'failed': 0, 'skipped': 1}),
-        (run_pytest_with_target('esp32c5'), {'passed': 1, 'failed': 0, 'skipped': 0}),
         (run_pytest_with_target('auto'), {'passed': 1, 'failed': 0, 'skipped': 0}),
         (run_pytest_with_target('esp32|esp32'), {'passed': 1, 'failed': 0, 'skipped': 0}),
     ]
