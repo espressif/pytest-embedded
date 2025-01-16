@@ -61,3 +61,227 @@ Here are examples of how to use ``skip_if_soc`` with different conditions:
    @pytest.mark.parametrize("target", SUPPORTED_TARGETS, indirect=True)
    def test_template():
        pass
+
+*********************
+ ``idf_parametrize``
+*********************
+
+``idf_parametrize`` is a wrapper around ``pytest.mark.parametrize`` that simplifies and extends string-based parameterization for tests. By using ``idf_parametrize``, testing parameters becomes more flexible and easier to maintain.
+
+**Key Features:**
+
+-  **Target Expansion**: Automatically expands lists of supported targets, reducing redundancy in test definitions.
+-  **Markers**: use a marker as one of the parameters. If a marker is used, put it as the last parameter.
+
+Use Cases
+=========
+
+Target Extension
+----------------
+
+In scenarios where the supported targets are [esp32, esp32c3, esp32s3], ``idf_parametrize`` simplifies the process of creating parameterized tests by automatically expanding the target list.
+
+**Example:**
+
+.. code:: python
+
+   @idf_parametrize('target', [
+       ('supported_targets'),
+   ], indirect=True)
+   @idf_parametrize('config', [
+       'default',
+       'psram'
+   ])
+   def test_st(dut: Dut) -> None:
+       ...
+
+**Equivalent to:**
+
+.. code:: python
+
+   @pytest.mark.parametrize('target', [
+       'esp32',
+       'esp32c3',
+       'esp32s3'
+   ], indirect=True)
+   @pytest.mark.parametrize('config', [
+       'default',
+       'psram'
+   ])
+   def test_st(dut: Dut) -> None:
+       ...
+
+**Resulting Parameters Matrix:**
+
+.. list-table::
+   :header-rows: 1
+
+   -  -  Target
+      -  Config
+   -  -  esp32
+      -  default
+   -  -  esp32c3
+      -  default
+   -  -  esp32s3
+      -  default
+   -  -  esp32
+      -  psram
+   -  -  esp32c3
+      -  psram
+   -  -  esp32s3
+      -  psram
+
+Markers
+-------
+
+Markers can also be combined for added flexibility. It must be placed in the last position. In this case, if some test cases do not have markers, you can skip their definition. Look at the example.
+
+**Example:**
+
+In IDF testing, an environment marker (``marker``) determines which test runner will execute a test. This enables tests to run on various runners, such as:
+
+-  **generic**: Tests run on generic runners.
+-  **sdcard**: Tests require an SD card runner.
+-  **usb_device**: Tests require a USB device runner.
+
+.. code:: python
+
+   @pytest.mark.generic
+   @idf_parametrize('config', [
+       'defaults'
+   ], indirect=['config'])
+   @idf_parametrize('target, markers', [
+       ('esp32', (pytest.mark.usb_device,)),
+       ('esp32c3')
+       ('esp32', (pytest.mark.sdcard,))
+   ], indirect=['target'])
+   def test_console(dut: Dut, test_on: str) -> None:
+     ...
+
+**Resulting Parameters Matrix:**
+
+.. list-table::
+   :header-rows: 1
+
+   -  -  Target
+      -  Markers
+   -  -  esp32
+      -  generic, usb_device
+   -  -  esp32c3
+      -  generic, sdcard
+   -  -  esp32
+      -  generic, sdcard
+
+Examples
+========
+
+Target with Config
+------------------
+
+**Example:**
+
+.. code:: python
+
+   @idf_parametrize('target, config', [
+       ('esp32', 'release'),
+       ('esp32c3', 'default'),
+       ('supported_target', 'psram')
+   ], indirect=True)
+   def test_st(dut: Dut) -> None:
+       ...
+
+**Resulting Parameters Matrix:**
+
+.. list-table::
+   :header-rows: 1
+
+   -  -  Target
+      -  Config
+   -  -  esp32
+      -  release
+   -  -  esp32c3
+      -  default
+   -  -  esp32
+      -  psram
+   -  -  esp32c3
+      -  psram
+   -  -  esp32s3
+      -  psram
+
+Supported Target on Runners
+---------------------------
+
+**Example:**
+
+.. code:: python
+
+   @idf_parametrize('target, markers', [
+       ('esp32', (pytest.mark.generic, )),
+       ('esp32c3', (pytest.mark.sdcard, )),
+       ('supported_target', (pytest.mark.usb_device, ))
+   ], indirect=True)
+   def test_st(dut: Dut) -> None:
+       ...
+
+**Resulting Parameters Matrix:**
+
+.. list-table::
+   :header-rows: 1
+
+   -  -  Target
+      -  Markers
+   -  -  esp32
+      -  generic
+   -  -  esp32c3
+      -  sdcard
+   -  -  esp32
+      -  usb_device
+   -  -  esp32c3
+      -  usb_device
+   -  -  esp32s3
+      -  usb_device
+
+Runner for All Tests
+--------------------
+
+**Example:**
+
+.. code:: python
+
+   @pytest.mark.generic
+   @idf_parametrize('target, config', [
+       ('esp32', 'release'),
+       ('esp32c3', 'default'),
+       ('supported_target', 'psram')
+   ], indirect=True)
+   def test_st(dut: Dut) -> None:
+       ...
+
+**Resulting Parameters Matrix:**
+
+.. list-table::
+   :header-rows: 1
+
+   -  -  Target
+      -  Config
+      -  Markers
+
+   -  -  esp32
+      -  release
+      -  generic
+
+   -  -  esp32c3
+      -  default
+      -  generic
+
+   -  -  esp32
+      -  psram
+      -  generic
+
+   -  -  esp32c3
+      -  psram
+      -  generic
+
+   -  -  esp32s3
+      -  psram
+      -  generic
