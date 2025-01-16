@@ -28,6 +28,18 @@ def copy_fixtures(testdir: Testdir):
     yield
 
 
+@pytest.fixture()
+def copy_mock_esp_idf(testdir: Testdir):
+    esp_idf = os.path.join(os.path.dirname(__file__), 'tests', 'esp-idf')
+    for item in os.listdir(esp_idf):
+        if os.path.isfile(os.path.join(esp_idf, item)):
+            shutil.copy(os.path.join(esp_idf, item), os.path.join(str(testdir.tmpdir), item))
+        else:
+            shutil.copytree(os.path.join(esp_idf, item), os.path.join(str(testdir.tmpdir), item))
+
+    yield
+
+
 @pytest.fixture(autouse=True)
 def cache_file_remove(cache_dir):
     yield

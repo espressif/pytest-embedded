@@ -63,5 +63,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: logs-${{ python-version }}
+          name: logs-${{ matrix.python-version }}
           path: logs.zip

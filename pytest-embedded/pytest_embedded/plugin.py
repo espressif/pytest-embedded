@@ -12,6 +12,7 @@ import shelve
 import subprocess
 import tempfile
 import typing as t
+import warnings
 import xml.dom.minidom
 from collections import Counter
 from operator import itemgetter
@@ -1204,6 +1205,7 @@ def pytest_configure(config: Config) -> None:
         add_target_as_marker=_str_bool(config.getoption('add_target_as_marker', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
+    config.addinivalue_line('markers', 'skip_if_soc')
 
 
 def pytest_unconfigure(config: Config) -> None:
@@ -1252,7 +1254,41 @@ class PytestEmbedded:
         return duplicates
 
     @pytest.hookimpl(hookwrapper=True, trylast=True)
-    def pytest_collection_modifyitems(self, items: t.List[Function]):
+    def pytest_collection_modifyitems(self, config: Config, items: t.List[Function]):
+        for item in items:
+            skip_marker = item.get_closest_marker('skip_if_soc')
+            if not skip_marker:
+                continue
+            if 'idf' not in map(str.strip, config.getoption('embedded_services').split(',')):
+                raise ValueError("'skip_if_soc' marker must be used with the 'idf' embedded service.")
+
+            from esp_bool_parser import parse_bool_expr
+
+            target = config.getoption('--target', None)
+            if hasattr(item, 'callspec'):
+                target = item.callspec.params.get('target', None)
+            if target == 'auto' or not isinstance(target, str):
+                warnings.warn(
+                    f"Ignoring pytest.mark.skip_if_soc for test item '{item.originalname}': "
+                    "Ensure that 'target' is included in the test's "
+                    "@pytest.mark.parametrize when using 'skip_if_soc', "
+                    'or provide the --target argument '
+                    "when running tests (excluding 'auto' and multi-DUT configurations)."
+                )
+                continue
+            if '|' in target:
+                warnings.warn(
+                    'Ignoring pytest.mark.skip_if_soc, '
+                    "because multi-DUT tests do not support the 'skip_if_soc' marker. "
+                    'Please adjust the test setup accordingly.'
+                )
+                continue
+
+            stm = parse_bool_expr(skip_marker.args[0])
+            if stm.get_value(target, ''):
+                reason = f'Filtered by {skip_marker.args[0]}, for {target}.'
+                item.add_marker(pytest.mark.skip(reason=reason))
+
         if self.add_target_as_marker:
             for item in items:
                 item_target = item.callspec.getparam('target')
