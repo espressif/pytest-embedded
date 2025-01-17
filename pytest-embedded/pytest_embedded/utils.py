@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import typing as t
+from collections import defaultdict
 from dataclasses import dataclass
 
 if t.TYPE_CHECKING:
@@ -361,3 +362,19 @@ class _InjectMixinCls(metaclass=_InjectMixinMeta):
             return wrapped
 
         return decorator
+
+
+def targets_to_marker(targets: t.Iterable[str]) -> str:
+    """
+    Convert esp targets to pytest marker with amount, "+" for multiple targets types
+
+    For example:
+    - [esp32s2, esp32s2, esp32s3] -> esp32s2_2+esp32s3
+    - [esp32] -> esp32
+    - [esp32, esp32s2] -> esp32+esp32s2
+    """
+    t_amount = defaultdict(int)
+    for target in sorted(targets):
+        t_amount[target] += 1
+
+    return '+'.join([f'{t}_{t_amount[t]}' if t_amount[t] > 1 else t for t in t_amount])
