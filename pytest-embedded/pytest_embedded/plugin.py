@@ -18,7 +18,7 @@ from collections import Counter
 from operator import itemgetter
 
 import pytest
-from _pytest.config import Config
+from _pytest.config import Config, ExitCode
 from _pytest.fixtures import (
     FixtureRequest,
 )
@@ -120,6 +120,11 @@ def pytest_addoption(parser):
             "'merge' includes them alongside the parent Python test case. "
             "'replace' substitutes the parent Python test case with Unity test cases (default)."
         ),
+    )
+    base_group.addoption(
+        '--suppress-no-test-collected-error',
+        help='y/yes/true for True and n/no/false for False. '
+        'Set to True to suppress the error when no test cases are collected. (Default: False)',
     )
 
     # supports parametrization
@@ -1203,6 +1208,7 @@ def pytest_configure(config: Config) -> None:
         check_duplicates=config.getoption('check_duplicates', False),
         prettify_junit_report=_str_bool(config.getoption('prettify_junit_report', False)),
         add_target_as_marker=_str_bool(config.getoption('add_target_as_marker', False)),
+        suppress_no_test_collected_error=_str_bool(config.getoption('suppress_no_test_collected_error', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
     config.addinivalue_line('markers', 'skip_if_soc')
@@ -1223,12 +1229,14 @@ class PytestEmbedded:
         check_duplicates: bool = False,
         prettify_junit_report: bool = False,
         add_target_as_marker: bool = False,
+        suppress_no_test_collected_error: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
         self.check_duplicates = check_duplicates
         self.prettify_junit_report = prettify_junit_report
         self.add_target_as_marker = add_target_as_marker
+        self.suppress_no_test_collected_error = suppress_no_test_collected_error
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: t.Iterable[Dut]) -> None:
@@ -1298,7 +1306,7 @@ class PytestEmbedded:
 
                 if item_target:
                     # https://github.com/pytest-dev/pytest/pull/12277
-                    item.add_marker(item_target.replace('|', '-'))  # '|' is not supported until 8.2.0
+                    item.add_marker(item_target.replace('|', '-'))
 
         yield
 
@@ -1344,6 +1352,10 @@ class PytestEmbedded:
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:
+        if exitstatus == ExitCode.NO_TESTS_COLLECTED and self.suppress_no_test_collected_error:
+            session.exitstatus = 0
+            return
+
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
         _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, None)
         _stash_junit_report_path = session.config.stash.get(_junit_report_path_key, None)
@@ -1361,4 +1373,4 @@ class PytestEmbedded:
             if self.prettify_junit_report:
                 _prettify_xml(_stash_junit_report_path)
 
-        exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
+        session.exitstatus = int(modifier.failed)  # True -> 1  False -> 0
