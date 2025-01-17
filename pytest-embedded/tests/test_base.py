@@ -6,9 +6,7 @@ import pytest
 
 
 def test_help(testdir):
-    result = testdir.runpytest(
-        '--help'
-    )
+    result = testdir.runpytest('--help')
 
     result.stdout.fnmatch_lines([
         'embedded:',
@@ -88,8 +86,10 @@ def test_fixtures(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--root-logdir', os.getcwd(),
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--root-logdir',
+        os.getcwd(),
     )
 
     result.assert_outcomes(passed=6)
@@ -127,10 +127,10 @@ def test_multi_count_fixtures(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
-                      f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
     )
 
     result.assert_outcomes(passed=5)
@@ -150,17 +150,20 @@ def test_default_app_path(testdir):
     result.assert_outcomes(passed=1)
 
 
-@pytest.mark.parametrize('parallel_count, parallel_index, res', [
-    (5, 1, 1),
-    (5, 6, 0),
-    (4, 1, 2),
-    (4, 3, 1),
-    (4, 4, 0),
-    (3, 1, 2),
-    (3, 3, 1),
-    (2, 1, 3),
-    (2, 2, 2),
-])
+@pytest.mark.parametrize(
+    'parallel_count, parallel_index, res',
+    [
+        (5, 1, 1),
+        (5, 6, 0),
+        (4, 1, 2),
+        (4, 3, 1),
+        (4, 4, 0),
+        (3, 1, 2),
+        (3, 3, 1),
+        (2, 1, 3),
+        (2, 2, 2),
+    ],
+)
 def test_parallel_run(testdir, parallel_count, parallel_index, res):
     testdir.makepyfile(r"""
         def test_1(dut): pass
@@ -171,8 +174,10 @@ def test_parallel_run(testdir, parallel_count, parallel_index, res):
     """)
 
     result = testdir.runpytest(
-        '--parallel-count', parallel_count,
-        '--parallel-index', parallel_index,
+        '--parallel-count',
+        parallel_count,
+        '--parallel-index',
+        parallel_index,
     )
 
     result.assert_outcomes(passed=res)
@@ -541,14 +546,18 @@ def test_set_log_extension(testdir):
 
 
 def test_duplicate_case_name(testdir, capsys):
-    testdir.makepyfile(test_duplicate_name_one=r"""
+    testdir.makepyfile(
+        test_duplicate_name_one=r"""
         def test_duplicate_case():
             pass
-    """)
-    testdir.makepyfile(test_duplicate_name_two="""
+    """
+    )
+    testdir.makepyfile(
+        test_duplicate_name_two="""
             def test_duplicate_case():
                 pass
-        """)
+        """
+    )
     testdir.runpytest('--check-duplicates', 'y')
 
     assert "ValueError: Duplicated test function names: ['test_duplicate_case']" in capsys.readouterr().out
@@ -556,15 +565,19 @@ def test_duplicate_case_name(testdir, capsys):
 
 def test_duplicate_module_name(testdir, capsys):
     test_sub_dir = str(testdir.mkpydir('test_dir'))
-    dup_module_path = testdir.makepyfile(test_duplicate_module=r"""
+    dup_module_path = testdir.makepyfile(
+        test_duplicate_module=r"""
             def test_duplicate_one():
                 pass
-        """)
+        """
+    )
     os.rename(f'{dup_module_path}', os.path.join(test_sub_dir, dup_module_path.basename))
-    testdir.makepyfile(test_duplicate_module=r"""
+    testdir.makepyfile(
+        test_duplicate_module=r"""
                     def test_duplicate_two():
                         pass
-                """)
+                """
+    )
     testdir.runpytest('--check-duplicates', 'y')
 
     assert "ValueError: Duplicated test scripts: ['test_duplicate_module.py']" in capsys.readouterr().out
@@ -582,12 +595,14 @@ def test_temp_disable_packages():
         import pytest_embedded_idf  # noqa
 
 
-@pytest.mark.temp_disable_packages('pytest_embedded_serial',
-                                   'pytest_embedded_serial_esp',
-                                   'pytest_embedded_idf',
-                                   'pytest_embedded_qemu',
-                                   'pytest_embedded_jtag',
-                                   'pytest_embedded_arduino')
+@pytest.mark.temp_disable_packages(
+    'pytest_embedded_serial',
+    'pytest_embedded_serial_esp',
+    'pytest_embedded_idf',
+    'pytest_embedded_qemu',
+    'pytest_embedded_jtag',
+    'pytest_embedded_arduino',
+)
 def test_quick_example(testdir):
     testdir.makepyfile(r"""
     from pytest_embedded import Dut
@@ -626,9 +641,82 @@ def test_unclosed_file_handler(testdir):
         assert test_input == test_input
     """)
     result = testdir.runpytest(
-        '--embedded-services', 'serial',
-        '--count', '3',
-        '--port', '/dev/ttyUSB0|/dev/ttyUSB1|/dev/ttyUSB2',
+        '--embedded-services',
+        'serial',
+        '--count',
+        '3',
+        '--port',
+        '/dev/ttyUSB0|/dev/ttyUSB1|/dev/ttyUSB2',
         '-x',  # fail at the first fail
     )
     result.assert_outcomes(passed=1024)
+
+
+class TestTargetMarkers:
+    def test_add_target_as_marker_simple(self, pytester):
+        pytester.makepyfile("""
+            import pytest
+            @pytest.mark.parametrize('target', ['esp32'], indirect=True)
+            def test_example(target):
+                pass
+        """)
+
+        result = pytester.runpytest('--add-target-as-marker', 'y')
+
+        result.assert_outcomes(passed=1)
+        result.stdout.fnmatch_lines([
+            '*Unknown pytest.mark.esp32 - is this a typo?*'  # Check marker is present
+        ])
+
+    def test_add_target_as_marker_multi_target(self, pytester):
+        pytester.makepyfile("""
+            import pytest
+            @pytest.mark.parametrize('target,count', [
+                ('esp32|esp8266', 2),
+                ('esp32', 2),
+                ('esp32|esp8266|esp32s2', 3),
+            ], indirect=True)
+            def test_example(target):
+                pass
+        """)
+
+        result = pytester.runpytest('--add-target-as-marker', 'y')
+
+        result.assert_outcomes(passed=3)
+        result.stdout.fnmatch_lines([
+            '*Unknown pytest.mark.esp32-esp8266 - is this a typo?*',
+            '*Unknown pytest.mark.esp32-esp32 - is this a typo?*',
+            '*Unknown pytest.mark.esp32-esp8266-esp32s2 - is this a typo?*',
+        ])
+
+    def test_add_target_as_marker_with_amount(self, pytester):
+        pytester.makepyfile("""
+            import pytest
+            @pytest.mark.parametrize('target,count', [
+                ('esp32|esp8266', 2),
+                ('esp32', 2),
+                ('esp32|esp8266|esp32s2', 3),
+            ], indirect=True)
+            def test_example(target):
+                pass
+        """)
+
+        result = pytester.runpytest('--add-target-as-marker-with-amount', 'y', '-vvvv')
+
+        result.assert_outcomes(passed=3)
+        result.stdout.fnmatch_lines([
+            '*Unknown pytest.mark.esp32+esp8266 - is this a typo?*',
+            '*Unknown pytest.mark.esp32_2 - is this a typo?*',
+            '*Unknown pytest.mark.esp32+esp32s2+esp8266 - is this a typo?*',
+        ])
+
+    def test_no_target_no_marker(self, pytester):
+        pytester.makepyfile("""
+            def test_example():
+                pass
+        """)
+
+        result = pytester.runpytest('--add-target-as-marker', 'y', '--embedded-services', 'esp', '--target', 'esp32')
+
+        result.assert_outcomes(passed=1)
+        assert 'Unknown pytest.mark.esp32 - is this a typo?' not in result.stdout.str()

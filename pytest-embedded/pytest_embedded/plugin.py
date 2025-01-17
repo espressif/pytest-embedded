@@ -52,6 +52,7 @@ from .utils import (
     PackageNotInstalledError,
     UnknownServiceError,
     find_by_suffix,
+    targets_to_marker,
     to_list,
     utcnow_str,
 )
@@ -168,9 +169,16 @@ def pytest_addoption(parser):
     esp_group.addoption('--beta-target', help='serial target beta version chip type. (Default: same as [--target])')
     esp_group.addoption(
         '--add-target-as-marker',
-        help='add target param as a function marker. Useful in CI with runners with different tags.'
+        help='[DEPRECATED, use --add-target-as-marker-with-amount instead] '
+        'add target param as a function marker. Useful in CI with runners with different tags.'
         'y/yes/true for True and n/no/false for False. '
         '(Default: False, parametrization not supported, `|` will be escaped to `-`)',
+    )
+    esp_group.addoption(
+        '--add-target-as-marker-with-amount',
+        help='add target param as a function marker with the amount of the target. Useful in CI with runners with '
+        'different tags. y/yes/true for True and n/no/false for False. '
+        '(Default: False, parametrization not supported, `|` will be escaped to `+`)',
     )
     esp_group.addoption(
         '--flash-port',
@@ -1203,6 +1211,7 @@ def pytest_configure(config: Config) -> None:
         check_duplicates=config.getoption('check_duplicates', False),
         prettify_junit_report=_str_bool(config.getoption('prettify_junit_report', False)),
         add_target_as_marker=_str_bool(config.getoption('add_target_as_marker', False)),
+        add_target_as_marker_with_amount=_str_bool(config.getoption('add_target_as_marker_with_amount', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
     config.addinivalue_line('markers', 'skip_if_soc')
@@ -1223,12 +1232,14 @@ class PytestEmbedded:
         check_duplicates: bool = False,
         prettify_junit_report: bool = False,
         add_target_as_marker: bool = False,
+        add_target_as_marker_with_amount: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
         self.check_duplicates = check_duplicates
         self.prettify_junit_report = prettify_junit_report
         self.add_target_as_marker = add_target_as_marker
+        self.add_target_as_marker_with_amount = add_target_as_marker_with_amount
 
     @staticmethod
     def _raise_dut_failed_cases_if_exists(duts: t.Iterable[Dut]) -> None:
@@ -1253,8 +1264,37 @@ class PytestEmbedded:
 
         return duplicates
 
+    @staticmethod
+    def get_param(item: Function, key: str, default: t.Any = None) -> t.Any:
+        # funcargs is not calculated while collection
+        # callspec is something defined in parametrize
+        if not hasattr(item, 'callspec'):
+            return default
+
+        return item.callspec.params.get(key, default) or default
+
     @pytest.hookimpl(hookwrapper=True, trylast=True)
     def pytest_collection_modifyitems(self, config: Config, items: t.List[Function]):
+        # ------ add marker based on target ------
+        if self.add_target_as_marker_with_amount or self.add_target_as_marker:
+            for item in items:
+                item_target = self.get_param(item, 'target')
+                if not item_target:
+                    continue
+
+                if not isinstance(item_target, str):
+                    raise ValueError(f'`target` should be a string, got {type(item_target)} instead')
+
+                # --add-target-as-marker-with-amount
+                count = self.get_param(item, 'count', 1)
+                if self.add_target_as_marker_with_amount:
+                    _marker = targets_to_marker(to_list(parse_multi_dut_args(count, item_target)))
+                if self.add_target_as_marker:
+                    _marker = '-'.join(to_list(parse_multi_dut_args(count, item_target)))
+
+                item.add_marker(_marker)
+
+        # ------ pytest.mark.skip_if_soc ------
         for item in items:
             skip_marker = item.get_closest_marker('skip_if_soc')
             if not skip_marker:
@@ -1288,17 +1328,6 @@ class PytestEmbedded:
             if stm.get_value(target, ''):
                 reason = f'Filtered by {skip_marker.args[0]}, for {target}.'
                 item.add_marker(pytest.mark.skip(reason=reason))
-
-        if self.add_target_as_marker:
-            for item in items:
-                item_target = item.callspec.getparam('target')
-
-                if not isinstance(item_target, str):
-                    raise ValueError(f'`target` should be a string, got {type(item_target)} instead')
-
-                if item_target:
-                    # https://github.com/pytest-dev/pytest/pull/12277
-                    item.add_marker(item_target.replace('|', '-'))  # '|' is not supported until 8.2.0
 
         yield
 
