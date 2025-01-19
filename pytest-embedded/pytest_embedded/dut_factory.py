@@ -87,6 +87,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
         _stdout.write(_s)
         _stdout.flush()
+        time.sleep(0.1)
 
 
 def _listener_gn(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
