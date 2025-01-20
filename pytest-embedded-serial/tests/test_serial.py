@@ -27,8 +27,10 @@ def test_custom_serial_device(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,serial',
-        '--count', 2,
+        '--embedded-services',
+        'esp,serial',
+        '--count',
+        2,
     )
     result.assert_outcomes(passed=2, errors=0)
 
@@ -55,8 +57,10 @@ def test_custom_serial_device_dut_count_1(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,serial',
-        '--count', 1,
+        '--embedded-services',
+        'esp,serial',
+        '--count',
+        1,
     )
     result.assert_outcomes(passed=1, errors=0)
 
@@ -81,8 +85,10 @@ def test_serial_port(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'serial',
-        '--port', 'socket://localhost:9876',
+        '--embedded-services',
+        'serial',
+        '--port',
+        'socket://localhost:9876',
     )
 
     result.assert_outcomes(passed=1)
