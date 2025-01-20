@@ -24,24 +24,24 @@ def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t
     return expanded_values
 
 
-def _process_pytest_value(value: t.List[t.Any], runner_index: int) -> t.Union[t.Any, pytest.param]:
+def _process_pytest_value(value: t.Union[t.List[t.Any], t.Any], markers_index: int) -> t.Any:
     """
     Processes a single parameter value, converting it to pytest.param if needed.
     """
-    if isinstance(value, (int, str)):
+    if not isinstance(value, (list, tuple)):
         return value
 
     params, marks = [], []
     for i, element in enumerate(value):
-        if i == runner_index:
-            if isinstance(element, str):
-                element = tuple(element.split(','))
+        if i == markers_index:
+            if not isinstance(element, tuple):
+                element = (element,)
             if isinstance(element, tuple):
-                marks.extend(getattr(pytest.mark, mark) for mark in element)
+                marks.extend(element)
         else:
             params.append(element)
 
-    return pytest.param(*params, marks=marks)
+    return pytest.param(*params, marks=tuple(marks))
 
 
 def idf_parametrize(
@@ -59,20 +59,21 @@ def idf_parametrize(
         Decorated test function with parametrization applied
     """
     param_list = [name.strip() for name in param_names.split(',')]
-    if not param_list:
-        raise ValueError('No parameter names provided')
+    for param in param_list:
+        if not param:
+            raise ValueError(f'One of the provided parameters name is empty: {param_list}')
 
-    runner_index = param_list.index('env_marker') if 'env_marker' in param_list else -1
+    markers_index = param_list.index('markers') if 'markers' in param_list else -1
     target_index = param_list.index('target') if 'target' in param_list else -1
 
-    filtered_params = [name for name in param_list if name != 'env_marker']
+    filtered_params = [name for name in param_list if name != 'markers']
 
     normalized_values = [[value] if len(param_list) == 1 else list(value) for value in values]
 
     if target_index != -1:
         normalized_values = _expand_target_values(normalized_values, target_index)
 
-    processed_values = [_process_pytest_value(value, runner_index) for value in normalized_values]
+    processed_values = [_process_pytest_value(value, markers_index) for value in normalized_values]
 
     def decorator(func):
         return pytest.mark.parametrize(','.join(filtered_params), processed_values, indirect=indirect)(func)
