@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.13.0 (2025-01-21)
+
+### Feat
+
+- support --add-target-as-marker-with-amount
+- added skip_if_soc marker for idf target
+
+### Fix
+
+- **dut-factory**: Add a short delay in _listen() loop to prevent data missing
+
 ## v1.12.1 (2024-12-02)
 
 ### Feat
