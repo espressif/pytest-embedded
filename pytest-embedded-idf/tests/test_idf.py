@@ -988,6 +988,73 @@ def test_python_func_attribute(testdir):
     for testcase in junit_report[1:]:
         assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
 
+
+def test_app_path_in_junit_multi_dut_app(testdir):
+    testdir.makepyfile("""
+            import pytest
+
+            def test_app_path_in_junit_multi_dut_app(app, dut):
+                assert len(app[0].flash_files) == 3
+                assert app[0].target == 'esp32'
+
+                assert len(app[1].flash_files) == 3
+                assert app[1].target == 'esp32c3'
+
+                assert getattr(dut[0], 'serial')
+                with pytest.raises(AttributeError):
+                    assert getattr(dut[1], 'serial')
+        """)
+
+    testdir.runpytest(
+        '-s',
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--embedded-services',
+        'esp,idf|idf',
+        '--junitxml',
+        'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+    testcases = junit_report.findall('.//testcase')
+
+    assert 'app_path' in testcases[0].attrib
+    assert 'hello_world_esp32' in testcases[0].attrib['app_path']
+    assert 'hello_world_esp32c3' in testcases[0].attrib['app_path']
+
+
+def test_app_path_in_junit_single_dut_app(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        def test_app_path_in_junit_single_dut_app(app, dut):
+            assert len(app.flash_files) == 3
+            assert app.target == 'esp32c3'
+
+            with pytest.raises(AttributeError):
+                assert getattr(dut, 'serial')
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
+        '--junitxml',
+        'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+    testcases = junit_report.findall('.//testcase')
+
+    assert 'app_path' in testcases[0].attrib
+    # path is relative to pytest root dir (testdir.tmpdir)
+    assert 'hello_world_esp32c3' == testcases[0].attrib['app_path']
+
+
 def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
     monkeypatch.setenv('IDF_PATH', str(testdir))
     from esp_bool_parser import SOC_HEADERS, SUPPORTED_TARGETS

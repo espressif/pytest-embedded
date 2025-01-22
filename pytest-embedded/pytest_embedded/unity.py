@@ -299,11 +299,13 @@ class JunitMerger:
             junit_case_is_fail = junit_case.find('failure') is not None
 
             junit_case.attrib['is_unity_case'] = '0'
+            junit_case.attrib['pytest_case_name'] = junit_case.attrib.get('name')
             if self.unity_test_report_mode == UnityTestReportMode.REPLACE.value:
                 junit_parent.remove(junit_case)
 
             for case in merging_cases:
                 case.attrib['is_unity_case'] = '1'
+                case.attrib['pytest_case_name'] = junit_case.attrib.get('name')
                 junit_parent.append(case)
 
             junit_parent.attrib['errors'] = self._int_add(
@@ -323,6 +325,12 @@ class JunitMerger:
 
             if int(junit_parent.attrib['failures']) > 0:
                 self.failed = True
+
+        for testcase in self.junit.findall('.//testcase'):
+            # Add the 'pytest_case_name' attribute for each test case to enable later extraction
+            # of the app_path from the pytest_case_name to app_path mapping
+            if 'pytest_case_name' not in testcase.attrib:
+                testcase.attrib['pytest_case_name'] = testcase.attrib.get('name')
 
         self.junit.write(self.junit_path)
         logging.debug(f'Merged junit report dumped to {os.path.realpath(self.junit_path)}')
