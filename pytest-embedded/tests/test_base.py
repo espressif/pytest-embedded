@@ -652,6 +652,49 @@ def test_unclosed_file_handler(testdir):
     result.assert_outcomes(passed=1024)
 
 
+def test_app_paths_in_junit_report(testdir):
+    testdir.makepyfile(r"""
+            import pytest
+            import inspect
+
+            output = inspect.cleandoc(
+                    '''
+                TEST(group, test_case)foo.c:100::FAIL:Expected 2 was 1
+                TEST(group, test_case_2)foo.c:101::FAIL:Expected 1 was 2
+                TEST(group, test case 3)foo bar.c:102::PASS
+                TEST(group, test case 4)foo bar.c:103::FAIL:Expected 3 was 4
+                -------------------
+                4 Tests 3 Failures 0 Ignored
+                FAIL
+            ''')
+
+            @pytest.mark.parametrize('count', [2], indirect=True)
+            def test_expect_unity_test_output_multi_dut(dut):
+                dut_0 = dut[0]
+                dut_1 = dut[1]
+
+                dut_0.write(output)
+                dut_1.write(output)
+                dut_0.expect_unity_test_output()
+                dut_1.expect_unity_test_output()
+
+            @pytest.mark.parametrize('count', [2], indirect=True)
+            def test_expect_unity_test_output_multi_dut_record_1(dut):
+                dut_1 = dut[1]
+                dut_1.write(output)
+                dut_1.expect_unity_test_output()
+        """)
+
+    testdir.runpytest('--junitxml', 'report.xml')
+
+    root = ET.parse('report.xml').getroot()
+    testcases = root.findall('.//testcase')
+    app_paths = [testcase.get('app_path') for testcase in testcases]
+
+    # should be relative to the pytest root folder
+    assert app_paths == ['.'] * len(testcases)
+
+
 class TestTargetMarkers:
     def test_add_target_as_marker_simple(self, pytester):
         pytester.makepyfile("""
