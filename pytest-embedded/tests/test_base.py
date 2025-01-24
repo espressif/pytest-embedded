@@ -476,7 +476,7 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
             dut_1.expect_unity_test_output()
     """)
 
-    result = testdir.runpytest('--junitxml', 'report.xml')
+    result = testdir.runpytest('--app-path', f'{testdir.tmpdir}/foo|{testdir.tmpdir}/bar', '--junitxml', 'report.xml')
 
     try:
         result.assert_outcomes(failed=1)
@@ -492,8 +492,10 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
 
     assert junit_report[0].get('name') == 'test_case'
     assert junit_report[0].find('failure') is not None
+    assert junit_report[0].get('app_path') == f'{testdir.tmpdir}/foo'
     assert junit_report[1].get('name') == 'test_case'
     assert junit_report[1].find('failure') is not None
+    assert junit_report[1].get('app_path') == f'{testdir.tmpdir}/bar'
 
 
 def test_duplicate_stdout_popen(testdir):
