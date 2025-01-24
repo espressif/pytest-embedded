@@ -8,6 +8,7 @@ import tempfile
 import textwrap
 import uuid
 from multiprocessing import queues
+from queue import Empty
 from typing import AnyStr, List, Optional, Union
 
 import pexpect.fdpexpect
@@ -26,6 +27,8 @@ class MessageQueue(queues.Queue):
     def __init__(self, *args, **kwargs):
         if 'ctx' not in kwargs:
             kwargs['ctx'] = _ctx
+
+        self.lock = _ctx.Lock()
         super().__init__(*args, **kwargs)
 
     def put(self, obj, **kwargs):
@@ -41,6 +44,17 @@ class MessageQueue(queues.Queue):
             super().put(_b, **kwargs)
         except:  # noqa # queue might be closed
             pass
+
+    def get_all(self) -> List[bytes]:
+        res = []
+        with self.lock:
+            while True:
+                try:
+                    res.append(self.get_nowait())
+                except Empty:
+                    break
+
+        return res
 
     def write(self, s: AnyStr):
         self.put(s)

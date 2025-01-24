@@ -52,15 +52,16 @@ def msg_queue_gn() -> MessageQueue:
 def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
     _added_prefix = False
     while True:
-        msg = q.get()
-        if not msg:
+        msgs = q.get_all()
+        if not msgs:
             continue
 
+        msg_b = b''.join(msgs)
         with open(filepath, 'ab') as fw:
-            fw.write(msg)
+            fw.write(msg_b)
             fw.flush()
 
-        _s = to_str(msg)
+        _s = to_str(msg_b)
         if not _s:
             continue
 
@@ -87,7 +88,7 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
 
         _stdout.write(_s)
         _stdout.flush()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 
 def _listener_gn(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
