@@ -288,7 +288,9 @@ class IdfUnityDutMixin:
                 finally:
                     _end_at = time.perf_counter()
                     self._add_single_unity_test_case(
-                        _case, _log, additional_attrs={'time': round(_end_at - _start_at, 3)}
+                        _case,
+                        _log,
+                        additional_attrs={'app_path': self.app.app_path, 'time': round(_end_at - _start_at, 3)},
                     )
 
         return wrapper
@@ -695,6 +697,8 @@ class _MultiDevTestDut:
         if log:
             attrs.update({'stdout': log})
 
+        attrs.update({'app_path': self.dut.app.app_path})
+
         return attrs
 
     def add_to_report(self, attrs):
@@ -765,9 +769,6 @@ class MultiDevRunTestManager:
             for _t in self.workers:
                 _t.close()
 
-    def get_processed_report_data(self, res: t.List[t.Any]) -> t.List[t.Dict]:
-        return [self.workers[i].process_raw_report_data(res[i]) for i in range(len(res))]
-
     @staticmethod
     def get_merge_data(test_cases_attr: t.List[t.Dict]) -> t.Dict:
         output = {}
@@ -794,6 +795,8 @@ class MultiDevRunTestManager:
         for k, val in output.items():
             if k in ('file', 'line'):
                 output[k] = val[0]
+            elif k == 'app_path':
+                output[k] = '|'.join(val)
             else:
                 output[k] = '<------------------->\n'.join(val)
 

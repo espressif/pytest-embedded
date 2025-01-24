@@ -749,9 +749,11 @@ def embedded_services(request: FixtureRequest) -> t.Optional[str]:
 
 @pytest.fixture
 @multi_dut_argument
-def app_path(request: FixtureRequest, test_file_path: str) -> t.Optional[str]:
+def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute) -> t.Optional[str]:
     """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
+    res = _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
+    record_xml_attribute('app_path', res)
+    return res
 
 
 @pytest.fixture
