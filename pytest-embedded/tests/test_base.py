@@ -496,6 +496,28 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     assert junit_report[1].find('failure') is not None
 
 
+def test_expect_before_match(testdir):
+    testdir.makepyfile(r"""
+        import pexpect
+
+        def test_expect_before_match(dut):
+            dut.write('this would be redirected')
+
+            res = dut.expect('would', return_what_before_match=True)
+            assert res == b'this '
+
+            res = dut.expect_exact('be ', return_what_before_match=True)
+            assert res == b' '
+
+            res = dut.expect('ected', return_what_before_match=True)
+            assert res == b'redir'
+    """)
+
+    result = testdir.runpytest()
+
+    result.assert_outcomes(passed=1)
+
+
 def test_duplicate_stdout_popen(testdir):
     testdir.makepyfile(r"""
         import pytest
