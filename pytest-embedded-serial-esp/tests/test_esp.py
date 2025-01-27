@@ -14,9 +14,12 @@ def test_detect_port(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--embedded-services', 'esp',
-        '--target', 'esp32s2|esp32',
+        '--count',
+        2,
+        '--embedded-services',
+        'esp',
+        '--target',
+        'esp32s2|esp32',
     )
 
     result.assert_outcomes(passed=1)
@@ -37,10 +40,14 @@ def test_detect_port_with_cache(testdir, caplog, first_index_of_messages):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--embedded-services', 'esp',
-        '--target', 'esp32s2|esp32',
-        '--log-cli-level', 'DEBUG',
+        '--count',
+        2,
+        '--embedded-services',
+        'esp',
+        '--target',
+        'esp32s2|esp32',
+        '--log-cli-level',
+        'DEBUG',
     )
 
     result.assert_outcomes(passed=2)
@@ -77,9 +84,12 @@ def test_detect_port_with_local_cache(testdir):
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp',
-        '--cache-dir', './cache-test',
-        '--count', '2',
+        '--embedded-services',
+        'esp',
+        '--cache-dir',
+        './cache-test',
+        '--count',
+        '2',
     )
     result.assert_outcomes(passed=3)
 
@@ -91,8 +101,11 @@ def test_detect_port_with_local_cache(testdir):
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp',
-        '--cache-dir', './cache-test',
-        '--count', '2',
+        '--embedded-services',
+        'esp',
+        '--cache-dir',
+        './cache-test',
+        '--count',
+        '2',
     )
     result.assert_outcomes(passed=1)

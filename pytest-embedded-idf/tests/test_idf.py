@@ -28,8 +28,10 @@ def test_idf_serial_flash(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
     result.assert_outcomes(passed=1)
@@ -46,8 +48,10 @@ def test_esp_flash_force_flag(testdir):
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--esp-flash-force',
     )
 
@@ -65,8 +69,10 @@ def test_esp_flash_no_force_flag(testdir):
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
     result.assert_outcomes(passed=1)
@@ -94,8 +100,10 @@ def test_expect_no_matching(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
     result.assert_outcomes(passed=2, failed=2)
@@ -122,8 +130,10 @@ def test_expect_exact_no_matching(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
     result.assert_outcomes(passed=2, failed=2)
@@ -164,9 +174,12 @@ def test_custom_idf_device_dut(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', p,
-        '--embedded-services', 'esp,idf',
-        '--junitxml', 'report.xml',
+        '--app-path',
+        p,
+        '--embedded-services',
+        'esp,idf',
+        '--junitxml',
+        'report.xml',
     )
     result.assert_outcomes(passed=4, errors=0)
 
@@ -194,10 +207,14 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
-        '--erase-nvs', 'y',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--erase-nvs',
+        'y',
     )
 
     result.assert_outcomes(passed=1)
@@ -219,9 +236,12 @@ def test_idf_serial_flash_with_erase_nvs_but_no_parttool(testdir, capsys, monkey
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--erase-nvs', 'y',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--erase-nvs',
+        'y',
     )
 
     result.assert_outcomes(errors=1)
@@ -242,8 +262,10 @@ def test_idf_app(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
+        '--embedded-services',
+        'idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
     )
 
     result.assert_outcomes(passed=1)
@@ -267,11 +289,12 @@ def test_multi_dut_app(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
-                      f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
-        '--embedded-services', 'esp,idf|idf',
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--embedded-services',
+        'esp,idf|idf',
     )
 
     result.assert_outcomes(passed=1)
@@ -292,13 +315,16 @@ def test_multi_dut_autoflash(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
-                      f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
-        '--skip-autoflash', 'y|false',
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--skip-autoflash',
+        'y|false',
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
@@ -319,10 +345,14 @@ def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
-        '--log-cli-level', 'DEBUG',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--log-cli-level',
+        'DEBUG',
     )
 
     result.assert_outcomes(passed=2)
@@ -334,7 +364,7 @@ def test_cache_skip_autoflash(testdir, caplog, first_index_of_messages):
     first_index_of_messages(
         re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
-        set_app_cache_i + 1
+        set_app_cache_i + 1,
     )
 
 
@@ -353,11 +383,16 @@ def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messa
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
-        '--log-cli-level', 'DEBUG',
-        '--confirm-target-elf-sha256', 'y',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--log-cli-level',
+        'DEBUG',
+        '--confirm-target-elf-sha256',
+        'y',
     )
 
     result.assert_outcomes(passed=2)
@@ -369,7 +404,7 @@ def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messa
     hit_app_cache_i = first_index_of_messages(
         re.compile(r'^hit port-app cache:.+hello_world_esp32[\\/]build$', re.MULTILINE),
         caplog.messages,
-        set_app_cache_i + 1
+        set_app_cache_i + 1,
     )
     first_index_of_messages(
         re.compile(r'Confirmed target elf file sha256 the same as your local one\.$', re.MULTILINE),
@@ -379,8 +414,10 @@ def test_cache_skip_autoflash_with_confirm(testdir, caplog, first_index_of_messa
 
 
 def test_different_build_dir(testdir):
-    os.rename(os.path.join(testdir.tmpdir, 'hello_world_esp32', 'build'),
-              os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'))
+    os.rename(
+        os.path.join(testdir.tmpdir, 'hello_world_esp32', 'build'),
+        os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
+    )
 
     testdir.makepyfile("""
         import pytest
@@ -392,18 +429,24 @@ def test_different_build_dir(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--build-dir', 'test_new_name',
-        '--embedded-services', 'idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--build-dir',
+        'test_new_name',
+        '--embedded-services',
+        'idf',
     )
 
     result.assert_outcomes(passed=1)
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--build-dir', os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
-        '--embedded-services', 'idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--build-dir',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32', 'test_new_name'),
+        '--embedded-services',
+        'idf',
     )
 
     result.assert_outcomes(passed=1)
@@ -430,19 +473,22 @@ def test_multi_dut_read_flash(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}'
-                      f'|'
-                      f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|{os.path.join(testdir.tmpdir, "hello_world_esp32c3")}',
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
 
 
 def test_flash_another_app(testdir):
-    testdir.makepyfile(r"""
+    testdir.makepyfile(
+        r"""
         import pytest
         import pexpect
 
@@ -452,13 +498,17 @@ def test_flash_another_app(testdir):
             dut.serial.flash(IdfApp('{}'))
             dut.expect('Hash of data verified.', timeout=5)
             dut.expect_exact('Hello world!', timeout=5)
-    """.format(os.path.join(testdir.tmpdir, 'hello_world_esp32')))
+    """.format(os.path.join(testdir.tmpdir, 'hello_world_esp32'))
+    )
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
@@ -478,9 +528,12 @@ def test_flash_with_no_elf_file(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--embedded-services', 'esp,idf',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--embedded-services',
+        'esp,idf',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)
@@ -497,10 +550,14 @@ def test_erase_all(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--target', 'esp32',
-        '--erase-all', 'y',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target',
+        'esp32',
+        '--erase-all',
+        'y',
     )
 
     result.assert_outcomes(passed=1)
@@ -517,9 +574,12 @@ def test_erase_flash(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--target', 'esp32',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target',
+        'esp32',
     )
 
     result.assert_outcomes(passed=1)
@@ -540,9 +600,12 @@ def test_hello_world_linux(testdir):
     """)
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_linux")}',
-        '--target', 'linux',
+        '--embedded-services',
+        'idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_linux")}',
+        '--target',
+        'linux',
     )
 
     result.assert_outcomes(passed=1)
@@ -554,15 +617,18 @@ def test_unity_tester_with_linux(testdir):
 
     def test_unity_tester_with_linux(dut):
         dut.run_all_single_board_cases()
-    """
-    )
+    """)
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_linux")}',
-        '--target', 'linux',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_linux")}',
+        '--target',
+        'linux',
+        '--junitxml',
+        'report.xml',
     )
 
     result.assert_outcomes(passed=1)
@@ -587,11 +653,16 @@ def test_check_coredump(testdir, caplog, first_index_of_messages):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
-        '--target', 'esp32c3',
-        '--panic-output-decode-script', os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
-        '--log-cli-level', 'INFO',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
+        '--target',
+        'esp32c3',
+        '--panic-output-decode-script',
+        os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
+        '--log-cli-level',
+        'INFO',
     )
     first_index_of_messages(
         re.compile(r'app_main \(\) at /COMPONENT_MAIN_DIR/hello_world_main.c:17', re.MULTILINE),
@@ -613,11 +684,16 @@ def test_skip_check_coredump(testdir, caplog, first_index_of_messages):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
-        '--panic-output-decode-script', os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
-        '--skip-check-coredump', 'True',
-        '--log-cli-level', 'INFO',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
+        '--panic-output-decode-script',
+        os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
+        '--skip-check-coredump',
+        'True',
+        '--log-cli-level',
+        'INFO',
     )
     with pytest.raises(AssertionError):
         first_index_of_messages(
@@ -629,14 +705,14 @@ def test_skip_check_coredump(testdir, caplog, first_index_of_messages):
 
 
 def test_idf_parse_test_menu():
-    s = '''(1)\t"adc1 and i2s work with wifi" [adc][ignore]
+    s = """(1)\t"adc1 and i2s work with wifi" [adc][ignore]
 (2)\t"I2C master write slave test" [i2c][test_env=UT_T2_I2C][timeout=150][multi_device]
 \t(1)\t"i2c_master_write_test"
 \t(2)\t"i2c_slave_read_test"
 (3)\t"LEDC continue work after software reset" [ledc][multi_stage]
 \t(1)\t"ledc_cpu_reset_test_first_stage"
 \t(2)\t"ledc_cpu_reset_test_second_stage"
-'''
+"""
     test_menu = IdfDut._parse_unity_menu_from_str(s)
 
     assert len(test_menu) == 3
@@ -674,9 +750,12 @@ def test_idf_multi_hard_reset_and_expect(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--log-cli-level', 'DEBUG',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--log-cli-level',
+        'DEBUG',
     )
 
     result.assert_outcomes(passed=1)
@@ -685,65 +764,37 @@ def test_idf_multi_hard_reset_and_expect(testdir):
 def test_select_to_run():
     from pytest_embedded_idf.unity_tester import IdfUnityDutMixin
 
-    assert IdfUnityDutMixin._select_to_run(
-        None, None, None,
-        None, None, None
+    assert IdfUnityDutMixin._select_to_run(None, None, None, None, None, None)
+
+    assert IdfUnityDutMixin._select_to_run(None, ['name_hello', 'name_world'], None, None, 'name_hello', None)
+
+    assert not IdfUnityDutMixin._select_to_run(None, ['name_hello', 'name_world'], None, None, 'name_hel', None)
+
+    assert IdfUnityDutMixin._select_to_run(None, None, {'red': 255}, None, None, {'red': 255, 'green': 10, 'blue': 33})
+
+    assert not IdfUnityDutMixin._select_to_run(
+        None, None, {'red': 25}, None, None, {'red': 255, 'green': 10, 'blue': 33}
     )
 
     assert IdfUnityDutMixin._select_to_run(
-        None, ['name_hello', 'name_world'], None,
-        None, 'name_hello', None
+        None, None, {'red': 255, 'green': 10}, None, None, {'red': 255, 'green': 10, 'blue': 33}
     )
 
     assert not IdfUnityDutMixin._select_to_run(
-        None, ['name_hello', 'name_world'], None,
-        None, 'name_hel', None
+        None, None, {'red': 255, 'green': 0}, None, None, {'red': 255, 'green': 10, 'blue': 33}
     )
+
+    assert IdfUnityDutMixin._select_to_run([['hello']], None, None, ['hello', 'world'], None, None)
+
+    assert not IdfUnityDutMixin._select_to_run([['!hello']], None, None, ['hello', 'world'], None, None)
+
+    assert not IdfUnityDutMixin._select_to_run([['hello', '!world']], None, None, ['hello', 'world'], None, None)
 
     assert IdfUnityDutMixin._select_to_run(
-        None, None, {"red": 255},
-        None, None, {"red": 255, "green": 10, "blue": 33}
+        [['hello', '!world'], ['sun']], None, None, ['hello', 'world', 'sun'], None, None
     )
 
-    assert not IdfUnityDutMixin._select_to_run(
-        None, None, {"red": 25},
-        None, None, {"red": 255, "green": 10, "blue": 33}
-    )
-
-    assert IdfUnityDutMixin._select_to_run(
-        None, None, {"red": 255, "green": 10},
-        None, None, {"red": 255, "green": 10, "blue": 33}
-    )
-
-    assert not IdfUnityDutMixin._select_to_run(
-        None, None, {"red": 255, "green": 0},
-        None, None, {"red": 255, "green": 10, "blue": 33}
-    )
-
-    assert IdfUnityDutMixin._select_to_run(
-        [['hello']], None, None,
-        ['hello', 'world'], None, None
-    )
-
-    assert not IdfUnityDutMixin._select_to_run(
-        [['!hello']], None, None,
-        ['hello', 'world'], None, None
-    )
-
-    assert not IdfUnityDutMixin._select_to_run(
-        [['hello', '!world']], None, None,
-        ['hello', 'world'], None, None
-    )
-
-    assert IdfUnityDutMixin._select_to_run(
-        [['hello', '!world'], ['sun']], None, None,
-        ['hello', 'world', 'sun'], None, None
-    )
-
-    assert IdfUnityDutMixin._select_to_run(
-        [['hello', '!w']], None, None,
-        ['hello', 'world'], None, None
-    )
+    assert IdfUnityDutMixin._select_to_run([['hello', '!w']], None, None, ['hello', 'world'], None, None)
 
 
 def test_dut_run_all_single_board_cases(testdir):
@@ -753,10 +804,14 @@ def test_dut_run_all_single_board_cases(testdir):
     """)
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -787,10 +842,14 @@ def test_dut_run_all_single_board_cases_group(testdir):
     """)
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -808,10 +867,14 @@ def test_dut_run_all_single_board_cases_invert_group(testdir):
     """)
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -829,10 +892,14 @@ def test_dut_run_all_single_board_cases_by_names(testdir):
     """)
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -851,13 +918,18 @@ def test_unity_test_case_runner(testdir):
 
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--count', 2,
-        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
-                      f'|'
-                      f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml'
+        '--embedded-services',
+        'esp,idf',
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
+        f'|'
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -890,10 +962,14 @@ def test_erase_all_with_port_cache(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
-        '--target', 'esp32',
-        '--erase-all', 'y',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}',
+        '--target',
+        'esp32',
+        '--erase-all',
+        'y',
     )
 
     result.assert_outcomes(passed=2)
@@ -907,10 +983,14 @@ def test_no_preserve_python_tests(testdir):
 
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -918,6 +998,7 @@ def test_no_preserve_python_tests(testdir):
     assert junit_report.attrib['tests'] == '2'
     for testcase in junit_report.findall('testcase'):
         assert testcase.attrib['is_unity_case'] == '1'
+
 
 def test_preserve_python_tests(testdir):
     testdir.makepyfile(r"""
@@ -927,11 +1008,16 @@ def test_preserve_python_tests(testdir):
 
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
-        '--unity-test-report-mode', 'merge',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
+        '--unity-test-report-mode',
+        'merge',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -950,11 +1036,16 @@ def test_preserve_python_tests_with_failures(testdir):
 
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
-        '--unity-test-report-mode', 'merge',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
+        '--unity-test-report-mode',
+        'merge',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -975,11 +1066,16 @@ def test_python_func_attribute(testdir):
 
     testdir.runpytest(
         '-s',
-        '--embedded-services', 'esp,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level', 'DEBUG',
-        '--junitxml', 'report.xml',
-        '--unity-test-report-mode', 'merge',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
+        '--unity-test-report-mode',
+        'merge',
     )
 
     junit_report = ET.parse('report.xml').getroot()[0]
@@ -988,9 +1084,11 @@ def test_python_func_attribute(testdir):
     for testcase in junit_report[1:]:
         assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
 
-def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
+
+def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
     monkeypatch.setenv('IDF_PATH', str(testdir))
     from esp_bool_parser import SOC_HEADERS, SUPPORTED_TARGETS
+
     assert SOC_HEADERS == {
         'esp32': {'SOC_A': 0, 'SOC_B': 1, 'SOC_C': 0},
         'esp32s2': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 0},
@@ -1003,12 +1101,12 @@ def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch
         'linux': {},
         'esp32c5': {'SOC_A': 1, 'SOC_B': 1, 'SOC_C': 0},
         'esp32c61': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 1},
-        'esp32h21': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 0}
+        'esp32h21': {'SOC_A': 0, 'SOC_B': 0, 'SOC_C': 0},
     }
     assert SUPPORTED_TARGETS == ['esp32', 'esp32s2', 'esp32c3', 'esp32s3', 'esp32c2', 'esp32c6', 'esp32h2', 'esp32p4']
 
 
-def test_skip_if_soc(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
+def test_skip_if_soc(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
     monkeypatch.setenv('IDF_PATH', str(testdir))
     from esp_bool_parser import SOC_HEADERS, SUPPORTED_TARGETS
 
@@ -1028,13 +1126,15 @@ def test_skip_if_soc(testdir, copy_mock_esp_idf, monkeypatch): # noqa: ARG001
         result = testdir.runpytest('-s', '--embedded-services', 'esp,idf')
         result.assert_outcomes(passed=to_pass, skipped=to_skip)
 
-
     for c, cf in [
         ('SOC_A == 1', lambda h: h['SOC_A'] == 1),
         ('SOC_A == 1 or SOC_B == 1', lambda h: h['SOC_A'] == 1 or h['SOC_B'] == 1),
         ('SOC_A == 1 and SOC_B == 1', lambda h: h['SOC_A'] == 1 and h['SOC_B'] == 1),
         ('SOC_A == 1 or SOC_B == 1 and SOC_C == 1', lambda h: h['SOC_A'] == 1 or (h['SOC_B'] == 1 and h['SOC_C'] == 1)),
-        ('SOC_A == 1 and SOC_B == 0 or SOC_C == 1 ', lambda h: (h['SOC_A'] == 1 and h['SOC_B'] == 0) or h['SOC_C'] == 1), # noqa: E501
+        (
+            'SOC_A == 1 and SOC_B == 0 or SOC_C == 1 ',
+            lambda h: (h['SOC_A'] == 1 and h['SOC_B'] == 0) or h['SOC_C'] == 1,
+        ),
     ]:
         run_test_for_condition(c, cf)
 
@@ -1044,7 +1144,7 @@ def test_skip_if_soc_target_in_args(testdir, copy_mock_esp_idf, monkeypatch):  #
 
     def run_pytest_with_target(target):
         count = len(target.split('|'))
-        return testdir.runpytest( '--embedded-services', 'esp,idf', '--target', target, '--count', count)
+        return testdir.runpytest('--embedded-services', 'esp,idf', '--target', target, '--count', count)
 
     testdir.makepyfile("""
         import pytest
