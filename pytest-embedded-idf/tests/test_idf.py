@@ -858,6 +858,10 @@ def test_dut_run_all_single_board_cases_group(testdir):
     assert junit_report.attrib['failures'] == '1'
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '1'
+    cases = junit_report.findall('.//testcase')
+    assert len(cases) == 2
+    assert cases[0].attrib['app_path'] == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
+    assert cases[1].attrib['app_path'] == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
 
 
 def test_dut_run_all_single_board_cases_invert_group(testdir):
@@ -939,14 +943,24 @@ def test_unity_test_case_runner(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '3'
 
+    # single-dut app_path should be the dut[0] one
     assert junit_report[0].get('name') == 'normal_case1'
     assert junit_report[0].find('failure') is None
+    assert junit_report[0].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
     assert junit_report[1].get('name') == 'normal_case2'
     assert junit_report[1].find('failure') is not None
+    assert junit_report[1].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
     assert junit_report[2].get('name') == 'multiple_stages_test'
     assert junit_report[2].find('failure') is None
+    assert junit_report[2].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
+    # multi-dut app_path should be concatenated
     assert junit_report[3].get('name') == 'multiple_devices_test'
     assert junit_report[3].find('failure') is None
+    assert (
+        junit_report[3].get('app_path') == f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
+        f'|'
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}'
+    )
 
 
 def test_erase_all_with_port_cache(testdir):
