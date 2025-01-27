@@ -20,6 +20,10 @@ All of these functions share these possible keyword arguments:
 
    Will raise an exception if the pattern is found in the output, if specified. (Default: None)
 
+-  ``return_what_before_match``
+
+      Will return the bytes read before the match if specified. (Default: False)
+
 *****************************************
  :func:`~pytest_embedded.dut.Dut.expect`
 *****************************************
@@ -129,6 +133,40 @@ What's more, argument ``pattern`` could be a list of all supported types.
            dut.expect(pattern_list)
 
 If you set ``expect_all`` to ``True``, the :func:`~pytest_embedded.dut.Dut.expect` function would return with a list of returned values of each item.
+
+You can also set ``return_what_before_match`` to ``True`` to get the bytes read before the match, instead of the match object.
+
+.. code:: python
+
+   import pexpect
+
+   def test_expect_before_match(dut):
+       dut.write('this would be redirected')
+
+       res = dut.expect('would', return_what_before_match=True)
+       assert res == b'this '
+
+       res = dut.expect_exact('be ', return_what_before_match=True)
+       assert res == b' '
+
+       res = dut.expect('ected', return_what_before_match=True)
+       assert res == b'redir'
+
+.. hint::
+
+   For better performance when retrieving text before a pattern, use:
+
+   .. code:: python
+
+      before_str = dut.expect('pattern', return_what_before_match=True).decode('utf-8')
+
+   Instead of:
+
+   .. code:: python
+
+      before_str = dut.expect('(.+)pattern').group(1).decode('utf-8')
+
+   The latter performs unnecessary recursive matching of preceding bytes.
 
 ***********************************************
  :func:`~pytest_embedded.dut.Dut.expect_exact`

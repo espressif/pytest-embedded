@@ -67,8 +67,17 @@ class Dut(_InjectMixinCls):
     def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:
         @functools.wraps(func)
         def wrapper(
-            self, pattern, *args, expect_all: bool = False, not_matching: List[Union[str, re.Pattern]] = (), **kwargs
+            self,
+            pattern,
+            *args,
+            expect_all: bool = False,
+            not_matching: List[Union[str, re.Pattern]] = (),
+            return_what_before_match: bool = False,
+            **kwargs,
         ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
+            if return_what_before_match and expect_all:
+                raise ValueError('`return_what_before_match` and `expect_all` cannot be `True` at the same time.')
+
             patterns = to_list(pattern)
             res = []
             while patterns:
@@ -101,6 +110,9 @@ class Dut(_InjectMixinCls):
                 else:
                     break  # one succeeded. leave the loop
 
+            if return_what_before_match:
+                return self.pexpect_proc.before
+
             if len(res) == 1:
                 return res[0]
 
@@ -121,6 +133,8 @@ class Dut(_InjectMixinCls):
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
             not_matching: string, or compiled regex, or a list of string and compiled regex.
+            return_what_before_match (bool): return the bytes before the matched pattern.
+                Cannot be specified together with `expect_all`
 
         Returns:
             `AnyStr` or `re.Match`
@@ -143,6 +157,8 @@ class Dut(_InjectMixinCls):
             expect_all (bool): need to match all specified patterns if this flag is `True`.
                 Otherwise match any of them could pass
             not_matching: string, or compiled regex, or a list of string and compiled regex.
+            return_what_before_match (bool): return the bytes before the matched pattern.
+                Cannot be specified together with `expect_all`
 
         Returns:
             `AnyStr` or `re.Match`
