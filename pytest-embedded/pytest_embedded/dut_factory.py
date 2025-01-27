@@ -50,45 +50,40 @@ def msg_queue_gn() -> MessageQueue:
 
 
 def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
-    _added_prefix = False
+    shall_add_prefix = True
     while True:
-        msgs = q.get_all()
-        if not msgs:
+        msg = q.get()
+        if not msg:
             continue
 
-        msg_b = b''.join(msgs)
         with open(filepath, 'ab') as fw:
-            fw.write(msg_b)
+            fw.write(msg)
             fw.flush()
 
-        _s = to_str(msg_b)
+        _s = to_str(msg)
         if not _s:
             continue
 
         prefix = ''
         if total > 1:
-            source = f'dut-{count}'
-        else:
-            source = None
-
-        if source:
-            prefix = f'[{source}] ' + prefix
+            prefix = f'[dut-{count}] '
 
         if with_timestamp:
             prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
 
-        if not _added_prefix:
+        if shall_add_prefix:
             _s = prefix + _s
-            _added_prefix = True
+
         _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
-        _s = _s.replace('\n', '\n' + prefix)
-        if prefix and _s.endswith(prefix):
-            _s = _s.rsplit(prefix, maxsplit=1)[0]
-            _added_prefix = False
+        if _s.endswith('\n'):  # complete line
+            shall_add_prefix = True
+            _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
+        else:
+            shall_add_prefix = False
+            _s = _s.replace('\n', '\n' + prefix)
 
         _stdout.write(_s)
         _stdout.flush()
-        time.sleep(0.05)
 
 
 def _listener_gn(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
