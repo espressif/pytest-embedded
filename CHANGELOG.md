@@ -1,6 +1,17 @@
 # CHANGELOG
 
-## v1.13.0 (2025-01-21)
+## v1.13.1 (2025-01-29)
+
+### Feat
+
+- record `app_path` in junit reports
+- support `return_what_before_match` in expect functions
+
+### Fix
+
+- improve listener performance, remove timeout in listener
+
+## v1.13.0 (2025-01-21) (yanked)
 
 ### Feat
 

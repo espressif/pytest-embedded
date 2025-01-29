@@ -32,15 +32,15 @@ dynamic = ["version", "description"]
 requires-python = ">=3.7"
 
 dependencies = [
-    "pytest-embedded-serial~=1.13.0",
+    "pytest-embedded-serial~=1.13.1",
 ]
 
 [project.optional-dependencies]
 esp = [
-    "pytest-embedded-serial-esp~=1.13.0",
+    "pytest-embedded-serial-esp~=1.13.1",
 ]
 qemu = [
-    "pytest-embedded-qemu~=1.13.0",
+    "pytest-embedded-qemu~=1.13.1",
 ]
 
 [project.urls]
