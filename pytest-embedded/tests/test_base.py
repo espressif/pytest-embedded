@@ -457,11 +457,18 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
         import pytest
         import inspect
 
-        output = inspect.cleandoc(
+        output1 = inspect.cleandoc(
                 u'''
-            TEST(group, test_case)foo.c:100::FAIL:Expected 2 \x00 was 1
+            TEST(group, test_case_1)foo.c:100::FAIL:Expected 2 \x00 was 1
             -------------------
             4 Tests 3 Failures 0 Ignored
+            FAIL
+        ''')
+        output2 = inspect.cleandoc(
+                u'''
+            TEST(group, test_case_2)foo.c:100::FAIL:Expected 2 \x00 was 1
+            -------------------
+            5 Tests 2 Failures 0 Ignored
             FAIL
         ''')
 
@@ -470,13 +477,13 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
             dut_0 = dut[0]
             dut_1 = dut[1]
 
-            dut_0.write(output)
-            dut_1.write(output)
+            dut_0.write(output1)
+            dut_1.write(output2)
             dut_0.expect_unity_test_output()
             dut_1.expect_unity_test_output()
     """)
 
-    result = testdir.runpytest('--junitxml', 'report.xml')
+    result = testdir.runpytest('--app-path', f'{testdir.tmpdir}/foo|{testdir.tmpdir}/bar', '--junitxml', 'report.xml')
 
     try:
         result.assert_outcomes(failed=1)
@@ -490,10 +497,12 @@ def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '2'
 
-    assert junit_report[0].get('name') == 'test_case'
+    assert junit_report[0].get('name') == 'test_case_1'
     assert junit_report[0].find('failure') is not None
-    assert junit_report[1].get('name') == 'test_case'
+    assert junit_report[0].get('app_path') == f'{testdir.tmpdir}/foo'
+    assert junit_report[1].get('name') == 'test_case_2'
     assert junit_report[1].find('failure') is not None
+    assert junit_report[1].get('app_path') == f'{testdir.tmpdir}/bar'
 
 
 def test_expect_before_match(testdir):

@@ -7,7 +7,7 @@ import pytest
 qemu_bin_required = pytest.mark.skipif(
     shutil.which('qemu-system-xtensa') is None,
     reason='Please make sure that `qemu-system-xtensa` is in your PATH env var. Build QEMU for ESP32 locally and then '
-           'run `pytest` again'
+    'run `pytest` again',
 )
 
 
@@ -26,8 +26,10 @@ def test_pexpect_by_qemu_xtensa(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf,qemu',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'idf,qemu',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
     )
 
     result.assert_outcomes(passed=1)
@@ -51,8 +53,10 @@ def test_pexpect_make_restart_by_qemu_xtensa(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf,qemu',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--embedded-services',
+        'idf,qemu',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
         '--qemu-cli-args="-machine esp32 -nographic"',
     )
 
@@ -74,8 +78,10 @@ def test_pexpect_by_qemu_riscv(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf,qemu',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
+        '--embedded-services',
+        'idf,qemu',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
     )
 
     result.assert_outcomes(passed=1)
@@ -94,10 +100,14 @@ def test_multi_count_qemu(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--count', 2,
-        '--embedded-services', 'idf,qemu|qemu',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|',
-        '--qemu-image-path', f'|{os.path.join(testdir.tmpdir, "esp32_qemu.bin")}',
+        '--count',
+        2,
+        '--embedded-services',
+        'idf,qemu|qemu',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "hello_world_esp32")}|',
+        '--qemu-image-path',
+        f'|{os.path.join(testdir.tmpdir, "esp32_qemu.bin")}',
     )
 
     result.assert_outcomes(passed=1)
@@ -122,12 +132,17 @@ def test_pre_flash_enc_qemu(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf,qemu',
-        '--app-path', app_path,
-        '--qemu-extra-args', f'-drive file={efuses_path},if=none,format=raw,id=efuse'
+        '--embedded-services',
+        'idf,qemu',
+        '--app-path',
+        app_path,
+        '--qemu-extra-args',
+        f'-drive file={efuses_path},if=none,format=raw,id=efuse'
         ' -global driver=nvram.esp32.efuse,property=drive,value=efuse',
-        '--encrypt', 'true',
-        '--keyfile', keyfile_path,
+        '--encrypt',
+        'true',
+        '--keyfile',
+        keyfile_path,
     )
 
     result.assert_outcomes(passed=1)
@@ -145,9 +160,12 @@ def test_qemu_use_idf_mixin_methods(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'idf,qemu',
-        '--app-path', f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}',
-        '--junitxml', 'report.xml',
+        '--embedded-services',
+        'idf,qemu',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}',
+        '--junitxml',
+        'report.xml',
     )
 
     result.assert_outcomes(failed=1)

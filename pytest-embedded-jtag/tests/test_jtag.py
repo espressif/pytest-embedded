@@ -4,7 +4,7 @@ import pytest
 
 jtag_connection_required = pytest.mark.skipif(
     os.getenv('DONT_SKIP_JTAG_TESTS', False) is False,
-    reason='Connect the board to a JTAG adapter then ' 'use "DONT_SKIP_JTAG_TESTS" to run this test.',
+    reason='Connect the board to a JTAG adapter then use "DONT_SKIP_JTAG_TESTS" to run this test.',
 )
 
 
@@ -24,10 +24,14 @@ def test_pexpect_by_jtag(testdir):
 
     result = testdir.runpytest(
         '-s',
-        '--embedded-services', 'jtag,idf',
-        '--app-path', os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-        '--port', '/dev/ttyUSB1',
-        '--part-tool', os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
+        '--embedded-services',
+        'jtag,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
+        '--port',
+        '/dev/ttyUSB1',
+        '--part-tool',
+        os.path.join(testdir.tmpdir, 'gen_esp32part.py'),
     )
 
     result.assert_outcomes(passed=1)

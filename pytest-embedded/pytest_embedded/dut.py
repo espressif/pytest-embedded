@@ -203,7 +203,12 @@ class Dut(_InjectMixinCls):
         if remove_asci_escape_code:
             log = remove_asci_color_code(log)
 
-        self.testsuite.add_unity_test_cases(log)
+        self.testsuite.add_unity_test_cases(
+            log,
+            additional_attrs={
+                'app_path': self.app.app_path,
+            },
+        )
 
     @_InjectMixinCls.require_services('idf')
     def run_all_single_board_cases(
