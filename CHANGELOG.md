@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.13.2 (2025-02-06)
+
+### Fix
+
+- app_path haven't recorded in python cases
+
 ## v1.13.1 (2025-01-29)
 
 ### Feat
