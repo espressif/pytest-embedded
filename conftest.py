@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+import textwrap
 from typing import List, Pattern
 
 import pytest
@@ -24,6 +25,14 @@ def copy_fixtures(testdir: Testdir):
             shutil.copy(os.path.join(fixture_dir, item), os.path.join(str(testdir.tmpdir), item))
         else:
             shutil.copytree(os.path.join(fixture_dir, item), os.path.join(str(testdir.tmpdir), item))
+
+    testdir.makepyprojecttoml(
+        textwrap.dedent("""
+        [tool.pytest.ini_options]
+        filterwarnings = "ignore:FutureWarning"
+        junit_family = "xunit1"
+    """)
+    )
 
     yield
 
