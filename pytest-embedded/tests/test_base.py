@@ -683,6 +683,37 @@ def test_unclosed_file_handler(testdir):
     result.assert_outcomes(passed=1024)
 
 
+def test_check_app_path_for_python_case(testdir):
+    testdir.makepyfile(r"""
+    import pytest
+
+
+    def test_foo(dut):
+        dut.write('foo')
+        dut.expect_exact('foo')
+    """)
+
+    result = testdir.runpytest(
+        '--junitxml',
+        'report.xml',
+        '--app-path',
+        '/tmp/foo',
+    )
+    result.assert_outcomes(passed=1)
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+    assert junit_report[0].get('app_path') == '/tmp/foo'
+
+    result = testdir.runpytest(
+        '--junitxml',
+        'report.xml',
+    )
+    result.assert_outcomes(passed=1)
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+    assert junit_report[0].get('app_path') == str(testdir)
+
+
 class TestTargetMarkers:
     def test_add_target_as_marker_simple(self, pytester):
         pytester.makepyfile("""
