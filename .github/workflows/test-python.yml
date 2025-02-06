@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - python-version: "3.7"
-            arch: "ARM"
+            arch: "ARM64"
           - python-version: "3.13"
             arch: "X64"
       fail-fast: false
