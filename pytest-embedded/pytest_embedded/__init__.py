@@ -6,4 +6,4 @@ from .dut_factory import DutFactory
 
 __all__ = ['App', 'Dut', 'DutFactory']
 
-__version__ = '1.13.2'
+__version__ = '1.14.0'

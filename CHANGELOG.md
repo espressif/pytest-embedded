@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.14.0 (2025-02-11)
+
+### Feat
+
+- support marker helper function `idf_parametrize`
+
 ## v1.13.2 (2025-02-06)
 
 ### Fix
