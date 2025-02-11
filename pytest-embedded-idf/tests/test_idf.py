@@ -1176,3 +1176,188 @@ def test_skip_if_soc_target_in_args(testdir, copy_mock_esp_idf, monkeypatch):  #
 
     for result, expected in results:
         result.assert_outcomes(**expected)
+
+
+def test_expand_target_values_supported_targets(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+
+    from esp_bool_parser import SUPPORTED_TARGETS
+    from pytest_embedded_idf.utils import _expand_target_values
+
+    values = [['param_1', 'supported_targets', 'param_2']]
+    result = _expand_target_values(values, 1)
+    assert len(result) == len(SUPPORTED_TARGETS)
+    for target, expanded in zip(SUPPORTED_TARGETS, result):
+        assert expanded == ['param_1', target, 'param_2']
+
+
+def test_expand_target_values_preview_targets(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+
+    from esp_bool_parser import PREVIEW_TARGETS
+    from pytest_embedded_idf.utils import _expand_target_values
+
+    """Test expansion of preview_targets"""
+    values = [['param_1', 'preview_targets', 'param_2']]
+    result = _expand_target_values(values, 1)
+
+    assert len(result) == len(PREVIEW_TARGETS)
+    for target, expanded in zip(PREVIEW_TARGETS, result):
+        assert expanded == ['param_1', target, 'param_2']
+
+
+def test_expand_target_values_specific_target(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+
+    from esp_bool_parser import SUPPORTED_TARGETS
+    from pytest_embedded_idf.utils import _expand_target_values
+
+    """Test handling of specific target"""
+    values = [['param_1', 'esp32', 'param_2'], ['param_3', 'supported_targets', 'param_4']]
+    result = _expand_target_values(values, 1)
+
+    assert len(result) == 1 + len(SUPPORTED_TARGETS)
+    assert result == [['param_1', 'esp32', 'param_2']] + [['param_3', _t, 'param_4'] for _t in SUPPORTED_TARGETS]
+
+
+def test_process_pytest_value_simple(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test processing of simple parameter values"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+
+    from pytest_embedded_idf.utils import _process_pytest_value
+
+    value = 'simple_value'
+    result = _process_pytest_value(value, -1)
+    assert result == 'simple_value'
+
+
+def test_process_pytest_value_with_single_mark(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test processing value with a single pytest mark"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import _process_pytest_value
+
+    mark = pytest.mark.skip(reason='test')
+    value = ['param1', 'param2', (mark,)]
+    result = _process_pytest_value(value, 2)
+
+    assert result == pytest.param(*('param1', 'param2'), marks=(mark))
+    assert result.marks == (mark,)
+    assert result.values == ('param1', 'param2')
+
+
+def test_process_pytest_value_with_multiple_marks(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test processing value with multiple pytest marks"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import _process_pytest_value
+
+    marks = (pytest.mark.skip(reason='test'), pytest.mark.xfail())
+    value = ['param1', 'param2', marks]
+    result = _process_pytest_value(value, 2)
+
+    assert result == pytest.param(*('param1', 'param2'), marks=marks)
+    assert result.marks == marks
+    assert result.values == ('param1', 'param2')
+
+
+def test_idf_parametrize_basic(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test basic parametrize functionality"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import idf_parametrize
+
+    @idf_parametrize('param', ['value1', 'value2'], indirect=True)
+    def test_func():
+        pass
+
+    markers = [mark for mark in test_func.pytestmark if mark.name == 'parametrize']
+    assert len(markers) == 1
+    assert markers == [
+        (
+            pytest.mark.parametrize(
+                'param',
+                [pytest.param(*('value1',), marks=(), id=None), pytest.param(*('value2',), marks=(), id=None)],
+                indirect=True,
+            )
+        ).mark
+    ]  # Changed to indirect=True
+    assert markers[0].args[0] == 'param'
+    assert markers[0].args[1] == [
+        pytest.param(*('value1',), marks=(), id=None),
+        pytest.param(*('value2',), marks=(), id=None),
+    ]
+
+
+def test_idf_parametrize_with_target(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test parametrize with target expansion"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from esp_bool_parser import SUPPORTED_TARGETS
+    from pytest_embedded_idf.utils import idf_parametrize
+
+    @idf_parametrize('target,param', [('supported_targets', 'something')], indirect=True)
+    def test_func():
+        pass
+
+    markers = [mark for mark in test_func.pytestmark if mark.name == 'parametrize']
+    assert len(markers) == 1
+
+    expected_params = [pytest.param(*(target, 'something'), marks=(), id=None) for target in SUPPORTED_TARGETS]
+
+    assert markers == [(pytest.mark.parametrize('target,param', expected_params, indirect=True)).mark]
+
+    assert markers[0].args[0] == 'target,param'
+    assert markers[0].args[1] == expected_params
+
+
+def test_idf_parametrize_with_marker(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test parametrize with pytest markers"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import idf_parametrize
+
+    mark = pytest.mark.skip(reason='test')
+
+    @idf_parametrize('param,markers', [('something', mark)], indirect=True)
+    def test_func():
+        pass
+
+    markers = [mark for mark in test_func.pytestmark if mark.name == 'parametrize']
+    assert len(markers) == 1
+
+    expected_params = [pytest.param(*('something',), marks=(mark,), id=None)]
+
+    assert markers == [(pytest.mark.parametrize('param', expected_params, indirect=True)).mark]
+
+    assert markers[0].args[0] == 'param'
+    assert markers[0].args[1] == expected_params
+
+
+def test_idf_parametrize_with_markers(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test parametrize with pytest markers"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import idf_parametrize
+
+    marks = (pytest.mark.skip(reason='test'), pytest.mark.skip(reason='wait for fix'))
+
+    @idf_parametrize('param,markers', [('something', marks)], indirect=True)
+    def test_func():
+        pass
+
+    markers = [mark for mark in test_func.pytestmark if mark.name == 'parametrize']
+    assert len(markers) == 1
+
+    expected_params = [pytest.param(*('something',), marks=marks, id=None)]
+
+    assert markers == [(pytest.mark.parametrize('param', expected_params, indirect=True)).mark]
+
+    assert markers[0].args[0] == 'param'
+    assert markers[0].args[1] == expected_params
+
+
+def test_idf_parametrize_invalid_params(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
+    """Test parametrize with invalid parameters"""
+    monkeypatch.setenv('IDF_PATH', str(testdir))
+    from pytest_embedded_idf.utils import idf_parametrize
+
+    with pytest.raises(ValueError):
+
+        @idf_parametrize('', [])
+        def test_func():
+            pass
