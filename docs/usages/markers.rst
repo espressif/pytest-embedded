@@ -96,6 +96,12 @@ However, you can propagate custom values by using the following:
    supported_targets.set(CUSTOM_SUPPORT_TARGETS)
    preview_targets.set(CUSTOM_SUPPORT_TARGETS)
 
+Another way to override ``supported_targets`` and ``preview_targets`` is by using command-line arguments:
+
+.. code:: sh
+
+   pytest --supported-targets esp32,esp32c3 --preview-targets esp32p4 ...
+
 **Example:**
 
 .. code:: python

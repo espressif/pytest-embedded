@@ -209,6 +209,12 @@ def pytest_addoption(parser):
     )
     idf_group = parser.getgroup('embedded-idf')
     idf_group.addoption(
+        '--supported-targets', help='Comma-separated list of supported targets for the test case. (Default: None)'
+    )
+    idf_group.addoption(
+        '--preview-targets', help='Comma-separated list of preview targets for the test case. (Default: None)'
+    )
+    idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
         '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
@@ -1206,6 +1212,16 @@ def pytest_configure(config: Config) -> None:
         config.option.xmlpath, config.getoption('unity_test_report_mode', UnityTestReportMode.REPLACE.value)
     )
     config.stash[_junit_report_path_key] = config.option.xmlpath
+
+    supported_targets_args = config.getoption('supported_targets', None)
+    preview_targets_args = config.getoption('preview_targets', None)
+    if supported_targets_args or preview_targets_args:
+        from pytest_embedded_idf.utils import preview_targets, supported_targets
+
+        if supported_targets_args is not None:
+            supported_targets.set([_t.strip() for _t in supported_targets_args.split(',')])
+        if preview_targets_args:
+            preview_targets.set([_t.strip() for _t in preview_targets_args.split(',')])
 
     config.stash[_pytest_embedded_key] = PytestEmbedded(
         parallel_count=config.getoption('parallel_count'),
