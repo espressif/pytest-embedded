@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.15.0 (2025-02-20)
+
+### Feat
+
+- **idf**: support pass `--supported_targets` and `preview_targets` as CLI args
+- **idf**: support customisation for supported_targets and preview_targets by contextvar
+
 ## v1.14.0 (2025-02-11)
 
 ### Feat
