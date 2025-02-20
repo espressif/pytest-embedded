@@ -81,6 +81,27 @@ Target Extension
 
 In scenarios where the supported targets are [esp32, esp32c3, esp32s3], ``idf_parametrize`` simplifies the process of creating parameterized tests by automatically expanding the target list.
 
+By default, the values for ``SUPPORTED_TARGETS`` and ``PREVIEW_TARGETS`` are imported from:
+
+.. code:: python
+
+   from esp_bool_parser import PREVIEW_TARGETS, SUPPORTED_TARGETS
+
+However, you can propagate custom values by using the following:
+
+.. code:: python
+
+   from pytest_embedded_idf.utils import supported_targets, preview_targets
+
+   supported_targets.set(CUSTOM_SUPPORT_TARGETS)
+   preview_targets.set(CUSTOM_SUPPORT_TARGETS)
+
+Another way to override ``supported_targets`` and ``preview_targets`` is by using command-line arguments:
+
+.. code:: sh
+
+   pytest --supported-targets esp32,esp32c3 --preview-targets esp32p4 ...
+
 **Example:**
 
 .. code:: python

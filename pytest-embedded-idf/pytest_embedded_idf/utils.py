@@ -1,7 +1,11 @@
 import typing as t
+from contextvars import ContextVar
 
 import pytest
 from esp_bool_parser import PREVIEW_TARGETS, SUPPORTED_TARGETS
+
+supported_targets = ContextVar('supported_targets', default=SUPPORTED_TARGETS)
+preview_targets = ContextVar('preview_targets', default=PREVIEW_TARGETS)
 
 
 def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t.List[t.List[t.Any]]:
@@ -13,11 +17,11 @@ def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t
         target = value[target_index]
         if target == 'supported_targets':
             expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in SUPPORTED_TARGETS
+                value[:target_index] + [target] + value[target_index + 1 :] for target in supported_targets.get()
             ])
         elif target == 'preview_targets':
             expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in PREVIEW_TARGETS
+                value[:target_index] + [target] + value[target_index + 1 :] for target in preview_targets.get()
             ])
         else:
             expanded_values.append(value)
