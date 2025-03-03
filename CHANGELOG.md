@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.15.1 (2025-03-03)
+
+### Fix
+
+- **qemu**: limit RISCV flash image sizes to 2, 4, 8, 16MB
+
 ## v1.15.0 (2025-02-20)
 
 ### Feat

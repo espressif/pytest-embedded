@@ -19,4 +19,4 @@ __getattr__ = lazy_load(
 __all__ = ['ArduinoApp', 'ArduinoSerial']
 
 
-__version__ = '1.15.0'
+__version__ = '1.15.1'
