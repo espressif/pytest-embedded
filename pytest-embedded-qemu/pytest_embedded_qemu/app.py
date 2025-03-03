@@ -25,16 +25,10 @@ class IdfFlashImageMaker:
     ]
 
     RISCV_FLASH_BIN_SIZES: t.ClassVar[t.List[t.Tuple[int, str]]] = [
-        (256 * 1024, '256KB'),
-        (512 * 1024, '512KB'),
-        (1 * 1024 * 1024, '1MB'),
         (2 * 1024 * 1024, '2MB'),
         (4 * 1024 * 1024, '4MB'),
         (8 * 1024 * 1024, '8MB'),
         (16 * 1024 * 1024, '16MB'),
-        (32 * 1024 * 1024, '32MB'),
-        (64 * 1024 * 1024, '64MB'),
-        (128 * 1024 * 1024, '128MB'),
     ]
 
     def __init__(self, app: 'QemuApp', image_path: str, *, qemu_version: Version = Version('8.0.0')):
