@@ -152,6 +152,23 @@ Another way to override ``supported_targets`` and ``preview_targets`` is by usin
    -  -  esp32s3
       -  psram
 
+SOC Related Targets
+-------------------
+
+If you need to retrieve targets filtered by a specific SOC attribute, you can use the ``soc_filtered_targets`` function.
+
+This function processes both ``supported`` and ``preview`` targets, applies the specified filter, and returns a list of targets that match the given SOC attribute.
+
+**Example:**
+
+.. code:: python
+
+   from pytest_embedded_idf.utils import soc_filtered_targets
+
+   @idf_parametrize('target', soc_filtered_targets('SOC_ULP_SUPPORTED != 1'), indirect=['target'])
+   def test_ulp_supported_targets(case_tester) -> None:
+       pass
+
 Markers
 -------
 
