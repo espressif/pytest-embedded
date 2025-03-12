@@ -3,6 +3,7 @@ from contextvars import ContextVar
 
 import pytest
 from esp_bool_parser import PREVIEW_TARGETS, SUPPORTED_TARGETS
+from esp_bool_parser.bool_parser import parse_bool_expr
 
 supported_targets = ContextVar('supported_targets', default=SUPPORTED_TARGETS)
 preview_targets = ContextVar('preview_targets', default=PREVIEW_TARGETS)
@@ -90,3 +91,12 @@ def idf_parametrize(
         return pytest.mark.parametrize(','.join(param_list), processed_values, indirect=indirect)(func)
 
     return decorator
+
+
+def soc_filtered_targets(soc_statement: str) -> t.List[str]:
+    stm = parse_bool_expr(soc_statement)
+    result = []
+    for target in [*supported_targets.get(), *preview_targets.get()]:
+        if stm.get_value(target, ''):
+            result.append(target)
+    return result
