@@ -152,6 +152,50 @@ Another way to override ``supported_targets`` and ``preview_targets`` is by usin
    -  -  esp32s3
       -  psram
 
+SOC Related Targets
+-------------------
+
+If you need to retrieve targets filtered by a specific SOC attribute, you can use the ``soc_filtered_targets`` function.
+
+This function processes both ``supported_targets`` and ``preview_targets``, applies the specified filter, and returns a list of targets that match the given SOC statement.
+
+**Function Signature**
+
+.. code:: python
+
+   def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> list[str]:
+       """Filters targets based on a given SOC (System on Chip) statement."""
+
+**Valid Target Categories**
+
+The ``targets`` parameter determines which target sets should be considered:
+
+-  ``"supported_targets"``: Includes only officially supported targets.
+-  ``"preview_targets"``: Includes only preview (experimental) targets.
+-  ``"all"`` (default): Includes both supported and preview targets.
+
+**Example:**
+
+Filter all targets that support ULP:
+
+.. code:: python
+
+   from pytest_embedded_idf.utils import soc_filtered_targets
+
+   @idf_parametrize('target', soc_filtered_targets('SOC_ULP_SUPPORTED != 1'), indirect=['target'])
+   def test_all_targets_which_support_ulp(case_tester) -> None:
+       pass
+
+Filter only **supported** targets that support ULP:
+
+.. code:: python
+
+   from pytest_embedded_idf.utils import soc_filtered_targets
+
+   @idf_parametrize('target', soc_filtered_targets('SOC_ULP_SUPPORTED != 1', targets="supported_targets"), indirect=['target'])
+   def test_only_supported_targets_which_support_ulp(case_tester) -> None:
+       pass
+
 Markers
 -------
 
