@@ -1167,6 +1167,9 @@ def test_soc_filtered_targets(testdir, copy_mock_esp_idf, monkeypatch):  # noqa:
         'esp32h2',
         'esp32c5',
     ]
+    assert soc_filtered_targets('SOC_A == 1', 'all') == ['esp32c3', 'esp32s3', 'esp32c6', 'esp32c5']
+    assert soc_filtered_targets('SOC_A == 1', targets='supported_targets') == ['esp32c3', 'esp32s3', 'esp32c6']
+    assert soc_filtered_targets('SOC_A == 1', targets='preview_targets') == ['esp32c5']
 
 
 def test_skip_if_soc_target_in_args(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001

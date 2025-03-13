@@ -93,10 +93,31 @@ def idf_parametrize(
     return decorator
 
 
-def soc_filtered_targets(soc_statement: str) -> t.List[str]:
+ValidTargets = t.Literal['supported_targets', 'preview_targets', 'all']
+
+
+def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> t.List[str]:
+    """Filters targets based on a given SOC (System on Chip) statement.
+
+    Args:
+        soc_statement (str): A boolean expression used to filter targets.
+        targets (ValidTargets, optional): Specifies which target set to filter.
+            - "supported_targets": Filters only supported targets.
+            - "preview_targets": Filters only preview targets.
+            - "all": Filters both supported and preview targets.
+            Defaults to "all".
+
+    Returns:
+        List[str]: A list of targets that satisfy the given SOC statement.
+    """
+    target_list = []
+    target_list.extend(supported_targets.get()) if targets in ['all', 'supported_targets'] else []
+    target_list.extend(preview_targets.get()) if targets in ['all', 'preview_targets'] else []
+
     stm = parse_bool_expr(soc_statement)
+
     result = []
-    for target in [*supported_targets.get(), *preview_targets.get()]:
+    for target in target_list:
         if stm.get_value(target, ''):
             result.append(target)
     return result
