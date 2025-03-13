@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.16.0 (2025-03-13)
+
+### Feat
+
+- **idf**: Support selecting targets by soc caps in `idf_parametrize`
+
 ## v1.15.1 (2025-03-03)
 
 ### Fix
