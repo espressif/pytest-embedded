@@ -16,6 +16,10 @@ select = [
     'RUF',  # Ruff-specific rules
 ]
 
+ignore = [
+    'LOG015',  # use pytest logging
+]
+
 [format]
 quote-style = "single"
 exclude = [
