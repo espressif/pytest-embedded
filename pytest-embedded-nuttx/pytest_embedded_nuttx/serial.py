@@ -16,7 +16,6 @@ class NuttxSerial(EspSerial):
     # Default offset for the primary MCUBoot slot across
     # all Espressif devices on NuttX
     MCUBOOT_PRIMARY_SLOT_OFFSET = 0x10000
-    FLASH_BAUDRATE = 921600
     SERIAL_BAUDRATE = 115200
 
     binary_offsets: ClassVar[Dict[str, int]] = {
@@ -103,7 +102,7 @@ class NuttxSerial(EspSerial):
                 '--port',
                 self.port,
                 '--baud',
-                str(self.FLASH_BAUDRATE),
+                str(self.esptool_baud),
                 'write_flash',
                 *flash_files,
                 *flash_settings,
