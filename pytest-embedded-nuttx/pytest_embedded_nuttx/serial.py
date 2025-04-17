@@ -76,6 +76,12 @@ class NuttxSerial(EspSerial):
         # Flash Mode
         self.flash_mode = get_key_from_value(FLASH_MODES, image.flash_mode)
 
+        # From esp-idf/components/esptool_py:
+        # We use esptool.py to flash bootloader in dio mode for QIO/QOUT, bootloader then
+        # upgrades itself to quad mode during initialization.
+        if self.flash_mode in ('qio', 'qout'):
+            self.flash_mode = 'dio'
+
     @EspSerial.use_esptool()
     def flash(self) -> None:
         """Flash the binary files to the board."""
