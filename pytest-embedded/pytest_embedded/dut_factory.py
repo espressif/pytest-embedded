@@ -243,7 +243,6 @@ def _fixture_classes_and_options_fn(
                     kwargs[fixture].update({
                         'app': None,
                         'baud': int(baud or NuttxSerial.SERIAL_BAUDRATE),
-                        'esptool_baud': int(os.getenv('ESPBAUD') or esptool_baud or NuttxSerial.FLASH_BAUDRATE),
                     })
                 else:
                     from pytest_embedded_serial_esp import EspSerial
