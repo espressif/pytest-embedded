@@ -1,3 +1,4 @@
+import sys
 import typing as t
 from contextvars import ContextVar
 
@@ -7,6 +8,12 @@ from esp_bool_parser.bool_parser import parse_bool_expr
 
 supported_targets = ContextVar('supported_targets', default=SUPPORTED_TARGETS)
 preview_targets = ContextVar('preview_targets', default=PREVIEW_TARGETS)
+
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 
 def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t.List[t.List[t.Any]]:
@@ -93,7 +100,7 @@ def idf_parametrize(
     return decorator
 
 
-ValidTargets = t.Literal['supported_targets', 'preview_targets', 'all']
+ValidTargets = Literal['supported_targets', 'preview_targets', 'all']
 
 
 def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> t.List[str]:
