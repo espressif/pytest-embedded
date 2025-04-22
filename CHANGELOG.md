@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v1.16.1 (2025-04-22)
+
+### Fix
+
+- typing.Literal not working in python 3.7
+- **nuttx**: use baudrate from EspSerial in EspNuttx
+- **nuttx**:flash mode exception on Nuttx
+
 ## v1.16.0 (2025-03-13)
 
 ### Feat
