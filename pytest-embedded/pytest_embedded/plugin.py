@@ -17,6 +17,7 @@ import xml.dom.minidom
 from collections import Counter
 from operator import itemgetter
 
+import filelock
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import (
@@ -625,18 +626,20 @@ def cache_dir(request: FixtureRequest) -> str:
 def port_target_cache(cache_dir) -> t.Dict[str, str]:
     """Session scoped port-target cache, for esp only"""
     _cache_file_path = os.path.join(cache_dir, 'port_target_cache')
+    lock = filelock.FileLock(f'{_cache_file_path}.lock')
     resp: t.Dict[str, str] = {}
-    try:
-        with shelve.open(_cache_file_path) as f:
-            resp = dict(f)
-    except dbm.error:
-        os.remove(_cache_file_path)
+    with lock:
+        try:
+            with shelve.open(_cache_file_path) as f:
+                resp = dict(f)
+        except dbm.error:
+            os.remove(_cache_file_path)
 
     yield resp
-
-    with shelve.open(_cache_file_path) as f:
-        for k, v in resp.items():
-            f[k] = v
+    with lock:
+        with shelve.open(_cache_file_path) as f:
+            for k, v in resp.items():
+                f[k] = v
 
 
 @pytest.fixture(scope='session')
