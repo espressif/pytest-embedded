@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.16.2 (2025-06-19)
+
+### Fix
+
+- synced cache file by adding support for filelock
+
 ## v1.16.1 (2025-04-22)
 
 ### Fix

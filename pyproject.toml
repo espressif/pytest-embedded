@@ -1,6 +1,6 @@
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.16.1"
+version = "1.16.2"
 tag_format = "v$version"
 version_files = [
     "pytest-embedded/pytest_embedded/__init__.py",
@@ -26,3 +26,8 @@ version_files = [
 [tool.pytest.ini_options]
 norecursedirs = 'examples/*'
 addopts = "-s"
+
+filterwarnings = [
+    "ignore::FutureWarning",
+]
+junit_family = "xunit1"
