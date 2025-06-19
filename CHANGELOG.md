@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v1.17.0a0 (2025-08-07)
+
+### Feat
+
+- **esp**: compatible with esptool 5
+- add --port-by-serial option to filter ports by serial number
+
+## v1.16.2 (2025-06-19)
+
+### Fix
+
+- synced cache file by adding support for filelock
+
 ## v1.16.1 (2025-04-22)
 
 ### Fix
