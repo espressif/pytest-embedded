@@ -204,6 +204,9 @@ def pytest_addoption(parser):
         help='MAC address of the board. (Default: None)',
     )
     esp_group.addoption(
+        '--port-serial-number', help='Comma-separated list of serial numbers to filter ports by. (Default: None)'
+    )
+    esp_group.addoption(
         '--esp-flash-force',
         action='store_true',
         help='force mode for esptool',
@@ -855,6 +858,13 @@ def port_mac(request: FixtureRequest) -> t.Optional[str]:
     return _request_param_or_config_option_or_default(request, 'port_mac', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def port_serial_number(request: FixtureRequest) -> t.Optional[str]:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'port_serial_number', None)
+
+
 #######
 # idf #
 #######
@@ -1044,6 +1054,7 @@ def parametrize_fixtures(
     app_path,
     build_dir,
     port,
+    port_serial_number,
     port_location,
     port_mac,
     target,
