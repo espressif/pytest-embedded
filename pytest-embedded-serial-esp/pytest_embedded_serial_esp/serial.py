@@ -55,6 +55,7 @@ class EspSerial(Serial):
         target: Optional[str] = None,
         beta_target: Optional[str] = None,
         port: Optional[str] = None,
+        port_serial_number: Optional[str] = None,
         port_mac: Optional[str] = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
@@ -66,11 +67,14 @@ class EspSerial(Serial):
         **kwargs,
     ) -> None:
         self._meta = meta
+        filters = {}
+        if port_serial_number:
+            filters['serials'] = [s.strip() for s in port_serial_number.split(',') if s.strip()]
 
         esptool_target = beta_target or target or 'auto'
         if port is None or port.endswith('*'):
             port_filter = port.strip('*') if port else ''
-            available_ports = [_p for _p in esptool.get_port_list() if port_filter in _p]
+            available_ports = [_p for _p in esptool.get_port_list(**filters) if port_filter in _p]
             ports = list(set(available_ports) - set(self.occupied_ports.keys()) - set(ports_to_occupy))
 
             # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports

@@ -32,7 +32,7 @@ requires-python = ">=3.7"
 
 dependencies = [
     "pytest-embedded-serial~=1.16.1",
-    "esptool~=4.5",
+    "esptool~=4.9",
 ]
 
 [project.urls]

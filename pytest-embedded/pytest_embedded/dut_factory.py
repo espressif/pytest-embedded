@@ -120,6 +120,7 @@ def _fixture_classes_and_options_fn(
     app_path,
     build_dir,
     port,
+    port_serial_number,
     port_location,
     port_mac,
     target,
@@ -210,6 +211,7 @@ def _fixture_classes_and_options_fn(
                     'target': target,
                     'beta_target': beta_target,
                     'port': os.getenv('ESPPORT') or port,
+                    'port_serial_number': port_serial_number,
                     'port_location': port_location,
                     'port_mac': port_mac,
                     'baud': int(baud or EspSerial.DEFAULT_BAUDRATE),
@@ -632,6 +634,7 @@ class DutFactory:
         app_path: str = '',
         build_dir: str = 'build',
         port: t.Optional[str] = None,
+        port_serial_number: t.Optional[str] = None,
         port_location: t.Optional[str] = None,
         port_mac: t.Optional[str] = None,
         target: t.Optional[str] = None,
@@ -680,6 +683,7 @@ class DutFactory:
             app_path: Path to the application.
             build_dir: Directory for build output (default is 'build').
             port: Port configuration.
+            port_serial_number: Filters the port based on the specified serial number.
             port_location: Port location.
             port_mac: Port MAC address.
             target: Target configuration.
@@ -744,6 +748,7 @@ class DutFactory:
                 'app_path': app_path,
                 'build_dir': build_dir,
                 'port': port,
+                'port_serial_number': port_serial_number,
                 'port_location': port_location,
                 'port_mac': port_mac,
                 'target': target,
