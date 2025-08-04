@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "**.py"
+      - "*/pyproject.toml"
       - .github/workflows/test-python.yml
       - "!docs/**"
   push:
