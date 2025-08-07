@@ -26,3 +26,7 @@ version_files = [
 [tool.pytest.ini_options]
 norecursedirs = 'examples/*'
 addopts = "-s"
+filterwarnings = [
+    "ignore::FutureWarning",
+]
+junit_family = "xunit1"

@@ -197,7 +197,7 @@ def test_idf_serial_flash_with_erase_nvs(testdir):
         import pytest
 
         def test_idf_serial_flash_with_erase_nvs(dut):
-            dut.expect('Erasing region')  # from "erase-nvs"
+            dut.expect('region')  # from "erase-nvs"
             dut.expect('Hash of data verified.')  # from flash
             dut.expect('Hello world!')
             dut.expect('Restarting')
