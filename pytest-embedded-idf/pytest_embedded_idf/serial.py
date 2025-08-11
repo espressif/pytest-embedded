@@ -156,7 +156,7 @@ class IdfSerial(EspSerial):
                 elif v:
                     _args.append(f'--{k}')
             else:
-                _args.append(f'--{k}')
+                _args.append(f'--{k.replace("_", "-")}')
                 if k == 'after':
                     _args.append('hard_reset')
                 else:
