@@ -6,20 +6,6 @@ Wokwi supports most ESP32 targets, including: esp32, esp32s2, esp32s3, esp32c3, 
 
 Running the tests with Wokwi requires an internet connection. Your firmware is uploaded to the Wokwi server for the duration of the simulation, but it is not saved on the server. On-premises Wokwi installations are available for enterprise customers.
 
-#### Wokwi CLI installation
-
-The Wokwi plugin uses the [Wokwi CLI](https://github.com/wokwi/wokwi-cli) to interact with the wokwi simulation server. You can download the precompiled CLI binaries from the [releases page](https://github.com/wokwi/wokwi-cli/releases). Alternatively, on Linux or Mac OS, you can install the CLI using the following command:
-
-```bash
-curl -L https://wokwi.com/ci/install.sh | sh
-```
-
-And on Windows:
-
-```powershell
-iwr https://wokwi.com/ci/install.ps1 -useb | iex
-```
-
 #### Wokwi API Tokens
 
 Before using this plugin, you need to create a free Wokwi account and [generate an API key](https://wokwi.com/dashboard/ci). You can then set the `WOKWI_CLI_TOKEN` environment variable to the API key.
@@ -44,8 +30,32 @@ To run your tests with Wokwi, make sure to specify the `wokwi` service when runn
 pytest --embedded-services idf,wokwi
 ```
 
-To limit the amount of simulation time, use the `--wokwi-timeout` flag. For example, to set the simulation time limit to 60 seconds (60000 milliseconds):
+#### Writing Tests
 
-```
-pytest --embedded-services idf,wokwi --wokwi-timeout=60000
+When writing tests for your firmware, you can use the same pytest fixtures and assertions as you would for local testing. The main difference is that your tests will be executed in the Wokwi simulation environment and you have access to the Wokwi API for controlling the simulation through the `wokwi` fixture.
+
+All interactions with the Wokwi simulation is through the `wokwi.client` - [wokwi-python-client](https://github.com/wokwi/wokwi-python-client)
+
+For example, you can use `wokwi.client.set_control()` to control virtual components in the simulation, such as buttons, LEDs, and other peripherals.
+Whole documentations can be found at [Wokwi Documentation](https://wokwi.github.io/wokwi-python-client/)
+
+Button test:
+```py
+import logging
+from pytest_embedded_wokwi import Wokwi
+from pytest_embedded import Dut
+
+
+def test_gpio(dut: Dut, wokwi: Wokwi):
+    LOGGER = logging.getLogger(__name__)
+
+    LOGGER.info("Waiting for Button test begin...")
+    dut.expect_exact("Butston test")
+
+    for i in range(3):
+        LOGGER.info(f"Setting button pressed for {i + 1} seconds")
+        wokwi.client.set_control("btn1", "pressed", 1)
+
+        dut.expect_exact(f"Button pressed {i + 1} times")
+        wokwi.client.set_control("btn1", "pressed", 0)
 ```
