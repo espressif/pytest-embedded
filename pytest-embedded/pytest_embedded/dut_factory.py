@@ -145,9 +145,6 @@ def _fixture_classes_and_options_fn(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
-    wokwi_cli_path,
-    wokwi_timeout,
-    wokwi_scenario,
     wokwi_diagram,
     skip_regenerate_image,
     encrypt,
@@ -313,9 +310,6 @@ def _fixture_classes_and_options_fn(
 
                 classes[fixture] = Wokwi
                 kwargs[fixture].update({
-                    'wokwi_cli_path': wokwi_cli_path,
-                    'wokwi_timeout': wokwi_timeout,
-                    'wokwi_scenario': wokwi_scenario,
                     'wokwi_diagram': wokwi_diagram,
                     'msg_queue': msg_queue,
                     'app': None,
@@ -659,9 +653,6 @@ class DutFactory:
         qemu_prog_path: t.Optional[str] = None,
         qemu_cli_args: t.Optional[str] = None,
         qemu_extra_args: t.Optional[str] = None,
-        wokwi_cli_path: t.Optional[str] = None,
-        wokwi_timeout: t.Optional[int] = 0,
-        wokwi_scenario: t.Optional[str] = None,
         wokwi_diagram: t.Optional[str] = None,
         skip_regenerate_image: t.Optional[bool] = None,
         encrypt: t.Optional[bool] = None,
@@ -708,9 +699,6 @@ class DutFactory:
             qemu_prog_path: QEMU program path.
             qemu_cli_args: QEMU CLI arguments.
             qemu_extra_args: Additional QEMU arguments.
-            wokwi_cli_path: Wokwi CLI path.
-            wokwi_timeout: Wokwi timeout.
-            wokwi_scenario: Wokwi scenario path.
             wokwi_diagram: Wokwi diagram path.
             skip_regenerate_image: Skip image regeneration flag.
             encrypt: Encryption flag.
@@ -773,9 +761,6 @@ class DutFactory:
                 'qemu_prog_path': qemu_prog_path,
                 'qemu_cli_args': qemu_cli_args,
                 'qemu_extra_args': qemu_extra_args,
-                'wokwi_cli_path': wokwi_cli_path,
-                'wokwi_timeout': wokwi_timeout,
-                'wokwi_scenario': wokwi_scenario,
                 'wokwi_diagram': wokwi_diagram,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,

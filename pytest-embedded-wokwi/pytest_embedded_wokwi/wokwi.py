@@ -43,9 +43,6 @@ class Wokwi(DuplicateStdoutPopen):
         firmware_resolver: IDFFirmwareResolver,
         wokwi_diagram: t.Optional[str] = None,
         app: t.Optional['IdfApp'] = None,
-        _wokwi_cli_path: t.Optional[str] = None,  # ignored for compatibility
-        _wokwi_timeout: t.Optional[int] = None,  # ignored for compatibility
-        _wokwi_scenario: t.Optional[str] = None,  # ignored for compatibility
         meta: t.Optional[Meta] = None,
         **kwargs,
     ):
@@ -74,12 +71,8 @@ class Wokwi(DuplicateStdoutPopen):
             self.create_diagram_json()
             wokwi_diagram = os.path.join(self.app.app_path, 'diagram.json')
 
-        # Filter out Wokwi-specific kwargs that shouldn't be passed to subprocess.Popen
-        wokwi_specific_kwargs = {'wokwi_timeout', 'wokwi_scenario', 'wokwi_diagram', 'firmware_resolver', 'app'}
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k not in wokwi_specific_kwargs}
-
         # Initialize parent class
-        super().__init__(msg_queue=msg_queue, meta=meta, **filtered_kwargs)
+        super().__init__(msg_queue=msg_queue, meta=meta, **kwargs)
 
         # Connect and start simulation
         try:
@@ -155,6 +148,7 @@ class Wokwi(DuplicateStdoutPopen):
     def __del__(self):
         """Destructor to ensure cleanup when object is garbage collected."""
         self.close()
+        super().__del__()
 
     def terminate(self):
         """Terminate the Wokwi connection."""

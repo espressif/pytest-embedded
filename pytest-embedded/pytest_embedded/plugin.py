@@ -298,20 +298,6 @@ def pytest_addoption(parser):
 
     wokwi_group = parser.getgroup('embedded-wokwi')
     wokwi_group.addoption(
-        '--wokwi-cli-path',
-        help='Path to the wokwi-cli program (Default: "wokwi-cli")',
-    )
-    wokwi_group.addoption(
-        '--wokwi-timeout',
-        default=86400000,
-        type=_gte_one_int,
-        help='Simulation timeout in milliseconds (Default: 86400000)',
-    )
-    wokwi_group.addoption(
-        '--wokwi-scenario',
-        help='Path to the wokwi scenario file (Default: None)',
-    )
-    wokwi_group.addoption(
         '--wokwi-diagram',
         help='Path to the wokwi diagram file (Default: None)',
     )
@@ -997,27 +983,6 @@ def keyfile(request: FixtureRequest) -> t.Optional[str]:
 #########
 @pytest.fixture
 @multi_dut_argument
-def wokwi_cli_path(request: FixtureRequest) -> t.Optional[str]:
-    """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'wokwi_cli_path', None)
-
-
-@pytest.fixture
-@multi_dut_argument
-def wokwi_timeout(request: FixtureRequest) -> t.Optional[str]:
-    """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'wokwi_timeout', None)
-
-
-@pytest.fixture
-@multi_dut_argument
-def wokwi_scenario(request: FixtureRequest) -> t.Optional[str]:
-    """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'wokwi_scenario', None)
-
-
-@pytest.fixture
-@multi_dut_argument
 def wokwi_diagram(request: FixtureRequest) -> t.Optional[str]:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'wokwi_diagram', None)
@@ -1079,9 +1044,6 @@ def parametrize_fixtures(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
-    wokwi_cli_path,
-    wokwi_timeout,
-    wokwi_scenario,
     wokwi_diagram,
     skip_regenerate_image,
     encrypt,
