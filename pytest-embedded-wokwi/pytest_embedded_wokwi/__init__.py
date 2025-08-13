@@ -3,11 +3,11 @@
 WOKWI_CLI_MINIMUM_VERSION = '0.10.1'
 
 from .dut import WokwiDut  # noqa
-from .wokwi_cli import WokwiCLI  # noqa
+from .wokwi import Wokwi  # noqa
 
 __all__ = [
     'WOKWI_CLI_MINIMUM_VERSION',
-    'WokwiCLI',
+    'Wokwi',
     'WokwiDut',
 ]
 

@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
-    from pytest_embedded_wokwi import WokwiCLI
+    from pytest_embedded_wokwi import Wokwi
 
 from . import App, Dut
 from .log import MessageQueue, PexpectProcess
@@ -309,9 +309,9 @@ def _fixture_classes_and_options_fn(
                 }
         elif fixture == 'wokwi':
             if 'wokwi' in _services:
-                from pytest_embedded_wokwi import WokwiCLI
+                from pytest_embedded_wokwi import Wokwi
 
-                classes[fixture] = WokwiCLI
+                classes[fixture] = Wokwi
                 kwargs[fixture].update({
                     'wokwi_cli_path': wokwi_cli_path,
                     'wokwi_timeout': wokwi_timeout,
@@ -495,7 +495,7 @@ def qemu_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Q
     return cls(**_drop_none_kwargs(kwargs))
 
 
-def wokwi_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['WokwiCLI']:
+def wokwi_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wokwi']:
     """A wokwi subprocess that could read/redirect/write"""
     if 'wokwi' not in _fixture_classes_and_options.classes:
         return None
@@ -515,7 +515,7 @@ def dut_gn(
     app: App,
     serial: t.Optional[t.Union['Serial', 'LinuxSerial']],
     qemu: t.Optional['Qemu'],
-    wokwi: t.Optional['WokwiCLI'],
+    wokwi: t.Optional['Wokwi'],
 ) -> t.Union[Dut, t.List[Dut]]:
     global DUT_GLOBAL_INDEX
     DUT_GLOBAL_INDEX += 1

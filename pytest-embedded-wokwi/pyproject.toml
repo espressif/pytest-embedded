@@ -7,6 +7,7 @@ name = "pytest-embedded-wokwi"
 authors = [
     {name = "Fu Hanxi", email = "fuhanxi@espressif.com"},
     {name = "Uri Shaked", email = "uri@wokwi.com"},
+    {name = "Jakub Andrysek", email = "jakub.andrysek@espressif.com"},
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -34,6 +35,8 @@ requires-python = ">=3.7"
 dependencies = [
     "pytest-embedded~=1.17.0a2",
     "toml~=0.10.2",
+    # Temporary workaround for Wokwi client - will be redirected to the official repo
+    "wokwi-client @ git+https://github.com/JakubAndrysek/wokwi-python-client.git@sync-wokwi-client",
 ]
 
 [project.optional-dependencies]

@@ -63,7 +63,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
-    from pytest_embedded_wokwi import WokwiCLI
+    from pytest_embedded_wokwi import Wokwi
 
 
 _T = t.TypeVar('_T')
@@ -1174,7 +1174,7 @@ def qemu(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Qemu
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['WokwiCLI']:
+def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wokwi']:
     """A wokwi subprocess that could read/redirect/write"""
     return wokwi_gn(**locals())
 
@@ -1188,7 +1188,7 @@ def dut(
     app: App,
     serial: t.Optional[t.Union['Serial', 'LinuxSerial']],
     qemu: t.Optional['Qemu'],
-    wokwi: t.Optional['WokwiCLI'],
+    wokwi: t.Optional['Wokwi'],
 ) -> t.Union[Dut, t.List[Dut]]:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
