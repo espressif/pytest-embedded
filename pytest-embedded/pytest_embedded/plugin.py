@@ -1309,6 +1309,7 @@ class PytestEmbedded:
     def pytest_collection_modifyitems(self, config: Config, items: t.List[Function]):
         # ------ add marker based on target ------
         if self.add_target_as_marker_with_amount or self.add_target_as_marker:
+            _new_markers: t.Set[str] = set()
             for item in items:
                 item_target = self.get_param(item, 'target')
                 if not item_target:
@@ -1323,6 +1324,11 @@ class PytestEmbedded:
                     _marker = targets_to_marker(to_list(parse_multi_dut_args(count, item_target)))
                 if self.add_target_as_marker:
                     _marker = '-'.join(to_list(parse_multi_dut_args(count, item_target)))
+                logging.debug(f'Adding marker {item_target} to {item.name}')
+                if _marker not in _new_markers:
+                    _new_markers.add(_marker)
+                    logging.debug(f'Registering marker: {_marker}')
+                    config.addinivalue_line('markers', _marker)
 
                 item.add_marker(_marker)
 
