@@ -124,13 +124,13 @@ class Wokwi(DuplicateStdoutPopen):
                 logging.debug(f'Error putting data in message queue: {e}')
 
         # Start monitoring in background
-        self.client.monitor_serial(serial_callback)
+        self.client.serial_monitor(serial_callback)
 
     def write(self, s: t.Union[str, bytes]) -> None:
         """Write data to the Wokwi serial interface."""
         try:
             data = s if isinstance(s, bytes) else s.encode('utf-8')
-            self.client.write_serial(data)
+            self.client.serial_write(data)
             logging.debug(f'{self.SOURCE} ->: {s}')
         except Exception as e:
             logging.error(f'Failed to write to Wokwi serial: {e}')
