@@ -143,12 +143,14 @@ class QemuApp(IdfApp):
         skip_regenerate_image: t.Optional[bool] = False,
         encrypt: t.Optional[bool] = False,
         keyfile: t.Optional[str] = None,
+        qemu_prog_path: t.Optional[str] = None,
         **kwargs,
     ):
         self._q = msg_queue
 
         super().__init__(**kwargs)
 
+        self.qemu_prog_path = qemu_prog_path or self.QEMU_PROG_FMT.format('xtensa' if self.is_xtensa else 'riscv32')
         self.image_path = qemu_image_path or os.path.join(self.binary_path, DEFAULT_IMAGE_FN)
         self.skip_regenerate_image = skip_regenerate_image
         self.encrypt = encrypt
@@ -158,10 +160,6 @@ class QemuApp(IdfApp):
             self.encrypted_image_path = os.path.join(self.binary_path, ENCRYPTED_IMAGE_FN)
 
         self.create_image()
-
-    @property
-    def qemu_prog_path(self) -> str:
-        return self.QEMU_PROG_FMT.format('xtensa' if self.is_xtensa else 'riscv32')
 
     @property
     def qemu_version(self) -> Version:
