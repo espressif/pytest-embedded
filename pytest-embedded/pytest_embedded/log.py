@@ -166,7 +166,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     SOURCE = 'POPEN'
     REDIRECT_CLS = _PopenRedirectProcess
 
-    def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], meta: Optional[Meta] = None, **kwargs):
+    def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]] = [], meta: Optional[Meta] = None, **kwargs):
         self._q = msg_queue
         self._p = None
 
@@ -188,16 +188,28 @@ class DuplicateStdoutPopen(subprocess.Popen):
         self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
 
-        kwargs.update({
-            'bufsize': 0,
-            'stdin': subprocess.PIPE,
-            'stdout': self._fw,
-            'stderr': self._fw,
-        })
-
         self._cmd = cmd
-        logging.info('Executing %s', ' '.join(cmd) if isinstance(cmd, list) else cmd)
-        super().__init__(cmd, **kwargs)
+
+        # Only start subprocess if command is not empty
+        if cmd and cmd != []:
+            kwargs.update({
+                'bufsize': 0,
+                'stdin': subprocess.PIPE,
+                'stdout': self._fw,
+                'stderr': self._fw,
+            })
+
+            logging.info('Executing %s', ' '.join(cmd) if isinstance(cmd, list) else cmd)
+            super().__init__(cmd, **kwargs)
+        else:
+            # For empty commands, initialize minimal subprocess.Popen attributes
+            logging.debug('Empty command provided, not starting subprocess')
+            self.args = cmd
+            self.returncode = None
+            self.pid = None
+            self.stdin = None
+            self.stdout = None
+            self.stderr = None
 
         # some sub classes does not need to redirect to the message queue, they use blocking-IO instead and
         # return the response immediately in `write()`
