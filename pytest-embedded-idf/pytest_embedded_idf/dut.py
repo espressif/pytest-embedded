@@ -114,7 +114,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             cmd = [
                 f'{self.toolchain_prefix}-gdb',
                 '--command',
-                f'{self.app.app_path}/build/prefix_map_gdbinit',
+                f'{self.app.app_path}/build/gdbinit/prefix_map',
                 '--batch',
                 '-n',
                 self.app.elf_file,

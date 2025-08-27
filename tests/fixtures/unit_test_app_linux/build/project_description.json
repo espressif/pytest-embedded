@@ -1405,5 +1405,4 @@
             "include_dirs": [ "include" ]
         }
     },
-    "debug_prefix_map_gdbinit": ""
 }

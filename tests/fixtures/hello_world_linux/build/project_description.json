@@ -21,5 +21,4 @@
     },
     "build_components" : [ "esp_common", "esp_hw_support", "esp_rom", "esp_system", "freertos", "hal", "heap", "linux", "log", "main", "soc", "" ],
     "build_component_paths" : [ "/home/aleksei/esp/esp-idf/components/esp_common", "/home/aleksei/esp/esp-idf/components/esp_hw_support", "/home/aleksei/esp/esp-idf/components/esp_rom", "/home/aleksei/esp/esp-idf/components/esp_system", "/home/aleksei/esp/esp-idf/components/freertos", "/home/aleksei/esp/esp-idf/components/hal", "/home/aleksei/esp/esp-idf/components/heap", "/home/aleksei/esp/esp-idf/components/linux", "/home/aleksei/esp/esp-idf/components/log", "/home/aleksei/esp/esp-idf/tools/test_apps/linux_compatible/hello_world_linux_compatible/main", "/home/aleksei/esp/esp-idf/components/soc", "" ],
-    "debug_prefix_map_gdbinit": ""
 }
