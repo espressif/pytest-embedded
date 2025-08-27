@@ -91,6 +91,14 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
 
         return os.path.realpath(script_filepath)
 
+    def _get_prefix_map_path(self) -> str:
+        primary = os.path.join(self.app.binary_path, 'gdbinit', 'prefix_map')
+        fallback = os.path.join(self.app.binary_path, 'prefix_map_gdbinit')
+
+        if os.path.exists(primary):
+            return primary
+        return fallback
+
     def _check_panic_decode_trigger(self):  # type: () -> None
         if not self.app.elf_file:
             logging.warning('No elf file found. Skipping decode panic output...')
@@ -114,7 +122,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             cmd = [
                 f'{self.toolchain_prefix}-gdb',
                 '--command',
-                f'{self.app.app_path}/build/prefix_map_gdbinit',
+                self._get_prefix_map_path(),
                 '--batch',
                 '-n',
                 self.app.elf_file,
