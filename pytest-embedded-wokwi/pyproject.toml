@@ -35,8 +35,7 @@ requires-python = ">=3.7"
 dependencies = [
     "pytest-embedded~=1.17.0a2",
     "toml~=0.10.2",
-    # Temporary workaround - will be fixed for stable release
-    "wokwi-client",
+    "wokwi-client>=0.1.1",
 ]
 
 [project.optional-dependencies]
