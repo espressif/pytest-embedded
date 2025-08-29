@@ -93,6 +93,8 @@ class Wokwi(DuplicateStdoutPopen):
         self.client.upload_file('pytest.bin', firmware_path)
         self.client.upload_file('pytest.elf', elf_path)
 
+        logging.info('Uploaded diagram and firmware to Wokwi. Starting simulation...')
+
         # Start simulation
         self.client.start_simulation(firmware='pytest.bin', elf='pytest.elf')
 
