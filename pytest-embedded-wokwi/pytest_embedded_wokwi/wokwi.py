@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import typing as t
+from pathlib import Path
 
 from packaging.version import Version
 from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
@@ -47,7 +48,6 @@ class Wokwi(DuplicateStdoutPopen):
         **kwargs,
     ):
         self.app = app
-        self.firmware_resolver = firmware_resolver
 
         # Get Wokwi API token
         token = os.getenv('WOKWI_CLI_TOKEN')
@@ -76,8 +76,11 @@ class Wokwi(DuplicateStdoutPopen):
 
         # Connect and start simulation
         try:
-            firmware_path = self.firmware_resolver.resolve_firmware(app)
-            self._setup_simulation(wokwi_diagram, firmware_path, app.elf_file)
+            flasher_args = firmware_resolver.resolve_firmware(app)
+            firmware_path = Path(flasher_args).as_posix()
+            elf_path = Path(app.elf_file).as_posix()
+
+            self._setup_simulation(wokwi_diagram, firmware_path, elf_path)
             self._start_serial_monitoring()
         except Exception as e:
             self.close()
@@ -90,13 +93,14 @@ class Wokwi(DuplicateStdoutPopen):
 
         # Upload files
         self.client.upload_file('diagram.json', diagram)
-        self.client.upload_file('pytest.bin', firmware_path)
+        firmware = self.client.upload_file('pytest.bin', firmware_path)
+
         self.client.upload_file('pytest.elf', elf_path)
 
         logging.info('Uploaded diagram and firmware to Wokwi. Starting simulation...')
 
         # Start simulation
-        self.client.start_simulation(firmware='pytest.bin', elf='pytest.elf')
+        self.client.start_simulation(firmware, elf='pytest.elf')
 
     def _start_serial_monitoring(self):
         """Start monitoring serial output and forward to stdout and message queue."""
