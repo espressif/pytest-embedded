@@ -8,7 +8,7 @@ import tempfile
 import textwrap
 import uuid
 from multiprocessing import queues
-from typing import AnyStr, List, Optional, Union
+from typing import AnyStr
 
 import pexpect.fdpexpect
 from pexpect import EOF, TIMEOUT
@@ -30,7 +30,7 @@ class MessageQueue(queues.Queue):
         super().__init__(*args, **kwargs)
 
     def put(self, obj, **kwargs):
-        if not isinstance(obj, (str, bytes)):
+        if not isinstance(obj, str | bytes):
             super().put(obj, **kwargs)
             return
 
@@ -116,7 +116,7 @@ class PexpectProcess(pexpect.fdpexpect.fdspawn):
         self.close()
 
 
-def live_print_call(*args, msg_queue: Optional[MessageQueue] = None, expect_returncode: int = 0, **kwargs):
+def live_print_call(*args, msg_queue: MessageQueue | None = None, expect_returncode: int = 0, **kwargs):
     """
     live print the `subprocess.Popen` process
 
@@ -166,7 +166,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     SOURCE = 'POPEN'
     REDIRECT_CLS = _PopenRedirectProcess
 
-    def __init__(self, msg_queue: MessageQueue, cmd: Union[str, List[str]], meta: Optional[Meta] = None, **kwargs):
+    def __init__(self, msg_queue: MessageQueue, cmd: str | list[str], meta: Meta | None = None, **kwargs):
         self._q = msg_queue
         self._p = None
 
@@ -188,12 +188,14 @@ class DuplicateStdoutPopen(subprocess.Popen):
         self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
 
-        kwargs.update({
-            'bufsize': 0,
-            'stdin': subprocess.PIPE,
-            'stdout': self._fw,
-            'stderr': self._fw,
-        })
+        kwargs.update(
+            {
+                'bufsize': 0,
+                'stdin': subprocess.PIPE,
+                'stdout': self._fw,
+                'stderr': self._fw,
+            }
+        )
 
         self._cmd = cmd
         logging.info('Executing %s', ' '.join(cmd) if isinstance(cmd, list) else cmd)

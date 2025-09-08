@@ -17,14 +17,14 @@ class IdfFlashImageMaker:
     Create a single image for QEMU based on the `IdfApp`'s partition table and all the flash files.
     """
 
-    XTENSA_FLASH_BIN_SIZES: t.ClassVar[t.List[t.Tuple[int, str]]] = [
+    XTENSA_FLASH_BIN_SIZES: t.ClassVar[list[tuple[int, str]]] = [
         (2 * 1024 * 1024, '2MB'),
         (4 * 1024 * 1024, '4MB'),
         (8 * 1024 * 1024, '8MB'),
         (16 * 1024 * 1024, '16MB'),
     ]
 
-    RISCV_FLASH_BIN_SIZES: t.ClassVar[t.List[t.Tuple[int, str]]] = [
+    RISCV_FLASH_BIN_SIZES: t.ClassVar[list[tuple[int, str]]] = [
         (2 * 1024 * 1024, '2MB'),
         (4 * 1024 * 1024, '4MB'),
         (8 * 1024 * 1024, '8MB'),
@@ -41,7 +41,7 @@ class IdfFlashImageMaker:
         self.image_path = image_path
         self.qemu_version = qemu_version
 
-    def _get_upper_bound(self, size: int, ranges: t.List[t.Tuple[int, str]]) -> str:
+    def _get_upper_bound(self, size: int, ranges: list[tuple[int, str]]) -> str:
         for r, s in ranges:
             if size <= r:
                 upper = s
@@ -139,11 +139,11 @@ class QemuApp(IdfApp):
     def __init__(
         self,
         msg_queue: MessageQueue,
-        qemu_image_path: t.Optional[str] = None,
-        skip_regenerate_image: t.Optional[bool] = False,
-        encrypt: t.Optional[bool] = False,
-        keyfile: t.Optional[str] = None,
-        qemu_prog_path: t.Optional[str] = None,
+        qemu_image_path: str | None = None,
+        skip_regenerate_image: bool | None = False,
+        encrypt: bool | None = False,
+        keyfile: str | None = None,
+        qemu_prog_path: str | None = None,
         **kwargs,
     ):
         self._q = msg_queue

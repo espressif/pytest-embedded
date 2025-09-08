@@ -5,7 +5,7 @@ import re
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 from functools import reduce
-from typing import Any, AnyStr, Dict, List, Optional
+from typing import Any, AnyStr
 from xml.sax.saxutils import escape
 
 from .utils import to_str
@@ -63,7 +63,7 @@ def escape_illegal_xml_chars(s: str) -> str:
     return ILLEGAL_XML_CHAR_REGEX.sub('', s)
 
 
-def escape_dict_value(d: Dict[str, Any]) -> Dict[str, str]:
+def escape_dict_value(d: dict[str, Any]) -> dict[str, str]:
     escaped_dict = {}
     for k, v in d.items():
         escaped_dict[k] = escape(str(v))
@@ -134,12 +134,12 @@ class TestCase:
 
 
 class TestSuite:
-    def __init__(self, name: Optional[str] = None, **kwargs):
+    def __init__(self, name: str | None = None, **kwargs):
         # required
         self.name = name or kwargs.pop('name')  # may overwrite later
 
         # default stats
-        self.attrs: Dict[str, Any] = {
+        self.attrs: dict[str, Any] = {
             'errors': 0,
             'failures': 0,
             'skipped': 0,
@@ -147,15 +147,15 @@ class TestSuite:
         }
         self.attrs.update(kwargs)
 
-        self.testcases: List[TestCase] = []
+        self.testcases: list[TestCase] = []
 
         self._xml = None
 
     @property
-    def failed_cases(self) -> List[TestCase]:
+    def failed_cases(self) -> list[TestCase]:
         return [case for case in self.testcases if case.result == 'FAIL']
 
-    def add_unity_test_cases(self, s: AnyStr, additional_attrs: Optional[Dict[str, Any]] = None) -> None:
+    def add_unity_test_cases(self, s: AnyStr, additional_attrs: dict[str, Any] | None = None) -> None:
         s = to_str(s)
 
         # check format
@@ -211,7 +211,7 @@ class JunitMerger:
     SUB_JUNIT_FILENAME = 'dut.xml'
     # multi-dut junit reports should be dut-[INDEX].xml
 
-    def __init__(self, main_junit: Optional[str], unity_test_report_mode: Optional[str] = None) -> None:
+    def __init__(self, main_junit: str | None, unity_test_report_mode: str | None = None) -> None:
         self.junit_path = main_junit
         self.unity_test_report_mode = unity_test_report_mode or UnityTestReportMode.REPLACE.value
 
@@ -231,7 +231,7 @@ class JunitMerger:
     def _int_add(*args) -> str:
         return reduce(lambda a, b: str(int(a) + int(b)), args)
 
-    def merge(self, junit_files: List[str]):
+    def merge(self, junit_files: list[str]):
         if not self.junit_path:
             return
 

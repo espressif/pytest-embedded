@@ -47,13 +47,13 @@ class UnittestMenuCase:
     #: Type of this case, which can be `normal` `multi_stage` or `multi_device`.
     type: str
     #: List of additional keywords of this case. For now, we have `disable` and `ignore`.
-    keywords: t.List[str]
+    keywords: list[str]
     #: List of groups of this case, this is usually the component which this case belongs to.
-    groups: t.List[str]
+    groups: list[str]
     #: Dict of attributes of this case, which is used to describe timeout duration,
-    attributes: t.Dict[str, t.Any]
+    attributes: dict[str, t.Any]
     #: List of dict of subcases of this case, if this case is a `multi_stage` or `multi_device` one.
-    subcases: t.List[t.Dict[str, t.Any]]
+    subcases: list[dict[str, t.Any]]
 
     @property
     def is_ignored(self):
@@ -66,9 +66,9 @@ class IdfUnityDutMixin:
     """
 
     def __init__(self, *args, **kwargs):
-        self._test_menu: t.List[UnittestMenuCase] = None  # type: ignore
+        self._test_menu: list[UnittestMenuCase] = None  # type: ignore
 
-        self._hard_reset_func: t.Optional[t.Callable] = None
+        self._hard_reset_func: t.Callable | None = None
 
         super().__init__(*args, **kwargs)
 
@@ -108,7 +108,7 @@ class IdfUnityDutMixin:
         ready_line: str = 'Press ENTER to see the list of tests',
         pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
         trigger: str = '',
-    ) -> t.List[UnittestMenuCase]:
+    ) -> list[UnittestMenuCase]:
         """
         Get test case list from test menu via UART print.
 
@@ -125,32 +125,8 @@ class IdfUnityDutMixin:
         res = self.confirm_write(trigger, expect_pattern=pattern)
         return self._parse_unity_menu_from_str(res.group(1).decode('utf8'))
 
-    def parse_test_menu(
-        self,
-        ready_line: str = 'Press ENTER to see the list of tests',
-        pattern="Here's the test menu, pick your combo:(.+)Enter test for running.",
-        trigger: str = '',
-    ) -> t.List[UnittestMenuCase]:
-        warnings.warn(
-            'Please use `dut.test_menu` property directly, '
-            'will rename this function to `_parse_test_menu` in release 2.0.0',
-            DeprecationWarning,
-        )
-
-        return self._parse_test_menu(ready_line, pattern, trigger)
-
     @staticmethod
-    def parse_unity_menu_from_str(s: str) -> t.List[UnittestMenuCase]:
-        warnings.warn(
-            'Please use `dut.test_menu` property directly, '
-            'will rename this function to `_parse_unity_menu_from_str` in release 2.0.0',
-            DeprecationWarning,
-        )
-
-        return IdfUnityDutMixin._parse_unity_menu_from_str(s)
-
-    @staticmethod
-    def _parse_unity_menu_from_str(s: str) -> t.List[UnittestMenuCase]:
+    def _parse_unity_menu_from_str(s: str) -> list[UnittestMenuCase]:
         """
         Parse test case menu from string to list of `UnittestMenuCase`.
 
@@ -238,7 +214,7 @@ class IdfUnityDutMixin:
             self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
 
     @property
-    def test_menu(self) -> t.List[UnittestMenuCase]:
+    def test_menu(self) -> list[UnittestMenuCase]:
         if self._test_menu is None:
             self._test_menu = self._parse_test_menu()
             logging.debug('Successfully parsed unity test menu')
@@ -296,7 +272,7 @@ class IdfUnityDutMixin:
         return wrapper
 
     def _add_single_unity_test_case(
-        self, case: UnittestMenuCase, log: t.Optional[t.AnyStr], additional_attrs: t.Optional[t.Dict[str, t.Any]] = None
+        self, case: UnittestMenuCase, log: t.AnyStr | None, additional_attrs: dict[str, t.Any] | None = None
     ):
         if log:
             # check format
@@ -448,12 +424,12 @@ class IdfUnityDutMixin:
 
     def run_all_single_board_cases(
         self,
-        group: t.Optional[t.Union[str, list]] = None,
+        group: str | list | None = None,
         reset: bool = False,
         timeout: float = 30,
         run_ignore_cases: bool = False,
-        name: t.Optional[t.Union[str, list]] = None,
-        attributes: t.Optional[dict] = None,
+        name: str | list | None = None,
+        attributes: dict | None = None,
         dry_run: bool = False,
     ) -> None:
         """
@@ -477,11 +453,11 @@ class IdfUnityDutMixin:
         if group is None:
             group = []
         if isinstance(group, str):
-            group: t.List[str] = [group]
-        group: t.List[t.List[str]] = [[_and.strip() for _and in _or.split('&')] for _or in group]
+            group: list[str] = [group]
+        group: list[list[str]] = [[_and.strip() for _and in _or.split('&')] for _or in group]
 
         if isinstance(name, str):
-            name: t.List[str] = [name]
+            name: list[str] = [name]
 
         for case in self.test_menu:
             selected = self._select_to_run(group, name, attributes, case.groups, case.name, case.attributes)
@@ -508,7 +484,7 @@ class _MultiDevTestDut:
     WAIT_SIGNAL_PREFIX = 'Waiting for signal: '
     UNITY_SEND_SIGNAL_REGEX = SEND_SIGNAL_PREFIX + r'\[(.*?)\]!'
     UNITY_WAIT_SIGNAL_REGEX = WAIT_SIGNAL_PREFIX + r'\[(.*?)\]!'
-    signal_pattern_list: t.ClassVar[t.List[str]] = [
+    signal_pattern_list: t.ClassVar[list[str]] = [
         UNITY_SEND_SIGNAL_REGEX,  # The dut send a signal
         UNITY_WAIT_SIGNAL_REGEX,  # The dut is blocked and waiting for a signal
         UNITY_SUMMARY_LINE_REGEX,  # Means the case finished
@@ -653,7 +629,7 @@ class _MultiDevTestDut:
                 if time.perf_counter() - start > timeout:
                     raise e
 
-    def process_raw_report_data(self, raw_data_to_report) -> t.Dict:
+    def process_raw_report_data(self, raw_data_to_report) -> dict:
         additional_attrs = {}
         if isinstance(raw_data_to_report, tuple) and len(raw_data_to_report) == 2:
             log = str(raw_data_to_report[0])
@@ -720,7 +696,7 @@ class MultiDevRunTestManager:
 
     def __init__(self, duts, case, start_retry, wait_for_menu_timeout, runtest_timeout):
         self.case = case
-        self.workers: t.List[_MultiDevTestDut] = []
+        self.workers: list[_MultiDevTestDut] = []
         shared_query = [[] for _ in case.subcases]
         for sub_case in case.subcases:
             index: int
@@ -770,7 +746,7 @@ class MultiDevRunTestManager:
                 _t.close()
 
     @staticmethod
-    def get_merge_data(test_cases_attr: t.List[t.Dict]) -> t.Dict:
+    def get_merge_data(test_cases_attr: list[dict]) -> dict:
         output = {}
         results = set()
         time_attr = 0.0
@@ -825,13 +801,13 @@ class CaseTester:
         test_menu (t.List[UnittestMenuCase]): The list of the cases
     """
 
-    def __init__(self, dut: t.Union['IdfDut', t.List['IdfDut']]) -> None:  # type: ignore
+    def __init__(self, dut: t.Union['IdfDut', list['IdfDut']]) -> None:  # type: ignore
         """
         Create the object for every dut and put them into the group
         """
         if isinstance(dut, Iterable):
             self.is_multi_dut = True
-            self.dut: t.List[IdfDut] = list(dut)
+            self.dut: list[IdfDut] = list(dut)
             self.first_dut = self.dut[0]
             self.test_menu = self.first_dut.test_menu
         else:

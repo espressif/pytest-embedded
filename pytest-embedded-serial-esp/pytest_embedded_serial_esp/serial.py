@@ -2,9 +2,6 @@ import contextlib
 import functools
 import logging
 import subprocess
-import warnings
-from typing import List, Optional
-from warnings import warn
 
 import esptool
 from esptool import __version__ as ESPTOOL_VERSION
@@ -29,18 +26,6 @@ def _is_port_mac_verified(pexpect_proc: PexpectProcess, port: str, port_mac: str
             return True
 
 
-class EsptoolArgs:
-    """
-    fake args object, this is a hack until esptool Python API is improved
-    """
-
-    def __init__(self, **kwargs):
-        warnings.warn('EsptoolArgs is deprecated and will be removed in 2.0 release.', DeprecationWarning)
-
-        for key, value in kwargs.items():
-            self.__setattr__(key, value)
-
-
 class EspSerial(Serial):
     """
     Serial class for ports connected to espressif products
@@ -52,18 +37,18 @@ class EspSerial(Serial):
         self,
         pexpect_proc: PexpectProcess,
         msg_queue: MessageQueue,
-        target: Optional[str] = None,
-        beta_target: Optional[str] = None,
-        port: Optional[str] = None,
-        port_serial_number: Optional[str] = None,
-        port_mac: Optional[str] = None,
+        target: str | None = None,
+        beta_target: str | None = None,
+        port: str | None = None,
+        port_serial_number: str | None = None,
+        port_mac: str | None = None,
         baud: int = Serial.DEFAULT_BAUDRATE,
         esptool_baud: int = ESPTOOL_DEFAULT_BAUDRATE,
         esp_flash_force: bool = False,
         skip_autoflash: bool = False,
         erase_all: bool = False,
-        meta: Optional[Meta] = None,
-        ports_to_occupy: List[str] = (),
+        meta: Meta | None = None,
+        ports_to_occupy: list[str] = (),
         **kwargs,
     ) -> None:
         self._meta = meta
@@ -144,29 +129,13 @@ class EspSerial(Serial):
 
         super()._post_init()
 
-    def use_esptool(hard_reset_after: Optional[bool] = None, no_stub: Optional[bool] = None):
+    @staticmethod
+    def use_esptool():
         """
         1. tell the redirect serial thread to stop reading from the `pyserial` instance
         2. esptool reuse the `pyserial` instance and call `esptool.main()` to do the actual work
         3. tell the redirect serial thread to continue reading from serial
-
-        Args:
-            hard_reset_after: run hard reset after (deprecated)
-            no_stub: disable launching the flasher stub (deprecated)
         """
-        if hard_reset_after is not None:
-            warn(
-                "The 'hard_reset_after' parameter is now read directly from `flasher_args.json` "
-                'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
-                DeprecationWarning,
-            )
-
-        if no_stub is not None:
-            warn(
-                "The 'no_stub' parameter is now read directly from `flasher_args.json` "
-                'and does not need to be explicitly set. This parameter will be removed in 2.0 release.',
-                DeprecationWarning,
-            )
 
         def decorator(func):
             @functools.wraps(func)
@@ -203,11 +172,3 @@ class EspSerial(Serial):
 
         if self._meta:
             self._meta.drop_port_app_cache(self.port)
-
-    @property
-    def stub(self):
-        warn(
-            'Please use `self.esp` instead of `self.stub`. `self.stub` will be removed in 2.0 release.',
-            DeprecationWarning,
-        )
-        return self.esp

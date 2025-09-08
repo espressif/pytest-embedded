@@ -169,13 +169,6 @@ def pytest_addoption(parser):
     esp_group.addoption('--target', help='serial target chip type. (Default: "auto")')
     esp_group.addoption('--beta-target', help='serial target beta version chip type. (Default: same as [--target])')
     esp_group.addoption(
-        '--add-target-as-marker',
-        help='[DEPRECATED, use --add-target-as-marker-with-amount instead] '
-        'add target param as a function marker. Useful in CI with runners with different tags.'
-        'y/yes/true for True and n/no/false for False. '
-        '(Default: False, parametrization not supported, `|` will be escaped to `-`)',
-    )
-    esp_group.addoption(
         '--add-target-as-marker-with-amount',
         help='add target param as a function marker with the amount of the target. Useful in CI with runners with '
         'different tags. y/yes/true for True and n/no/false for False. '
@@ -335,7 +328,7 @@ def _gte_one_int(v) -> int:
     raise argparse.ArgumentTypeError('should be a integer greater or equal to 1')
 
 
-def _str_bool(v: str) -> t.Union[bool, str, None]:
+def _str_bool(v: str) -> bool | str | None:
     if v is None:
         return None
 
@@ -363,7 +356,7 @@ def count(request):
     _COUNT = _gte_one_int(getattr(request, 'param', request.config.option.count))
 
 
-def parse_multi_dut_args(count: int, s: str) -> t.Union[t.Any, t.Tuple[t.Any]]:
+def parse_multi_dut_args(count: int, s: str) -> t.Any | tuple[t.Any]:
     """
     Parse multi-dut argument by the following rules:
 
@@ -399,7 +392,7 @@ def parse_multi_dut_args(count: int, s: str) -> t.Union[t.Any, t.Tuple[t.Any]]:
             return tuple(_str_bool(item) for item in res)
 
 
-def multi_dut_argument(func) -> t.Callable[..., t.Union[t.Optional[str], t.Tuple[t.Optional[str]]]]:
+def multi_dut_argument(func) -> t.Callable[..., str | None | tuple[str | None]]:
     """
     Used for parse the multi-dut argument according to the `count` amount.
     """
@@ -411,7 +404,7 @@ def multi_dut_argument(func) -> t.Callable[..., t.Union[t.Optional[str], t.Tuple
     return wrapper
 
 
-def multi_dut_fixture(func) -> t.Callable[..., t.Union[t.Any, t.Tuple[t.Any]]]:
+def multi_dut_fixture(func) -> t.Callable[..., t.Any | tuple[t.Any]]:
     """
     Apply the multi-dut arguments to each fixture.
 
@@ -457,7 +450,7 @@ def multi_dut_fixture(func) -> t.Callable[..., t.Union[t.Any, t.Tuple[t.Any]]]:
 
 def multi_dut_generator_fixture(
     func,
-) -> t.Callable[..., t.Generator[t.Union[t.Any, t.Tuple[t.Any]], t.Any, None]]:
+) -> t.Callable[..., t.Generator[t.Any | tuple[t.Any], t.Any, None]]:
     """
     Apply the multi-dut arguments to each fixture.
 
@@ -478,7 +471,7 @@ def multi_dut_generator_fixture(
                 return
 
             try:
-                if isinstance(obj, (subprocess.Popen, multiprocessing.process.BaseProcess)):
+                if isinstance(obj, subprocess.Popen | multiprocessing.process.BaseProcess):
                     obj.terminate()
                     obj.kill()
                 elif isinstance(obj, io.IOBase):
@@ -626,11 +619,11 @@ def cache_dir(request: FixtureRequest) -> str:
 
 
 @pytest.fixture(scope='session')
-def port_target_cache(cache_dir) -> t.Dict[str, str]:
+def port_target_cache(cache_dir) -> dict[str, str]:
     """Session scoped port-target cache, for esp only"""
     _cache_file_path = os.path.join(cache_dir, 'port_target_cache')
     lock = filelock.FileLock(f'{_cache_file_path}.lock')
-    resp: t.Dict[str, str] = {}
+    resp: dict[str, str] = {}
     with lock:
         try:
             with shelve.open(_cache_file_path) as f:
@@ -646,7 +639,7 @@ def port_target_cache(cache_dir) -> t.Dict[str, str]:
 
 
 @pytest.fixture(scope='session')
-def port_app_cache() -> t.Dict[str, str]:
+def port_app_cache() -> dict[str, str]:
     """Session scoped port-app cache, for idf only"""
     return {}
 
@@ -754,14 +747,14 @@ def redirect(msg_queue: MessageQueue) -> t.Callable[..., contextlib.redirect_std
 ########
 @pytest.fixture
 @multi_dut_argument
-def embedded_services(request: FixtureRequest) -> t.Optional[str]:
+def embedded_services(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'embedded_services', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute) -> t.Optional[str]:
+def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute) -> str | None:
     """Enable parametrization for the same cli option"""
     res = _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
     record_xml_attribute('app_path', res)
@@ -770,14 +763,14 @@ def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute)
 
 @pytest.fixture
 @multi_dut_argument
-def esp_flash_force(request: FixtureRequest) -> t.Optional[str]:
+def esp_flash_force(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'esp_flash_force', False)
 
 
 @pytest.fixture
 @multi_dut_argument
-def build_dir(request: FixtureRequest) -> t.Optional[str]:
+def build_dir(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'build_dir', 'build')
 
@@ -787,21 +780,21 @@ def build_dir(request: FixtureRequest) -> t.Optional[str]:
 ##########
 @pytest.fixture
 @multi_dut_argument
-def port(request: FixtureRequest) -> t.Optional[str]:
+def port(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'port', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def baud(request: FixtureRequest) -> t.Optional[str]:
+def baud(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'baud', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def port_location(request: FixtureRequest) -> t.Optional[str]:
+def port_location(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'port_location', None)
 
@@ -811,56 +804,56 @@ def port_location(request: FixtureRequest) -> t.Optional[str]:
 #######
 @pytest.fixture
 @multi_dut_argument
-def target(request: FixtureRequest) -> t.Optional[str]:
+def target(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'target', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def beta_target(request: FixtureRequest) -> t.Optional[str]:
+def beta_target(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'beta_target', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def flash_port(request: FixtureRequest) -> t.Optional[str]:
+def flash_port(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'flash_port', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def skip_autoflash(request: FixtureRequest) -> t.Optional[bool]:
+def skip_autoflash(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_autoflash', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def erase_all(request: FixtureRequest) -> t.Optional[bool]:
+def erase_all(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'erase_all', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def esptool_baud(request: FixtureRequest) -> t.Optional[str]:
+def esptool_baud(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'esptool_baud', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def port_mac(request: FixtureRequest) -> t.Optional[str]:
+def port_mac(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'port_mac', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def port_serial_number(request: FixtureRequest) -> t.Optional[str]:
+def port_serial_number(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'port_serial_number', None)
 
@@ -870,35 +863,35 @@ def port_serial_number(request: FixtureRequest) -> t.Optional[str]:
 #######
 @pytest.fixture
 @multi_dut_argument
-def part_tool(request: FixtureRequest) -> t.Optional[str]:
+def part_tool(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'part_tool', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def confirm_target_elf_sha256(request: FixtureRequest) -> t.Optional[bool]:
+def confirm_target_elf_sha256(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'confirm_target_elf_sha256', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def erase_nvs(request: FixtureRequest) -> t.Optional[bool]:
+def erase_nvs(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'erase_nvs', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def skip_check_coredump(request: FixtureRequest) -> t.Optional[bool]:
+def skip_check_coredump(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_check_coredump', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def panic_output_decode_script(request: FixtureRequest) -> t.Optional[bool]:
+def panic_output_decode_script(request: FixtureRequest) -> bool | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'panic_output_decode_script', None)
 
@@ -908,14 +901,14 @@ def panic_output_decode_script(request: FixtureRequest) -> t.Optional[bool]:
 ########
 @pytest.fixture
 @multi_dut_argument
-def gdb_prog_path(request: FixtureRequest) -> t.Optional[str]:
+def gdb_prog_path(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'gdb_prog_path', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def gdb_cli_args(request: FixtureRequest) -> t.Optional[str]:
+def gdb_cli_args(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'gdb_cli_args', None)
 
@@ -928,14 +921,14 @@ def no_gdb(request: FixtureRequest) -> bool:
 
 @pytest.fixture
 @multi_dut_argument
-def openocd_prog_path(request: FixtureRequest) -> t.Optional[str]:
+def openocd_prog_path(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'openocd_prog_path', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def openocd_cli_args(request: FixtureRequest) -> t.Optional[str]:
+def openocd_cli_args(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'openocd_cli_args', None)
 
@@ -945,49 +938,49 @@ def openocd_cli_args(request: FixtureRequest) -> t.Optional[str]:
 ########
 @pytest.fixture
 @multi_dut_argument
-def qemu_image_path(request: FixtureRequest) -> t.Optional[str]:
+def qemu_image_path(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_image_path', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def qemu_prog_path(request: FixtureRequest) -> t.Optional[str]:
+def qemu_prog_path(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_prog_path', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def qemu_cli_args(request: FixtureRequest) -> t.Optional[str]:
+def qemu_cli_args(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_cli_args', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def qemu_extra_args(request: FixtureRequest) -> t.Optional[str]:
+def qemu_extra_args(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'qemu_extra_args', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def skip_regenerate_image(request: FixtureRequest) -> t.Optional[str]:
+def skip_regenerate_image(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'skip_regenerate_image', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def encrypt(request: FixtureRequest) -> t.Optional[str]:
+def encrypt(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'encrypt', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def keyfile(request: FixtureRequest) -> t.Optional[str]:
+def keyfile(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'keyfile', None)
 
@@ -997,28 +990,28 @@ def keyfile(request: FixtureRequest) -> t.Optional[str]:
 #########
 @pytest.fixture
 @multi_dut_argument
-def wokwi_cli_path(request: FixtureRequest) -> t.Optional[str]:
+def wokwi_cli_path(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'wokwi_cli_path', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def wokwi_timeout(request: FixtureRequest) -> t.Optional[str]:
+def wokwi_timeout(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'wokwi_timeout', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def wokwi_scenario(request: FixtureRequest) -> t.Optional[str]:
+def wokwi_scenario(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'wokwi_scenario', None)
 
 
 @pytest.fixture
 @multi_dut_argument
-def wokwi_diagram(request: FixtureRequest) -> t.Optional[str]:
+def wokwi_diagram(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'wokwi_diagram', None)
 
@@ -1028,7 +1021,7 @@ def wokwi_diagram(request: FixtureRequest) -> t.Optional[str]:
 ####################
 @pytest.fixture
 @multi_dut_fixture
-def _services(embedded_services: t.Optional[str]) -> t.List[str]:
+def _services(embedded_services: str | None) -> list[str]:
     if not embedded_services:
         return ['base']
 
@@ -1146,7 +1139,7 @@ def app(_fixture_classes_and_options: ClassCliOptions) -> App:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def serial(_fixture_classes_and_options, msg_queue, app) -> t.Optional[t.Union['Serial', 'LinuxSerial']]:
+def serial(_fixture_classes_and_options, msg_queue, app) -> t.Union['Serial', 'LinuxSerial'] | None:
     """A serial subprocess that could read/redirect/write"""
     return serial_gn(**locals())
 
@@ -1186,10 +1179,10 @@ def dut(
     openocd: t.Optional['OpenOcd'],
     gdb: t.Optional['Gdb'],
     app: App,
-    serial: t.Optional[t.Union['Serial', 'LinuxSerial']],
+    serial: t.Union['Serial', 'LinuxSerial'] | None,
     qemu: t.Optional['Qemu'],
     wokwi: t.Optional['WokwiCLI'],
-) -> t.Union[Dut, t.List[Dut]]:
+) -> Dut | list[Dut]:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
@@ -1198,7 +1191,7 @@ def dut(
 
 
 @pytest.fixture
-def unity_tester(dut: t.Union['IdfDut', t.Tuple['IdfDut']]) -> t.Optional['CaseTester']:
+def unity_tester(dut: t.Union['IdfDut', tuple['IdfDut']]) -> t.Optional['CaseTester']:
     try:
         from pytest_embedded_idf import CaseTester, IdfDut
     except ImportError:
@@ -1242,7 +1235,6 @@ def pytest_configure(config: Config) -> None:
         parallel_index=config.getoption('parallel_index'),
         check_duplicates=config.getoption('check_duplicates', False),
         prettify_junit_report=_str_bool(config.getoption('prettify_junit_report', False)),
-        add_target_as_marker=_str_bool(config.getoption('add_target_as_marker', False)),
         add_target_as_marker_with_amount=_str_bool(config.getoption('add_target_as_marker_with_amount', False)),
     )
     config.pluginmanager.register(config.stash[_pytest_embedded_key])
@@ -1263,14 +1255,12 @@ class PytestEmbedded:
         parallel_index: int = 1,
         check_duplicates: bool = False,
         prettify_junit_report: bool = False,
-        add_target_as_marker: bool = False,
         add_target_as_marker_with_amount: bool = False,
     ):
         self.parallel_count = parallel_count
         self.parallel_index = parallel_index
         self.check_duplicates = check_duplicates
         self.prettify_junit_report = prettify_junit_report
-        self.add_target_as_marker = add_target_as_marker
         self.add_target_as_marker_with_amount = add_target_as_marker_with_amount
 
     @staticmethod
@@ -1287,7 +1277,7 @@ class PytestEmbedded:
             raise AssertionError('Unity test failed')
 
     @staticmethod
-    def _duplicate_items(items: t.List[_T]) -> t.List[_T]:
+    def _duplicate_items(items: list[_T]) -> list[_T]:
         duplicates = []
         counter = Counter(items)
         for elem, cnt in counter.items():
@@ -1306,9 +1296,9 @@ class PytestEmbedded:
         return item.callspec.params.get(key, default) or default
 
     @pytest.hookimpl(hookwrapper=True, trylast=True)
-    def pytest_collection_modifyitems(self, config: Config, items: t.List[Function]):
+    def pytest_collection_modifyitems(self, config: Config, items: list[Function]):
         # ------ add marker based on target ------
-        if self.add_target_as_marker_with_amount or self.add_target_as_marker:
+        if self.add_target_as_marker_with_amount:
             for item in items:
                 item_target = self.get_param(item, 'target')
                 if not item_target:
@@ -1319,10 +1309,7 @@ class PytestEmbedded:
 
                 # --add-target-as-marker-with-amount
                 count = self.get_param(item, 'count', 1)
-                if self.add_target_as_marker_with_amount:
-                    _marker = targets_to_marker(to_list(parse_multi_dut_args(count, item_target)))
-                if self.add_target_as_marker:
-                    _marker = '-'.join(to_list(parse_multi_dut_args(count, item_target)))
+                _marker = targets_to_marker(to_list(parse_multi_dut_args(count, item_target)))
 
                 item.add_marker(_marker)
 
@@ -1368,9 +1355,9 @@ class PytestEmbedded:
             if duplicated_test_cases:
                 raise ValueError(f'Duplicated test function names: {duplicated_test_cases}')
 
-            duplicated_test_script_paths = self._duplicate_items([
-                os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])
-            ])
+            duplicated_test_script_paths = self._duplicate_items(
+                [os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])]
+            )
             if duplicated_test_script_paths:
                 raise ValueError(f'Duplicated test scripts: {duplicated_test_script_paths}')
 
