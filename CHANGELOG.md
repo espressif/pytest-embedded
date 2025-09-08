@@ -1,11 +1,14 @@
 # CHANGELOG
 
-## v1.17.0a0 (2025-08-07)
+## v1.17.0 (2025-09-08)
+
+### Fix
+
+- **qemu**: set `qemu_proj_path` for `QemuApp` correctly
 
 ### Feat
 
-- **esp**: compatible with esptool 5
-- add --port-by-serial option to filter ports by serial number
+- add `--port-by-serial` option to filter ports by serial number
 
 ## v1.16.2 (2025-06-19)
 
