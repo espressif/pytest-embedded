@@ -173,22 +173,26 @@ def _fixture_classes_and_options_fn(
                     from pytest_embedded_qemu import DEFAULT_IMAGE_FN, QemuApp
 
                     classes[fixture] = QemuApp
-                    kwargs[fixture].update({
-                        'msg_queue': msg_queue,
-                        'part_tool': part_tool,
-                        'qemu_image_path': qemu_image_path,
-                        'skip_regenerate_image': skip_regenerate_image,
-                        'encrypt': encrypt,
-                        'keyfile': keyfile,
-                        'qemu_prog_path': qemu_prog_path,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'msg_queue': msg_queue,
+                            'part_tool': part_tool,
+                            'qemu_image_path': qemu_image_path,
+                            'skip_regenerate_image': skip_regenerate_image,
+                            'encrypt': encrypt,
+                            'keyfile': keyfile,
+                            'qemu_prog_path': qemu_prog_path,
+                        }
+                    )
                 else:
                     from pytest_embedded_idf import IdfApp
 
                     classes[fixture] = IdfApp
-                    kwargs[fixture].update({
-                        'part_tool': part_tool,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'part_tool': part_tool,
+                        }
+                    )
             elif 'arduino' in _services:
                 from pytest_embedded_arduino import ArduinoApp
 
@@ -226,26 +230,32 @@ def _fixture_classes_and_options_fn(
                     from pytest_embedded_idf import IdfSerial
 
                     classes[fixture] = IdfSerial
-                    kwargs[fixture].update({
-                        'app': None,
-                        'confirm_target_elf_sha256': confirm_target_elf_sha256,
-                        'erase_nvs': erase_nvs,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'app': None,
+                            'confirm_target_elf_sha256': confirm_target_elf_sha256,
+                            'erase_nvs': erase_nvs,
+                        }
+                    )
                 elif 'arduino' in _services:
                     from pytest_embedded_arduino import ArduinoSerial
 
                     classes[fixture] = ArduinoSerial
-                    kwargs[fixture].update({
-                        'app': None,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'app': None,
+                        }
+                    )
                 elif 'nuttx' in _services:
                     from pytest_embedded_nuttx import NuttxSerial
 
                     classes[fixture] = NuttxSerial
-                    kwargs[fixture].update({
-                        'app': None,
-                        'baud': int(baud or NuttxSerial.SERIAL_BAUDRATE),
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'app': None,
+                            'baud': int(baud or NuttxSerial.SERIAL_BAUDRATE),
+                        }
+                    )
                 else:
                     from pytest_embedded_serial_esp import EspSerial
 
@@ -312,16 +322,18 @@ def _fixture_classes_and_options_fn(
                 from pytest_embedded_wokwi import WokwiCLI
 
                 classes[fixture] = WokwiCLI
-                kwargs[fixture].update({
-                    'wokwi_cli_path': wokwi_cli_path,
-                    'wokwi_timeout': wokwi_timeout,
-                    'wokwi_scenario': wokwi_scenario,
-                    'wokwi_diagram': wokwi_diagram,
-                    'msg_queue': msg_queue,
-                    'app': None,
-                    'meta': _meta,
-                    'firmware_resolver': None,
-                })
+                kwargs[fixture].update(
+                    {
+                        'wokwi_cli_path': wokwi_cli_path,
+                        'wokwi_timeout': wokwi_timeout,
+                        'wokwi_scenario': wokwi_scenario,
+                        'wokwi_diagram': wokwi_diagram,
+                        'msg_queue': msg_queue,
+                        'app': None,
+                        'meta': _meta,
+                        'firmware_resolver': None,
+                    }
+                )
         elif fixture == 'dut':
             classes[fixture] = Dut
             kwargs[fixture] = {
@@ -342,9 +354,11 @@ def _fixture_classes_and_options_fn(
                 from pytest_embedded_wokwi import WokwiDut
 
                 classes[fixture] = WokwiDut
-                kwargs[fixture].update({
-                    'wokwi': None,
-                })
+                kwargs[fixture].update(
+                    {
+                        'wokwi': None,
+                    }
+                )
 
                 if 'idf' in _services:
                     from pytest_embedded_wokwi.idf import IDFFirmwareResolver
@@ -361,16 +375,20 @@ def _fixture_classes_and_options_fn(
                     from pytest_embedded_nuttx import NuttxQemuDut
 
                     classes[fixture] = NuttxQemuDut
-                    kwargs[fixture].update({
-                        'qemu': None,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'qemu': None,
+                        }
+                    )
                 else:
                     from pytest_embedded_qemu import QemuDut
 
                     classes[fixture] = QemuDut
-                    kwargs[fixture].update({
-                        'qemu': None,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'qemu': None,
+                        }
+                    )
             elif 'jtag' in _services:
                 if 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
@@ -381,42 +399,52 @@ def _fixture_classes_and_options_fn(
 
                     classes[fixture] = SerialDut
 
-                kwargs[fixture].update({
-                    'serial': None,
-                    'openocd': None,
-                    'gdb': None,
-                })
+                kwargs[fixture].update(
+                    {
+                        'serial': None,
+                        'openocd': None,
+                        'gdb': None,
+                    }
+                )
             elif 'serial' in _services or 'esp' in _services:
                 if 'esp' in _services and 'idf' in _services:
                     from pytest_embedded_idf import IdfDut
 
                     classes[fixture] = IdfDut
-                    kwargs[fixture].update({
-                        'skip_check_coredump': skip_check_coredump,
-                        'panic_output_decode_script': panic_output_decode_script,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'skip_check_coredump': skip_check_coredump,
+                            'panic_output_decode_script': panic_output_decode_script,
+                        }
+                    )
                 elif 'esp' in _services and 'nuttx' in _services:
                     from pytest_embedded_nuttx import NuttxEspDut
 
                     classes[fixture] = NuttxEspDut
-                    kwargs[fixture].update({
-                        'serial': None,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'serial': None,
+                        }
+                    )
                 elif 'nuttx' in _services:
                     from pytest_embedded_nuttx import NuttxSerialDut
 
                     classes[fixture] = NuttxSerialDut
-                    kwargs[fixture].update({
-                        'serial': None,
-                    })
+                    kwargs[fixture].update(
+                        {
+                            'serial': None,
+                        }
+                    )
                 else:
                     from pytest_embedded_serial import SerialDut
 
                     classes[fixture] = SerialDut
 
-                kwargs[fixture].update({
-                    'serial': None,
-                })
+                kwargs[fixture].update(
+                    {
+                        'serial': None,
+                    }
+                )
 
     return ClassCliOptions(classes, mixins, kwargs)
 

@@ -8,9 +8,11 @@ import pytest
 def test_help(testdir):
     result = testdir.runpytest('--help')
 
-    result.stdout.fnmatch_lines([
-        'embedded:',
-    ])
+    result.stdout.fnmatch_lines(
+        [
+            'embedded:',
+        ]
+    )
 
 
 def test_services(testdir):
@@ -726,9 +728,11 @@ class TestTargetMarkers:
         result = pytester.runpytest('--add-target-as-marker', 'y')
 
         result.assert_outcomes(passed=1)
-        result.stdout.fnmatch_lines([
-            '*Unknown pytest.mark.esp32 - is this a typo?*'  # Check marker is present
-        ])
+        result.stdout.fnmatch_lines(
+            [
+                '*Unknown pytest.mark.esp32 - is this a typo?*'  # Check marker is present
+            ]
+        )
 
     def test_add_target_as_marker_multi_target(self, pytester):
         pytester.makepyfile("""
@@ -745,11 +749,13 @@ class TestTargetMarkers:
         result = pytester.runpytest('--add-target-as-marker', 'y')
 
         result.assert_outcomes(passed=3)
-        result.stdout.fnmatch_lines([
-            '*Unknown pytest.mark.esp32-esp8266 - is this a typo?*',
-            '*Unknown pytest.mark.esp32-esp32 - is this a typo?*',
-            '*Unknown pytest.mark.esp32-esp8266-esp32s2 - is this a typo?*',
-        ])
+        result.stdout.fnmatch_lines(
+            [
+                '*Unknown pytest.mark.esp32-esp8266 - is this a typo?*',
+                '*Unknown pytest.mark.esp32-esp32 - is this a typo?*',
+                '*Unknown pytest.mark.esp32-esp8266-esp32s2 - is this a typo?*',
+            ]
+        )
 
     def test_add_target_as_marker_with_amount(self, pytester):
         pytester.makepyfile("""
@@ -766,11 +772,13 @@ class TestTargetMarkers:
         result = pytester.runpytest('--add-target-as-marker-with-amount', 'y', '-vvvv')
 
         result.assert_outcomes(passed=3)
-        result.stdout.fnmatch_lines([
-            '*Unknown pytest.mark.esp32+esp8266 - is this a typo?*',
-            '*Unknown pytest.mark.esp32_2 - is this a typo?*',
-            '*Unknown pytest.mark.esp32+esp32s2+esp8266 - is this a typo?*',
-        ])
+        result.stdout.fnmatch_lines(
+            [
+                '*Unknown pytest.mark.esp32+esp8266 - is this a typo?*',
+                '*Unknown pytest.mark.esp32_2 - is this a typo?*',
+                '*Unknown pytest.mark.esp32+esp32s2+esp8266 - is this a typo?*',
+            ]
+        )
 
     def test_no_target_no_marker(self, pytester):
         pytester.makepyfile("""

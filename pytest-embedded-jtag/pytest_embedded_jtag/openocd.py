@@ -43,14 +43,16 @@ class OpenOcd(DuplicateStdoutPopen):
         self.telnet_port = self.TELNET_BASE_PORT + port_offset
         self.gdb_port = self.GDB_BASE_PORT + port_offset
 
-        openocd_cli_args.extend([
-            '-c',
-            f'tcl_port {self.tcl_port}',
-            '-c',
-            f'telnet_port {self.telnet_port}',
-            '-c',
-            f'gdb_port {self.gdb_port}',
-        ])
+        openocd_cli_args.extend(
+            [
+                '-c',
+                f'tcl_port {self.tcl_port}',
+                '-c',
+                f'telnet_port {self.telnet_port}',
+                '-c',
+                f'gdb_port {self.gdb_port}',
+            ]
+        )
 
         super().__init__(cmd=[openocd_prog_path, *openocd_cli_args], **kwargs)
 

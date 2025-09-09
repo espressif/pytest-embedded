@@ -116,10 +116,12 @@ class IdfSerial(EspSerial):
         if app is None:
             app = self.app
 
-        if any((
-            app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
-            app.sdkconfig.get('SECURE_BOOT', False),
-        )):
+        if any(
+            (
+                app.sdkconfig.get('SECURE_FLASH_ENC_ENABLED', False),
+                app.sdkconfig.get('SECURE_BOOT', False),
+            )
+        ):
             return ['--force']
 
         return []

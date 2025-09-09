@@ -1368,9 +1368,9 @@ class PytestEmbedded:
             if duplicated_test_cases:
                 raise ValueError(f'Duplicated test function names: {duplicated_test_cases}')
 
-            duplicated_test_script_paths = self._duplicate_items([
-                os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])
-            ])
+            duplicated_test_script_paths = self._duplicate_items(
+                [os.path.basename(name) for name in set([str(test.path.absolute()) for test in items])]
+            )
             if duplicated_test_script_paths:
                 raise ValueError(f'Duplicated test scripts: {duplicated_test_script_paths}')
 

@@ -24,13 +24,13 @@ def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t
     for value in values:
         target = value[target_index]
         if target == 'supported_targets':
-            expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in supported_targets.get()
-            ])
+            expanded_values.extend(
+                [[*value[:target_index], target, *value[target_index + 1 :]] for target in supported_targets.get()]
+            )
         elif target == 'preview_targets':
-            expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in preview_targets.get()
-            ])
+            expanded_values.extend(
+                [[*value[:target_index], target, *value[target_index + 1 :]] for target in preview_targets.get()]
+            )
         else:
             expanded_values.append(value)
     return expanded_values
