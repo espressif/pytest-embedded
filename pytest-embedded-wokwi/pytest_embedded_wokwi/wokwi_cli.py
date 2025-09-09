@@ -42,10 +42,10 @@ class WokwiCLI(DuplicateStdoutPopen):
     def __init__(
         self,
         firmware_resolver: IDFFirmwareResolver,
-        wokwi_cli_path: t.Optional[str] = None,
-        wokwi_timeout: t.Optional[int] = None,
-        wokwi_scenario: t.Optional[str] = None,
-        wokwi_diagram: t.Optional[str] = None,
+        wokwi_cli_path: str | None = None,
+        wokwi_timeout: int | None = None,
+        wokwi_scenario: str | None = None,
+        wokwi_diagram: str | None = None,
         app: t.Optional['IdfApp'] = None,
         **kwargs,
     ):

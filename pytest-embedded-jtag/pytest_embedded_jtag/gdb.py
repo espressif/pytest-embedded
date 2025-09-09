@@ -2,7 +2,7 @@ import logging
 import re
 import shlex
 import time
-from typing import AnyStr, Optional
+from typing import AnyStr
 
 from pytest_embedded.log import DuplicateStdoutPopen
 
@@ -16,7 +16,7 @@ class Gdb(DuplicateStdoutPopen):
 
     _GDB_RESPONSE_FINISHED_RE = re.compile(r'^\(gdb\)\s*$')
 
-    def __init__(self, gdb_prog_path: Optional[str] = None, gdb_cli_args: Optional[str] = None, **kwargs):
+    def __init__(self, gdb_prog_path: str | None = None, gdb_cli_args: str | None = None, **kwargs):
         gdb_prog_path = gdb_prog_path or self.GDB_PROG_PATH
         gdb_cli_args = shlex.split(gdb_cli_args or self.GDB_DEFAULT_ARGS)
 
@@ -24,7 +24,7 @@ class Gdb(DuplicateStdoutPopen):
 
         super().__init__(cmd=[gdb_prog_path, *gdb_cli_args], **kwargs)
 
-    def write(self, s: AnyStr, non_blocking: bool = False, timeout: float = 30) -> Optional[str]:
+    def write(self, s: AnyStr, non_blocking: bool = False, timeout: float = 30) -> str | None:
         with open(self._logfile) as fr:
             if self._gdb_first_write:
                 # Discard all queued responses before the first write

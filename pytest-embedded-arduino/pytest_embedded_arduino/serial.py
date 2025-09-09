@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import esptool
 from pytest_embedded_serial_esp.serial import EspSerial
@@ -19,7 +18,7 @@ class ArduinoSerial(EspSerial):
     def __init__(
         self,
         app: ArduinoApp,
-        target: Optional[str] = None,
+        target: str | None = None,
         **kwargs,
     ) -> None:
         self.app = app

@@ -47,7 +47,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         self,
         app: IdfApp,
         skip_check_coredump: bool = False,
-        panic_output_decode_script: t.Optional[str] = None,
+        panic_output_decode_script: str | None = None,
         **kwargs,
     ) -> None:
         self.target = app.target
@@ -72,7 +72,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             raise ValueError(f'Unknown target: {self.target}')
 
     @property
-    def panic_output_decode_script(self) -> t.Optional[str]:
+    def panic_output_decode_script(self) -> str | None:
         """
         Returns:
             Panic output decode script path

@@ -33,10 +33,10 @@ class Qemu(DuplicateStdoutPopen):
 
     def __init__(
         self,
-        qemu_image_path: t.Optional[str] = None,
-        qemu_prog_path: t.Optional[str] = None,
-        qemu_cli_args: t.Optional[str] = None,
-        qemu_extra_args: t.Optional[str] = None,
+        qemu_image_path: str | None = None,
+        qemu_prog_path: str | None = None,
+        qemu_cli_args: str | None = None,
+        qemu_extra_args: str | None = None,
         app: t.Optional['QemuApp'] = None,
         **kwargs,
     ):

@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Optional
 
 
 class App:
@@ -14,8 +13,8 @@ class App:
 
     def __init__(
         self,
-        app_path: Optional[str] = None,
-        build_dir: Optional[str] = None,
+        app_path: str | None = None,
+        build_dir: str | None = None,
         **kwargs,
     ):
         if app_path is None:
@@ -27,7 +26,7 @@ class App:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def _get_binary_path(self, build_dir: Optional[str] = None) -> Optional[str]:
+    def _get_binary_path(self, build_dir: str | None = None) -> str | None:
         if not build_dir:
             return None
 

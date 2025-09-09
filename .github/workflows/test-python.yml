@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.7"
+          - python-version: "3.10"
             arch: "ARM64"
           - python-version: "3.13"
             arch: "X64"
