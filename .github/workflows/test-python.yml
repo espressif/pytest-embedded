@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.7"
+          - python-version: "3.10"
             arch: "ARM64"
           - python-version: "3.13"
             arch: "X64"
@@ -34,7 +34,7 @@ jobs:
       image: python:${{ matrix.python-version }}
       options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           apt update && apt install -y socat zip

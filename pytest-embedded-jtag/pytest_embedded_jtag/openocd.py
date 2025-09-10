@@ -2,7 +2,7 @@ import logging
 import os
 import shlex
 import time
-from typing import AnyStr, Optional
+from typing import AnyStr
 
 from pytest_embedded.log import DuplicateStdoutPopen
 from pytest_embedded.utils import to_bytes, to_str
@@ -27,8 +27,8 @@ class OpenOcd(DuplicateStdoutPopen):
 
     def __init__(
         self,
-        openocd_prog_path: Optional[str] = None,
-        openocd_cli_args: Optional[str] = None,
+        openocd_prog_path: str | None = None,
+        openocd_cli_args: str | None = None,
         port_offset: int = 0,
         **kwargs,
     ):
@@ -43,14 +43,16 @@ class OpenOcd(DuplicateStdoutPopen):
         self.telnet_port = self.TELNET_BASE_PORT + port_offset
         self.gdb_port = self.GDB_BASE_PORT + port_offset
 
-        openocd_cli_args.extend([
-            '-c',
-            f'tcl_port {self.tcl_port}',
-            '-c',
-            f'telnet_port {self.telnet_port}',
-            '-c',
-            f'gdb_port {self.gdb_port}',
-        ])
+        openocd_cli_args.extend(
+            [
+                '-c',
+                f'tcl_port {self.tcl_port}',
+                '-c',
+                f'telnet_port {self.telnet_port}',
+                '-c',
+                f'gdb_port {self.gdb_port}',
+            ]
+        )
 
         super().__init__(cmd=[openocd_prog_path, *openocd_cli_args], **kwargs)
 

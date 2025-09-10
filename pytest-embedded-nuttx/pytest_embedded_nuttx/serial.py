@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict
+from typing import ClassVar
 
 import esptool
 from esptool.cmds import FLASH_MODES, LoadFirmwareImage
@@ -18,7 +18,7 @@ class NuttxSerial(EspSerial):
     MCUBOOT_PRIMARY_SLOT_OFFSET = 0x10000
     SERIAL_BAUDRATE = 115200
 
-    binary_offsets: ClassVar[Dict[str, int]] = {
+    binary_offsets: ClassVar[dict[str, int]] = {
         'esp32': 0x1000,
         'esp32s2': 0x1000,
         'esp32c3': 0x0,

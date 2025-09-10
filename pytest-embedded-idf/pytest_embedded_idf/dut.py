@@ -47,7 +47,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         self,
         app: IdfApp,
         skip_check_coredump: bool = False,
-        panic_output_decode_script: t.Optional[str] = None,
+        panic_output_decode_script: str | None = None,
         **kwargs,
     ) -> None:
         self.target = app.target
@@ -72,7 +72,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             raise ValueError(f'Unknown target: {self.target}')
 
     @property
-    def panic_output_decode_script(self) -> t.Optional[str]:
+    def panic_output_decode_script(self) -> str | None:
         """
         Returns:
             Panic output decode script path
@@ -90,6 +90,14 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             script_filepath = module.origin
 
         return os.path.realpath(script_filepath)
+
+    def _get_prefix_map_path(self) -> str:
+        primary = os.path.join(self.app.binary_path, 'gdbinit', 'prefix_map')
+        fallback = os.path.join(self.app.binary_path, 'prefix_map_gdbinit')
+
+        if os.path.exists(primary):
+            return primary
+        return fallback
 
     def _check_panic_decode_trigger(self):  # type: () -> None
         if not self.app.elf_file:
@@ -114,7 +122,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             cmd = [
                 f'{self.toolchain_prefix}-gdb',
                 '--command',
-                f'{self.app.app_path}/build/prefix_map_gdbinit',
+                self._get_prefix_map_path(),
                 '--batch',
                 '-n',
                 self.app.elf_file,

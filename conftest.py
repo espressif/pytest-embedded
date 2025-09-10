@@ -2,7 +2,7 @@ import os
 import shutil
 import sys
 import textwrap
-from typing import List, Pattern
+from re import Pattern
 
 import pytest
 from _pytest.config import Config
@@ -59,7 +59,7 @@ def cache_file_remove(cache_dir):
 
 @pytest.fixture
 def first_index_of_messages():
-    def _fake(_pattern: Pattern, _messages: List[str], _start: int = 0) -> int:
+    def _fake(_pattern: Pattern, _messages: list[str], _start: int = 0) -> int:
         for i, _message in enumerate(_messages):
             if _pattern.match(_message) and i >= _start:
                 return i

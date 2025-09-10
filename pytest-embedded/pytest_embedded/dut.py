@@ -3,7 +3,9 @@ import logging
 import multiprocessing
 import os.path
 import re
-from typing import AnyStr, Callable, List, Match, Optional, Union
+from collections.abc import Callable
+from re import Match
+from typing import AnyStr
 
 import pexpect
 
@@ -31,7 +33,7 @@ class Dut(_InjectMixinCls):
         app: App,
         pexpect_logfile: str,
         test_case_name: str,
-        meta: Optional[Meta] = None,
+        meta: Meta | None = None,
         **kwargs,
     ) -> None:
         self._q = msg_queue
@@ -64,17 +66,17 @@ class Dut(_InjectMixinCls):
         """
         self._q.put(to_bytes(s))
 
-    def _pexpect_func(func) -> Callable[..., Union[Match, AnyStr]]:
+    def _pexpect_func(func) -> Callable[..., Match | AnyStr]:
         @functools.wraps(func)
         def wrapper(
             self,
             pattern,
             *args,
             expect_all: bool = False,
-            not_matching: List[Union[str, re.Pattern]] = (),
+            not_matching: list[str | re.Pattern] = (),
             return_what_before_match: bool = False,
             **kwargs,
-        ) -> Union[Union[Match, AnyStr], List[Union[Match, AnyStr]]]:
+        ) -> Match | AnyStr | list[Match | AnyStr]:
             if return_what_before_match and expect_all:
                 raise ValueError('`return_what_before_match` and `expect_all` cannot be `True` at the same time.')
 
@@ -172,7 +174,7 @@ class Dut(_InjectMixinCls):
         self,
         remove_asci_escape_code: bool = True,
         timeout: float = 60,
-        extra_before: Optional[AnyStr] = None,
+        extra_before: AnyStr | None = None,
     ) -> None:
         """
         Expect a unity test summary block and parse the output into junit report.
@@ -213,7 +215,7 @@ class Dut(_InjectMixinCls):
     @_InjectMixinCls.require_services('idf')
     def run_all_single_board_cases(
         self,
-        group: Optional[str] = None,
+        group: str | None = None,
         reset: bool = False,
         timeout: float = 30,
         run_ignore_cases: bool = False,

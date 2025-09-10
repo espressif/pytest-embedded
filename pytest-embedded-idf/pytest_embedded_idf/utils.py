@@ -1,4 +1,3 @@
-import sys
 import typing as t
 from contextvars import ContextVar
 
@@ -10,13 +9,7 @@ supported_targets = ContextVar('supported_targets', default=SUPPORTED_TARGETS)
 preview_targets = ContextVar('preview_targets', default=PREVIEW_TARGETS)
 
 
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
-
-
-def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t.List[t.List[t.Any]]:
+def _expand_target_values(values: list[list[t.Any]], target_index: int) -> list[list[t.Any]]:
     """
     Expands target-specific values into individual test cases.
     """
@@ -24,23 +17,23 @@ def _expand_target_values(values: t.List[t.List[t.Any]], target_index: int) -> t
     for value in values:
         target = value[target_index]
         if target == 'supported_targets':
-            expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in supported_targets.get()
-            ])
+            expanded_values.extend(
+                [[*value[:target_index], target, *value[target_index + 1 :]] for target in supported_targets.get()]
+            )
         elif target == 'preview_targets':
-            expanded_values.extend([
-                value[:target_index] + [target] + value[target_index + 1 :] for target in preview_targets.get()
-            ])
+            expanded_values.extend(
+                [[*value[:target_index], target, *value[target_index + 1 :]] for target in preview_targets.get()]
+            )
         else:
             expanded_values.append(value)
     return expanded_values
 
 
-def _process_pytest_value(value: t.Union[t.List[t.Any], t.Any], param_count: int) -> t.Any:
+def _process_pytest_value(value: list[t.Any] | t.Any, param_count: int) -> t.Any:
     """
     Processes a single parameter value, converting it to pytest.param if needed.
     """
-    if not isinstance(value, (list, tuple)):
+    if not isinstance(value, list | tuple):
         return value
 
     if len(value) > param_count + 1:
@@ -49,7 +42,7 @@ def _process_pytest_value(value: t.Union[t.List[t.Any], t.Any], param_count: int
     params, marks = [], []
     if len(value) > param_count:
         mark_values = value[-1]
-        marks.extend(mark_values if isinstance(mark_values, (tuple, list)) else (mark_values,))
+        marks.extend(mark_values if isinstance(mark_values, tuple | list) else (mark_values,))
 
     params.extend(value[:param_count])
 
@@ -58,8 +51,8 @@ def _process_pytest_value(value: t.Union[t.List[t.Any], t.Any], param_count: int
 
 def idf_parametrize(
     param_names: str,
-    values: t.List[t.Union[t.Any, t.Tuple[t.Any, ...]]],
-    indirect: (t.Union[bool, t.Sequence[str]]) = False,
+    values: list[t.Any | tuple[t.Any, ...]],
+    indirect: (bool | t.Sequence[str]) = False,
 ) -> t.Callable[..., None]:
     """
     A decorator to unify pytest.mark.parametrize usage in esp-idf.
@@ -100,10 +93,10 @@ def idf_parametrize(
     return decorator
 
 
-ValidTargets = Literal['supported_targets', 'preview_targets', 'all']
+ValidTargets = t.Literal['supported_targets', 'preview_targets', 'all']
 
 
-def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> t.List[str]:
+def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> list[str]:
     """Filters targets based on a given SOC (System on Chip) statement.
 
     Args:

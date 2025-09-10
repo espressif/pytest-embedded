@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v2.0.0 (TBD)
+
+### Breaking Changes
+
+- **Python Support**: Drop support for Python 3.7, 3.8, 3.9. Now requires Python 3.10+
+- **esptool**: Update esptool requirement to >=5.1.dev1,<6 (from ~=4.9)
+- **Deprecated Code Removal**:
+  - Remove `EsptoolArgs` class from `pytest-embedded-serial-esp`
+  - Remove deprecated parameters `hard_reset_after` and `no_stub` from `use_esptool()` decorator
+  - Remove deprecated `stub` property from `EspSerial` class (use `esp` instead)
+  - Remove deprecated `parse_test_menu()` and `parse_unity_menu_from_str()` methods from `IdfUnityDutMixin` (use `test_menu` property instead)
+  - Remove deprecated CLI option `--add-target-as-marker` (use `--add-target-as-marker-with-amount` instead)
+
+### Migration Guide
+
+1. **Python Version**: Upgrade to Python 3.10 or higher
+2. **esptool**: Update esptool to version 5.1.dev1 or higher (but less than 6.0)
+3. **Code Changes**:
+   - Replace `dut.stub` with `dut.esp`
+   - Replace `dut.parse_test_menu()` calls with `dut.test_menu` property access
+   - Replace `parse_unity_menu_from_str()` with `_parse_unity_menu_from_str()` if needed. `dut.test_menu` is preferred.
+   - Update CLI usage from `--add-target-as-marker` to `--add-target-as-marker-with-amount`
+   - Remove any usage of `EsptoolArgs` class
+   - Remove `hard_reset_after` and `no_stub` parameters from `use_esptool()` calls
+
 ## v1.17.0a0 (2025-08-07)
 
 ### Feat

@@ -41,9 +41,9 @@ FIXTURES_SERVICES = {
 
 @dataclass
 class ClassCliOptions:
-    classes: t.Dict[str, type]
-    mixins: t.Dict[str, t.List[type]]
-    kwargs: t.Dict[str, t.Dict[str, t.Any]]
+    classes: dict[str, type]
+    mixins: dict[str, list[type]]
+    kwargs: dict[str, dict[str, t.Any]]
 
 
 _T = t.TypeVar('_T')
@@ -76,7 +76,7 @@ class PackageNotInstalledError(SystemExit):
 
 
 class RequireServiceError(SystemExit):
-    def __init__(self, func_name: str, services: t.Union[str, t.List[str]]) -> None:
+    def __init__(self, func_name: str, services: str | list[str]) -> None:
         services_str = ','.join(to_list(services))
         super().__init__(
             f'function {func_name} requires enabling one of the service(s) {services_str}. '
@@ -103,7 +103,7 @@ def to_str(bytes_str: t.AnyStr) -> str:
     return bytes_str
 
 
-def to_bytes(bytes_str: t.AnyStr, ending: t.Optional[t.AnyStr] = None) -> bytes:
+def to_bytes(bytes_str: t.AnyStr, ending: t.AnyStr | None = None) -> bytes:
     """
     Turn `bytes` or `str` to `bytes`
 
@@ -126,7 +126,7 @@ def to_bytes(bytes_str: t.AnyStr, ending: t.Optional[t.AnyStr] = None) -> bytes:
     return bytes_str
 
 
-def to_list(s: _T) -> t.List[_T]:
+def to_list(s: _T) -> list[_T]:
     """
     Args:
         s: Anything
@@ -149,7 +149,7 @@ def to_list(s: _T) -> t.List[_T]:
         return [s]
 
 
-def find_by_suffix(suffix: str, path: str) -> t.List[str]:
+def find_by_suffix(suffix: str, path: str) -> list[str]:
     res = []
     for root, _, files in os.walk(path):
         for file in files:
@@ -192,8 +192,8 @@ class Meta:
     """
 
     logdir: str
-    port_target_cache: t.Dict[str, str]
-    port_app_cache: t.Dict[str, str]
+    port_target_cache: dict[str, str]
+    port_app_cache: dict[str, str]
     logfile_extension: str = '.log'
 
     def hit_port_target_cache(self, port: str, target: str) -> bool:
@@ -237,7 +237,7 @@ _ModuleType = type(importlib)
 
 
 def lazy_load(
-    base_module: _ModuleType, name_obj_dict: t.Dict[str, t.Any], obj_module_dict: t.Dict[str, str]
+    base_module: _ModuleType, name_obj_dict: dict[str, t.Any], obj_module_dict: dict[str, str]
 ) -> t.Callable[[str], t.Any]:
     """
     use __getattr__ in the __init__.py file to lazy load some objects
