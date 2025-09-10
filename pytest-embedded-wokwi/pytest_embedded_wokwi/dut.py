@@ -2,7 +2,7 @@ from typing import AnyStr
 
 from pytest_embedded.dut import Dut
 
-from .wokwi_cli import WokwiCLI
+from .wokwi import Wokwi
 
 
 class WokwiDut(Dut):
@@ -12,7 +12,7 @@ class WokwiDut(Dut):
 
     def __init__(
         self,
-        wokwi: WokwiCLI,
+        wokwi: Wokwi,
         **kwargs,
     ) -> None:
         self.wokwi = wokwi

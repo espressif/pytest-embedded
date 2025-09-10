@@ -17,7 +17,7 @@
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pytest_embedded_wokwi.wokwi_cli
+.. automodule:: pytest_embedded_wokwi.wokwi
    :members:
    :undoc-members:
    :show-inheritance:

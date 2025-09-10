@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_jtag import Gdb, OpenOcd
     from pytest_embedded_qemu import Qemu
     from pytest_embedded_serial import Serial
-    from pytest_embedded_wokwi import WokwiCLI
+    from pytest_embedded_wokwi import Wokwi
 
 from . import App, Dut
 from .log import MessageQueue, PexpectProcess
@@ -145,9 +145,6 @@ def _fixture_classes_and_options_fn(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
-    wokwi_cli_path,
-    wokwi_timeout,
-    wokwi_scenario,
     wokwi_diagram,
     skip_regenerate_image,
     encrypt,
@@ -319,14 +316,11 @@ def _fixture_classes_and_options_fn(
                 }
         elif fixture == 'wokwi':
             if 'wokwi' in _services:
-                from pytest_embedded_wokwi import WokwiCLI
+                from pytest_embedded_wokwi import Wokwi
 
-                classes[fixture] = WokwiCLI
+                classes[fixture] = Wokwi
                 kwargs[fixture].update(
                     {
-                        'wokwi_cli_path': wokwi_cli_path,
-                        'wokwi_timeout': wokwi_timeout,
-                        'wokwi_scenario': wokwi_scenario,
                         'wokwi_diagram': wokwi_diagram,
                         'msg_queue': msg_queue,
                         'app': None,
@@ -523,7 +517,7 @@ def qemu_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Q
     return cls(**_drop_none_kwargs(kwargs))
 
 
-def wokwi_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['WokwiCLI']:
+def wokwi_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wokwi']:
     """A wokwi subprocess that could read/redirect/write"""
     if 'wokwi' not in _fixture_classes_and_options.classes:
         return None
@@ -543,7 +537,7 @@ def dut_gn(
     app: App,
     serial: t.Union['Serial', 'LinuxSerial'] | None,
     qemu: t.Optional['Qemu'],
-    wokwi: t.Optional['WokwiCLI'],
+    wokwi: t.Optional['Wokwi'],
 ) -> Dut | list[Dut]:
     global DUT_GLOBAL_INDEX
     DUT_GLOBAL_INDEX += 1
@@ -687,9 +681,6 @@ class DutFactory:
         qemu_prog_path: str | None = None,
         qemu_cli_args: str | None = None,
         qemu_extra_args: str | None = None,
-        wokwi_cli_path: str | None = None,
-        wokwi_timeout: int | None = 0,
-        wokwi_scenario: str | None = None,
         wokwi_diagram: str | None = None,
         skip_regenerate_image: bool | None = None,
         encrypt: bool | None = None,
@@ -736,9 +727,6 @@ class DutFactory:
             qemu_prog_path: QEMU program path.
             qemu_cli_args: QEMU CLI arguments.
             qemu_extra_args: Additional QEMU arguments.
-            wokwi_cli_path: Wokwi CLI path.
-            wokwi_timeout: Wokwi timeout.
-            wokwi_scenario: Wokwi scenario path.
             wokwi_diagram: Wokwi diagram path.
             skip_regenerate_image: Skip image regeneration flag.
             encrypt: Encryption flag.
@@ -801,9 +789,6 @@ class DutFactory:
                 'qemu_prog_path': qemu_prog_path,
                 'qemu_cli_args': qemu_cli_args,
                 'qemu_extra_args': qemu_extra_args,
-                'wokwi_cli_path': wokwi_cli_path,
-                'wokwi_timeout': wokwi_timeout,
-                'wokwi_scenario': wokwi_scenario,
                 'wokwi_diagram': wokwi_diagram,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,
