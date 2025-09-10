@@ -166,7 +166,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     SOURCE = 'POPEN'
     REDIRECT_CLS = _PopenRedirectProcess
 
-    def __init__(self, msg_queue: MessageQueue, cmd: str | list[str], meta: Meta | None = None, **kwargs):
+    def __init__(self, msg_queue: MessageQueue, cmd: str | list[str] = [], meta: Meta | None = None, **kwargs):
         self._q = msg_queue
         self._p = None
 
@@ -187,15 +187,6 @@ class DuplicateStdoutPopen(subprocess.Popen):
         self._logfile = _log_file
         self._logfile_offset = 0
         logging.debug(f'temp log file: {_log_file}')
-
-        kwargs.update(
-            {
-                'bufsize': 0,
-                'stdin': subprocess.PIPE,
-                'stdout': self._fw,
-                'stderr': self._fw,
-            }
-        )
 
         self._cmd = cmd
 
