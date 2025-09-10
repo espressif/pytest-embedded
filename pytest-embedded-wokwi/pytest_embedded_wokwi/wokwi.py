@@ -42,9 +42,9 @@ class Wokwi(DuplicateStdoutPopen):
         self,
         msg_queue: MessageQueue,
         firmware_resolver: IDFFirmwareResolver,
-        wokwi_diagram: t.Optional[str] = None,
+        wokwi_diagram: str | None = None,
         app: t.Optional['IdfApp'] = None,
-        meta: t.Optional[Meta] = None,
+        meta: Meta | None = None,
         **kwargs,
     ):
         self.app = app
@@ -132,7 +132,7 @@ class Wokwi(DuplicateStdoutPopen):
         # Start monitoring in background
         self.client.serial_monitor(serial_callback)
 
-    def write(self, s: t.Union[str, bytes]) -> None:
+    def write(self, s: str | bytes) -> None:
         """Write data to the Wokwi serial interface."""
         try:
             data = s if isinstance(s, bytes) else s.encode('utf-8')
