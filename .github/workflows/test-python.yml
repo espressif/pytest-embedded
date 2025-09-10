@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
+
 jobs:
   test-python:
     timeout-minutes: 40
@@ -56,7 +59,8 @@ jobs:
             --cov=pytest_embedded_jtag \
             --cov=pytest_embedded_qemu \
             --cov=pytest_embedded_serial \
-            --cov=pytest_embedded_serial_esp
+            --cov=pytest_embedded_serial_esp \
+            --cov=pytest_embedded_wokwi
       - name: Zip log files
         if: failure()
         run: |
