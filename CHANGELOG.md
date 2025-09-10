@@ -6,6 +6,7 @@
 
 - **Python Support**: Drop support for Python 3.7, 3.8, 3.9. Now requires Python 3.10+
 - **esptool**: Update esptool requirement to >=5.1.dev1,<6 (from ~=4.9)
+- **wokwi**: Remove support for `WokwiCLI` class, which is a wrapper of `wokwi-cli` executable. Use `Wokwi` class instead, which depends on `wokwi-python-client`, supporting a wide range of peripherals.
 - **Deprecated Code Removal**:
   - Remove `EsptoolArgs` class from `pytest-embedded-serial-esp`
   - Remove deprecated parameters `hard_reset_after` and `no_stub` from `use_esptool()` decorator
