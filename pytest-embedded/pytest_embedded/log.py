@@ -3,11 +3,11 @@ import logging
 import multiprocessing
 import os
 import subprocess
-import sys
 import tempfile
 import textwrap
 import uuid
 from multiprocessing import queues
+from multiprocessing.managers import BaseManager
 from typing import AnyStr
 
 import pexpect.fdpexpect
@@ -16,10 +16,11 @@ from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
 from .utils import Meta, remove_asci_color_code, to_bytes, to_str, utcnow_str
 
-if sys.platform == 'darwin':
-    _ctx = multiprocessing.get_context('fork')
-else:
-    _ctx = multiprocessing.get_context()
+_ctx = multiprocessing.get_context('spawn')
+
+
+class MessageQueueManager(BaseManager):
+    pass
 
 
 class MessageQueue(queues.Queue):
@@ -40,7 +41,7 @@ class MessageQueue(queues.Queue):
         _b = to_bytes(obj)
         try:
             super().put(_b, **kwargs)
-        except:  # noqa # queue might be closed
+        except Exception:  # queue might be closed
             pass
 
     def write(self, s: AnyStr):
@@ -51,6 +52,9 @@ class MessageQueue(queues.Queue):
 
     def isatty(self):
         return True
+
+
+MessageQueueManager.register('MessageQueue', MessageQueue)
 
 
 class PexpectProcess(pexpect.fdpexpect.fdspawn):
@@ -146,16 +150,16 @@ def live_print_call(*args, msg_queue: MessageQueue | None = None, expect_returnc
 
 class _PopenRedirectProcess(_ctx.Process):
     def __init__(self, msg_queue: MessageQueue, logfile: str):
-        self._q = msg_queue
+        super().__init__(target=self._forward_io, args=(msg_queue, logfile), daemon=True)
 
-        self.logfile = logfile
-
-        super().__init__(target=self._forward_io, daemon=True)  # killed by the main process
-
-    def _forward_io(self) -> None:
-        with open(self.logfile) as fr:
+    @staticmethod
+    def _forward_io(msg_queue, logfile) -> None:
+        with open(logfile) as fr:
             while True:
-                self._q.put(fr.read())
+                try:
+                    msg_queue.put(fr.read())  # msg_queue may be closed
+                except Exception:
+                    break
 
 
 class DuplicateStdoutPopen(subprocess.Popen):

@@ -28,10 +28,7 @@ def _drop_none_kwargs(kwargs: dict[t.Any, t.Any]):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-if sys.platform == 'darwin':
-    _ctx = multiprocessing.get_context('fork')
-else:
-    _ctx = multiprocessing.get_context()
+_ctx = multiprocessing.get_context('spawn')
 
 _stdout = sys.__stdout__
 
@@ -43,10 +40,6 @@ DUT_GLOBAL_INDEX = 0
 # This variable holds values that were used in 'parametrize_fixtures'.
 # It helps to obtain the necessary information for a custom DUT, such as '_meta', '_services', and 'test_case_name'.
 PARAMETRIZED_FIXTURES_CACHE = {}
-
-
-def msg_queue_gn() -> MessageQueue:
-    return MessageQueue()
 
 
 def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
@@ -741,10 +734,15 @@ class DutFactory:
         """
         layout = []
         try:
-            global PARAMETRIZED_FIXTURES_CACHE
-            msg_queue = msg_queue_gn()
+            from .plugin import _MP_MANAGER  # avoid circular import
+
+            if _MP_MANAGER is None:
+                raise SystemExit('The _MP_MANAGER is not initialized, please use this function under pytest.')
+
+            msg_queue = _MP_MANAGER.MessageQueue()
             layout.append(msg_queue)
 
+            global PARAMETRIZED_FIXTURES_CACHE
             _pexpect_logfile = os.path.join(
                 PARAMETRIZED_FIXTURES_CACHE['_meta'].logdir, f'custom-dut-{DUT_GLOBAL_INDEX}.txt'
             )
