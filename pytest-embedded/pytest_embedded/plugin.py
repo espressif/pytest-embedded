@@ -36,7 +36,6 @@ from .dut_factory import (
     app_fn,
     dut_gn,
     gdb_gn,
-    msg_queue_gn,
     openocd_gn,
     pexpect_proc_fn,
     qemu_gn,
@@ -44,7 +43,7 @@ from .dut_factory import (
     set_parametrized_fixtures_cache,
     wokwi_gn,
 )
-from .log import MessageQueue, PexpectProcess
+from .log import MessageQueue, MessageQueueManager, PexpectProcess
 from .unity import JunitMerger, UnityTestReportMode, escape_illegal_xml_chars
 from .utils import (
     SERVICE_LIB_NAMES,
@@ -300,6 +299,7 @@ def pytest_addoption(parser):
 # helpers #
 ###########
 _COUNT = 1
+_MP_MANAGER: MessageQueueManager | None = None
 
 
 def _gte_one_int(v) -> int:
@@ -630,6 +630,19 @@ def port_app_cache() -> dict[str, str]:
     return {}
 
 
+@pytest.fixture(scope='session', autouse=True)
+def _mp_manager():
+    manager = MessageQueueManager()
+    manager.start()
+
+    global _MP_MANAGER
+    _MP_MANAGER = manager
+
+    yield manager
+
+    manager.shutdown()
+
+
 @pytest.fixture
 def test_case_tempdir(test_case_name: str, session_tempdir: str) -> str:
     """Function scoped temp dir for pytest-embedded"""
@@ -668,8 +681,8 @@ def _pexpect_logfile(test_case_tempdir, logfile_extension, dut_index, dut_total)
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
-    return msg_queue_gn()
+def msg_queue(_mp_manager) -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
+    return _mp_manager.MessageQueue()
 
 
 @pytest.fixture

@@ -1,6 +1,5 @@
 import functools
 import logging
-import multiprocessing
 import os.path
 import re
 from collections.abc import Callable
@@ -10,7 +9,7 @@ from typing import AnyStr
 import pexpect
 
 from .app import App
-from .log import PexpectProcess
+from .log import MessageQueue, PexpectProcess
 from .unity import UNITY_SUMMARY_LINE_REGEX, TestSuite
 from .utils import Meta, _InjectMixinCls, remove_asci_color_code, to_bytes, to_list
 
@@ -29,7 +28,7 @@ class Dut(_InjectMixinCls):
     def __init__(
         self,
         pexpect_proc: PexpectProcess,
-        msg_queue: multiprocessing.Queue,
+        msg_queue: MessageQueue,
         app: App,
         pexpect_logfile: str,
         test_case_name: str,

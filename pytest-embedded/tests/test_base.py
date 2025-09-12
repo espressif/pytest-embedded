@@ -290,7 +290,6 @@ def test_expect(testdir):
     result.assert_outcomes(passed=10)
 
 
-@pytest.mark.xfail(reason='unstable')
 def test_expect_from_timeout(testdir):
     testdir.makepyfile(r"""
         import threading
