@@ -29,7 +29,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "pytest-embedded-serial~=2.0.0a0",
-    "esptool>=5.1.dev1,<6",
+    "esptool>=5.1,<6",
 ]
 
 [project.urls]
