@@ -166,12 +166,12 @@ class IdfSerial(EspSerial):
 
         if '--baud' not in _args:
             _args.extend(['--baud', os.getenv('ESPBAUD', '921600')])
-        _args.append('write_flash')
+        _args.append('write-flash')
 
         if self.erase_nvs:
             esptool.main(
                 [
-                    'erase_region',
+                    'erase-region',
                     str(app.partition_table['nvs']['offset']),
                     str(app.partition_table['nvs']['size']),
                 ],
@@ -234,10 +234,10 @@ class IdfSerial(EspSerial):
             raise ValueError('You must specify "partition" or ("address" and "size") to dump flash')
 
         if output:
-            esptool.main(['read_flash', str(_addr), str(_size), str(output)], esp=self.esp)
+            esptool.main(['read-flash', str(_addr), str(_size), str(output)], esp=self.esp)
         else:
             with tempfile.NamedTemporaryFile() as fp:
-                esptool.main(['read_flash', str(_addr), str(_size), fp.name], esp=self.esp)
+                esptool.main(['read-flash', str(_addr), str(_size), fp.name], esp=self.esp)
                 content = fp.read()
             return content
 
@@ -256,7 +256,7 @@ class IdfSerial(EspSerial):
             address = self.app.partition_table[partition_name]['offset']
             size = self.app.partition_table[partition_name]['size']
             logging.info(f'Erasing the partition "{partition_name}" of size {size} at {address}')
-            esptool.main(['erase_region', str(address), str(size), *self._force_flag()], esp=self.esp)
+            esptool.main(['erase-region', str(address), str(size), *self._force_flag()], esp=self.esp)
         else:
             raise ValueError(f'partition name "{partition_name}" not found in app partition table')
 
@@ -279,7 +279,7 @@ class IdfSerial(EspSerial):
 
         with tempfile.NamedTemporaryFile() as fp:
             esptool.main(
-                ['read_flash', str(bin_offset + self.DEFAULT_SHA256_OFFSET), str(32), fp.name],
+                ['read-flash', str(bin_offset + self.DEFAULT_SHA256_OFFSET), str(32), fp.name],
                 esp=self.esp,
             )
             content = fp.read()

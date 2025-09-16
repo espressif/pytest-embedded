@@ -125,7 +125,7 @@ class EspSerial(Serial):
             self._meta.set_port_target_cache(self.port, self.target)
 
         if self.erase_all:
-            esptool.main(['erase_flash'], esp=self.esp)
+            esptool.main(['erase-flash'], esp=self.esp)
 
         super()._post_init()
 
@@ -163,7 +163,7 @@ class EspSerial(Serial):
     def erase_flash(self, force: bool = False) -> None:
         """Erase the complete flash"""
         logging.info('Erasing the flash')
-        options = ['erase_flash']
+        options = ['erase-flash']
 
         if force or self.esp_flash_force:
             options.append('--force')
