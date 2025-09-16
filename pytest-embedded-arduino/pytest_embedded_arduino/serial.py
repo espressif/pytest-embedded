@@ -55,7 +55,7 @@ class ArduinoSerial(EspSerial):
 
         try:
             esptool.main(
-                ['--chip', self.app.target, 'write_flash', *flash_files, *flash_settings],
+                ['--chip', self.app.target, 'write-flash', *flash_files, *flash_settings],
                 esp=self.esp,
             )
         except Exception:

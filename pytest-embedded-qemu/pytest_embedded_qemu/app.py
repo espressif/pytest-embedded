@@ -88,7 +88,7 @@ class IdfFlashImageMaker:
                 'esptool.py',
                 '--chip',
                 self.app.target,
-                'merge_bin',
+                'merge-bin',
                 '-o',
                 self.image_path,
                 '--fill-flash-size',

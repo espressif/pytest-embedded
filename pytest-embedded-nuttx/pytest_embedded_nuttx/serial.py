@@ -93,11 +93,11 @@ class NuttxSerial(EspSerial):
             flash_files.extend((str(self.binary_offsets[self.target]), self.app.app_file.as_posix()))
 
         flash_settings = [
-            '--flash_mode',
+            '--flash-mode',
             self.flash_mode,
-            '--flash_size',
+            '--flash-size',
             self.flash_size,
-            '--flash_freq',
+            '--flash-freq',
             self.flash_freq,
         ]
 
@@ -109,7 +109,7 @@ class NuttxSerial(EspSerial):
                 self.port,
                 '--baud',
                 str(self.esptool_baud),
-                'write_flash',
+                'write-flash',
                 *flash_files,
                 *flash_settings,
             ],
