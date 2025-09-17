@@ -1,7 +1,16 @@
 [tool.commitizen]
-name = "cz_conventional_commits"
+name = "czespressif"
 version = "2.0.0a0"
+annotated_tag = true
+
 tag_format = "v$version"
+version_scheme = "pep440"
+
+update_changelog_on_bump = true
+changelog_merge_prerelease = true
+
+types_in_changelog = ["BREAKING CHANGE", "feat", "fix", "refactor", "change", "perf", "docs"]
+
 version_files = [
     "pytest-embedded/pytest_embedded/__init__.py",
     "pytest-embedded/pyproject.toml",
