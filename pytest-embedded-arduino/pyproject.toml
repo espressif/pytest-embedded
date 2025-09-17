@@ -29,12 +29,12 @@ dynamic = ["version", "description"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "pytest-embedded~=2.0.0a0",
+    "pytest-embedded~=2.0.0a1",
 ]
 
 [project.optional-dependencies]
 serial = [
-    "pytest-embedded-serial-esp~=2.0.0a0"
+    "pytest-embedded-serial-esp~=2.0.0a1"
 ]
 
 [project.urls]

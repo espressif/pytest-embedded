@@ -31,4 +31,4 @@ __all__ = [
     'QemuDut',
 ]
 
-__version__ = '2.0.0a0'
+__version__ = '2.0.0a1'
