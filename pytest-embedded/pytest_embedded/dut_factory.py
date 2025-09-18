@@ -138,6 +138,7 @@ def _fixture_classes_and_options_fn(
     qemu_prog_path,
     qemu_cli_args,
     qemu_extra_args,
+    qemu_efuse_path,
     wokwi_diagram,
     skip_regenerate_image,
     encrypt,
@@ -172,6 +173,7 @@ def _fixture_classes_and_options_fn(
                             'encrypt': encrypt,
                             'keyfile': keyfile,
                             'qemu_prog_path': qemu_prog_path,
+                            'qemu_efuse_path': qemu_efuse_path,
                         }
                     )
                 else:
@@ -303,6 +305,7 @@ def _fixture_classes_and_options_fn(
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
                     'qemu_extra_args': qemu_extra_args,
+                    'qemu_efuse_path': qemu_efuse_path,
                     'app': None,
                     'meta': _meta,
                     'dut_index': dut_index,
@@ -674,6 +677,7 @@ class DutFactory:
         qemu_prog_path: str | None = None,
         qemu_cli_args: str | None = None,
         qemu_extra_args: str | None = None,
+        qemu_efuse_path: str | None = None,
         wokwi_diagram: str | None = None,
         skip_regenerate_image: bool | None = None,
         encrypt: bool | None = None,
@@ -720,6 +724,7 @@ class DutFactory:
             qemu_prog_path: QEMU program path.
             qemu_cli_args: QEMU CLI arguments.
             qemu_extra_args: Additional QEMU arguments.
+            qemu_efuse_path: Efuse binary path.
             wokwi_diagram: Wokwi diagram path.
             skip_regenerate_image: Skip image regeneration flag.
             encrypt: Encryption flag.
@@ -787,6 +792,7 @@ class DutFactory:
                 'qemu_prog_path': qemu_prog_path,
                 'qemu_cli_args': qemu_cli_args,
                 'qemu_extra_args': qemu_extra_args,
+                'qemu_efuse_path': qemu_efuse_path,
                 'wokwi_diagram': wokwi_diagram,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,

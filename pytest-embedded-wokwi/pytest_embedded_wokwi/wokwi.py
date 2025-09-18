@@ -47,6 +47,9 @@ class Wokwi(DuplicateStdoutPopen):
         meta: Meta | None = None,
         **kwargs,
     ):
+        # Initialize parent class
+        super().__init__(msg_queue=msg_queue, meta=meta, **kwargs)
+
         self.app = app
 
         # Get Wokwi API token
@@ -70,9 +73,6 @@ class Wokwi(DuplicateStdoutPopen):
         if wokwi_diagram is None:
             self.create_diagram_json()
             wokwi_diagram = os.path.join(self.app.app_path, 'diagram.json')
-
-        # Initialize parent class
-        super().__init__(msg_queue=msg_queue, meta=meta, **kwargs)
 
         # Connect and start simulation
         try:
