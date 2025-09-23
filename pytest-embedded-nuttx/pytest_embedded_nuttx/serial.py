@@ -15,7 +15,8 @@ class NuttxSerial(EspSerial):
 
     # Default offset for the primary MCUBoot slot across
     # all Espressif devices on NuttX
-    MCUBOOT_PRIMARY_SLOT_OFFSET = 0x10000
+    MCUBOOT_PRIMARY_SLOT_OFFSET = 0x20000
+    VIRTUAL_EFUSE_OFFSET = 0x10000
     SERIAL_BAUDRATE = 115200
 
     binary_offsets: ClassVar[dict[str, int]] = {
@@ -82,13 +83,19 @@ class NuttxSerial(EspSerial):
             self.flash_mode = 'dio'
 
     @EspSerial.use_esptool()
-    def flash(self) -> None:
+    def flash(
+        self,
+        virtual_efuse_offset: int = VIRTUAL_EFUSE_OFFSET,
+        mcuboot_primary_slot_offset: int = MCUBOOT_PRIMARY_SLOT_OFFSET,
+    ) -> None:
         """Flash the binary files to the board."""
 
         flash_files = []
         if self.app.bootloader_file:
+            if self.app.vefuse_file:
+                flash_files.extend((str(virtual_efuse_offset), self.app.vefuse_file.as_posix()))
             flash_files.extend((str(self.binary_offsets[self.target]), self.app.bootloader_file.as_posix()))
-            flash_files.extend((str(self.MCUBOOT_PRIMARY_SLOT_OFFSET), self.app.app_file.as_posix()))
+            flash_files.extend((str(mcuboot_primary_slot_offset), self.app.app_file.as_posix()))
         else:
             flash_files.extend((str(self.binary_offsets[self.target]), self.app.app_file.as_posix()))
 
@@ -100,6 +107,11 @@ class NuttxSerial(EspSerial):
             '--flash-freq',
             self.flash_freq,
         ]
+
+        print(f'Flash files: {flash_files}')
+        print(f'Flash settings: {flash_settings}')
+        print(f'Virtual E-Fuse offset: {hex(virtual_efuse_offset)}')
+        print(f'MCUBoot primary slot offset: {hex(mcuboot_primary_slot_offset)}')
 
         esptool.main(
             [

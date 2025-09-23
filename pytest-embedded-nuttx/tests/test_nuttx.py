@@ -48,6 +48,7 @@ def test_nuttx_app_mcuboot(testdir):
             assert '4MB' == dut.serial.flash_size
             assert 'dio' == dut.serial.flash_mode
             assert None != app.bootloader_file
+            assert None == app.vefuse_file
 
         def test_nuttx_app_mcuboot_flash(serial, dut):
             serial.erase_flash()
@@ -68,6 +69,47 @@ def test_nuttx_app_mcuboot(testdir):
         'esp32',
         '--app-path',
         os.path.join(testdir.tmpdir, 'hello_world_nuttx_mcuboot'),
+    )
+
+    result.assert_outcomes(passed=3)
+
+
+def test_nuttx_app_mcuboot_with_virtual_efuse(testdir):
+    """This test takes vefuse.bin in consideration. This is a scenario
+    where the bootloader is flashed with virtual efuse enabled, which
+    changes the location in flash for MCUBoot and application.
+    This was added to NuttX on september 2025.
+    """
+    testdir.makepyfile("""
+        import pytest
+
+        def test_nuttx_app_mcuboot(dut, app, target):
+            assert 'esp32' == target
+            assert '40m' == dut.serial.flash_freq
+            assert '4MB' == dut.serial.flash_size
+            assert 'dio' == dut.serial.flash_mode
+            assert None != app.bootloader_file
+            assert None != app.vefuse_file
+
+        def test_nuttx_app_mcuboot_flash(serial, dut):
+            serial.erase_flash()
+            serial.flash()
+            dut.reset_to_nsh()
+
+        def test_hello_mcuboot(dut):
+            dut.reset_to_nsh()
+            dut.write("ls /dev")
+            dut.expect("console")
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'nuttx,esp',
+        '--target',
+        'esp32',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_nuttx_virtual_efuse'),
     )
 
     result.assert_outcomes(passed=3)
