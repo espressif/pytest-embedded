@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v2.0.0a1 (2025-09-17)
+## v2.0.0 (2025-09-23)
 
 ### 🔧 Code Refactoring
 
@@ -9,9 +9,6 @@
 ### 🏗️ Changes
 
 - rename esptool underscore arguments and subcommands to dash *(Fu Hanxi - b2b88d0)*
-
-
-## v2.0.0a0
 
 ### Breaking Changes
 
