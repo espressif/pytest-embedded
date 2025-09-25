@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v2.1.0 (2025-09-25)
+
+### ✨ New Features
+
+- add support for efuse in qemu *(horw - e682c45)*
+- add support for virtual efuse on NuttX *(Filipe Cavalcanti - 5e946a0)*
+
+
 ## v2.0.0 (2025-09-23)
 
 ### 🔧 Code Refactoring
