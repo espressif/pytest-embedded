@@ -283,11 +283,51 @@ def test_expect(testdir):
                 dut.expect(pattern_list, expect_all=True, timeout=1)
 
             assert e.value.value.startswith('Not found "[\'foobar\']"')
+
+        def test_expect_no_matching_list(dut):  # fail
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect('world!', not_matching=[re.compile("Hell"), "Hello"])
+
+        def test_expect_no_matching_word(dut):  # fail
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect('Restarting', not_matching="Hello world!")
+
+        def test_expect_no_matching_word_pass(dut):
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect('Restarting', not_matching="Hello world!333")
+
+        def test_expect_no_matching_word_pass_rest(dut):
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect('Hello world', not_matching="Restarting")
+
+        def test_expect_exact_no_matching_list(dut):  # fail
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect_exact('world!', not_matching=["Hell1", "Hello"])
+
+        def test_expect_exact_no_matching_word(dut):  # fail
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect_exact('Restarting', not_matching="Hello world!")
+
+        def test_expect_exact_no_matching_word_pass(dut):
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect_exact('Restarting', not_matching="Hello world!333")
+
+        def test_expect_exact_no_matching_word_pass_rest(dut):
+            dut.write('Hello world!')
+            dut.write('Restarting')
+            dut.expect_exact('Hello world', not_matching="Restarting")
     """)
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=10)
+    result.assert_outcomes(failed=4, passed=14)
 
 
 def test_expect_from_timeout(testdir):

@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2022 Espressif Systems (Shanghai) CO LTD
 # SPDX-License-Identifier: Apache-2.0
-import functools
 import logging
 import re
 import time
@@ -17,6 +16,7 @@ from pytest_embedded.unity import (
     UNITY_FIXTURE_REGEX,
     UNITY_SUMMARY_LINE_REGEX,
     TestCase,
+    TestSuite,
 )
 from pytest_embedded.utils import remove_asci_color_code
 
@@ -32,6 +32,61 @@ READY_PATTERN_LIST = [
     'Enter test for running',
     "Enter next test, or 'enter' to see menu",
 ]
+
+_PRE_RUN_FAILURE_STR = '_PRE_RUN_FAILURE'
+
+
+def _parse_unity_test_output(log: t.AnyStr | None, case_name: str, buffer_debug_str: str) -> dict:
+    if log:
+        # check format
+        check = UNITY_FIXTURE_REGEX.search(log)
+        if check:
+            regex = UNITY_FIXTURE_REGEX
+        else:
+            regex = UNITY_BASIC_REGEX
+
+        res = list(regex.finditer(log))
+    else:
+        res = []
+
+    # real parsing
+    if len(res) == 0:
+        logging.warning(
+            'unity test case not found, probably due to a timeout. Assume the current test case is "%s"',
+            case_name,
+        )
+        attrs = {
+            'name': case_name,
+            'result': 'FAIL',
+            'message': buffer_debug_str or 'timeout',
+        }
+    elif len(res) == 1:
+        attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
+    else:
+        warnings.warn('This function is for recording single unity test case only. Use the last matched one')
+        attrs = {k: v for k, v in res[-1].groupdict().items() if v is not None}
+
+    if log:
+        attrs.update({'stdout': log})
+
+    return attrs
+
+
+def _add_test_case_to_test_suite(test_suite: TestSuite, attrs: dict) -> None:
+    """
+    Add a test case to the test suite.
+
+    :param test_suite: The test suite to add the test case to.
+    :param attrs: The attributes of the test case.
+    """
+    testcase = TestCase(**attrs)
+    test_suite.testcases.append(testcase)
+    if testcase.result == 'FAIL':
+        test_suite.attrs['failures'] += 1
+    elif testcase.result == 'IGNORE':
+        test_suite.attrs['skipped'] += 1
+    else:
+        test_suite.attrs['tests'] += 1
 
 
 @dataclass
@@ -222,108 +277,56 @@ class IdfUnityDutMixin:
 
         return self._test_menu
 
-    def _record_single_unity_test_case(func):
-        """
-        The first argument of the function that is using this decorator must be `case`. passing with args.
+    def _add_test_case_to_suite(self, attrs: dict):
+        _add_test_case_to_test_suite(self.testsuite, attrs)
 
-        Note:
-            This function is better than `dut.expect_unity_output()` since it will record the test case even it core
-                dumped during running the test case or other reasons that cause the final result block is uncaught.
-        """
-
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            _start_at = time.perf_counter()  # declare here in case hard reset failed
-            _timeout = kwargs.get('timeout', 30)
-            _case = args[0]
-
-            if _case.type not in func.__name__:
-                logging.warning("The %s case can't be executed with %s function.", _case.type, func.__name__)
-                return
-
-            try:
-                # do it here since the first hard reset before test case shouldn't be counted in duration time
-                if 'reset' in kwargs:
-                    if kwargs.get('reset'):
-                        self._hard_reset()
-
-                _start_at = time.perf_counter()
-                func(self, *args, **kwargs)
-            finally:
-                _timestamp = time.perf_counter()
-                _log = ''
-                try:
-                    _timeout = _timeout - _timestamp + _start_at
-                    if _timeout < 0:  # pexpect process would expect 30s if < 0
-                        _timeout = 0
-                    self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=_timeout)
-                except Exception:  # result block missing
-                    pass
-                else:  # result block exists
-                    _log = remove_asci_color_code(self.pexpect_proc.before)
-                finally:
-                    _end_at = time.perf_counter()
-                    self._add_single_unity_test_case(
-                        _case,
-                        _log,
-                        additional_attrs={'app_path': self.app.app_path, 'time': round(_end_at - _start_at, 3)},
-                    )
-
-        return wrapper
-
-    def _add_single_unity_test_case(
-        self, case: UnittestMenuCase, log: t.AnyStr | None, additional_attrs: dict[str, t.Any] | None = None
+    def _analyze_test_case_result(
+        self,
+        case: UnittestMenuCase,
+        pre_run_failure: Exception | None,
+        *,
+        start_time: float = 0,
+        timeout: float = 30,
     ):
-        if log:
-            # check format
-            check = UNITY_FIXTURE_REGEX.search(log)
-            if check:
-                regex = UNITY_FIXTURE_REGEX
-            else:
-                regex = UNITY_BASIC_REGEX
-
-            res = list(regex.finditer(log))
-        else:
-            res = []
-
-        # real parsing
-        if len(res) == 0:
-            logging.warning(
-                'unity test case not found, probably due to a timeout. Assume the current test case is "%s"',
-                case.name,
-            )
+        # if the pre_run_failure is not None, then the test case is skipped, since the error happens before
+        if pre_run_failure:
             attrs = {
                 'name': case.name,
-                'result': 'FAIL',
-                'message': self.pexpect_proc.buffer_debug_str or 'timeout',
+                'result': 'IGNORE',
+                'message': f'Skipped due to a failure before test execution. '
+                f'The write command probably failed: {pre_run_failure}',
+                'time': 0,
+                'app_path': self.app.app_path,
             }
-        elif len(res) == 1:
-            attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
-        else:
-            warnings.warn('This function is for recording single unity test case only. Use the last matched one')
-            attrs = {k: v for k, v in res[-1].groupdict().items() if v is not None}
+            self._add_test_case_to_suite(attrs)
+            return
 
-        if additional_attrs:
-            attrs.update(additional_attrs)
+        log = ''
+        try:
+            remaining_timeout = timeout - (time.perf_counter() - start_time)
+            if remaining_timeout < 0:  # pexpect process would expect 30s if < 0
+                remaining_timeout = 0
+            self.expect(UNITY_SUMMARY_LINE_REGEX, timeout=remaining_timeout)
+        except Exception:  # result block missing
+            pass
+        else:  # result block exists
+            log = remove_asci_color_code(self.pexpect_proc.before)
+        finally:
+            attrs = _parse_unity_test_output(log, case.name, self.pexpect_proc.buffer_debug_str)
+            attrs.update(
+                {
+                    'app_path': self.app.app_path,
+                    'time': round(time.perf_counter() - start_time, 3),
+                }
+            )
 
-        if log:
-            attrs.update({'stdout': log})
+            self._add_test_case_to_suite(attrs)
 
-        testcase = TestCase(**attrs)
-        self.testsuite.testcases.append(testcase)
-        if testcase.result == 'FAIL':
-            self.testsuite.attrs['failures'] += 1
-        elif testcase.result == 'IGNORE':
-            self.testsuite.attrs['skipped'] += 1
-        else:
-            self.testsuite.attrs['tests'] += 1
-
-    @_record_single_unity_test_case
     def _run_normal_case(
         self,
         case: UnittestMenuCase,
         *,
-        reset: bool = False,  # noqa
+        reset: bool = False,
         timeout: float = 30,
     ) -> None:
         """
@@ -341,15 +344,23 @@ class IdfUnityDutMixin:
             logging.warning('case %s is not a normal case', case.name)
             return
 
-        self._get_ready(timeout)
-        self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+        try:
+            if reset:
+                self._hard_reset()
 
-    @_record_single_unity_test_case
+            _start_at = time.perf_counter()
+            self._get_ready(timeout)
+            self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+        except Exception as e:
+            self._analyze_test_case_result(case, e)
+        else:
+            self._analyze_test_case_result(case, None, start_time=_start_at, timeout=timeout)
+
     def _run_multi_stage_case(
         self,
         case: UnittestMenuCase,
         *,
-        reset: bool = False,  # noqa
+        reset: bool = False,
         timeout: float = 30,
     ) -> None:
         """
@@ -367,21 +378,29 @@ class IdfUnityDutMixin:
             logging.warning('case %s is not a multi stage case', case.name)
             return
 
-        _start_at = time.perf_counter()
-        _timestamp = _start_at
-        for sub_case in case.subcases:
-            _timeout = timeout - _timestamp + _start_at
-            if _timeout < 0:  # pexpect process would expect 30s if < 0
-                _timeout = 0
+        try:
+            if reset:
+                self._hard_reset()
 
+            _start_at = time.perf_counter()
             self._get_ready(timeout)
             self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+        except Exception as e:
+            self._analyze_test_case_result(case, e)
+        else:
+            try:
+                for sub_case in case.subcases:
+                    if sub_case != case.subcases[0]:
+                        self._get_ready(timeout)
+                        self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
-            # here we can't use confirm_write because the sub cases won't print anything
-            # can't rely on time.sleep either cause it will break some time-related child cases
-            self.write(str(sub_case['index']))
-
-            _timestamp = time.perf_counter()
+                    self.write(str(sub_case['index']))
+            except Exception:
+                # Any exception during the sub-case loop is a runtime failure.
+                # We'll stop sending commands and let the result recorder handle the failure.
+                pass
+            finally:
+                self._analyze_test_case_result(case, None, start_time=_start_at, timeout=timeout)
 
     def run_single_board_case(self, name: str, reset: bool = False, timeout: float = 30) -> None:
         for case in self.test_menu:
@@ -543,16 +562,25 @@ class _MultiDevTestDut:
             self.work.close()
 
     def run_case(self):
-        yield from self._expect_exact(READY_PATTERN_LIST, self.wait_for_menu_timeout)
+        try:
+            yield from self._expect_exact(READY_PATTERN_LIST, self.wait_for_menu_timeout)
+            # yield version of confirm_write
+            for retry in range(self.start_retry):
+                self.dut.write(str(self.case.index))
+                try:
+                    yield from self._expect_exact(self.case.name, 1)
+                    break
+                except TIMEOUT as e:
+                    if retry >= self.start_retry - 1:
+                        raise e
+        except Exception as e:
+            return _PRE_RUN_FAILURE_STR, {
+                'name': self.case.name,
+                'result': _PRE_RUN_FAILURE_STR,
+                'message': f'Skipped due to a failure before test execution. The write command probably failed: {e}',
+                'time': 0,
+            }
 
-        for retry in range(self.start_retry):
-            self.dut.write(str(self.case.index))
-            try:
-                yield from self._expect_exact(self.case.name, 1)
-                break
-            except TIMEOUT as e:
-                if retry >= self.start_retry - 1:
-                    raise e
         self.dut.write(str(self.sub_case_index))
 
         _start_time = time.perf_counter()
@@ -634,59 +662,20 @@ class _MultiDevTestDut:
         if isinstance(raw_data_to_report, tuple) and len(raw_data_to_report) == 2:
             log = str(raw_data_to_report[0])
             additional_attrs = raw_data_to_report[1]
+
+            if log == _PRE_RUN_FAILURE_STR:
+                return additional_attrs
         else:
             log = str(raw_data_to_report)
 
-        if log:
-            # check format
-            check = UNITY_FIXTURE_REGEX.search(log)
-            if check:
-                regex = UNITY_FIXTURE_REGEX
-            else:
-                regex = UNITY_BASIC_REGEX
-
-            res = list(regex.finditer(log))
-        else:
-            res = []
-
-        # real parsing
-        if len(res) == 0:
-            logging.warning(
-                'unity test case not found, probably due to a timeout. Assume the current test case is "%s"',
-                self.case.name,
-            )
-            attrs = {
-                'name': self.case.name,
-                'result': 'FAIL',
-                'message': self.dut.pexpect_proc.buffer_debug_str or 'timeout',
-                'time': time.perf_counter() - self.init_time,
-            }
-        elif len(res) == 1:
-            attrs = {k: v for k, v in res[0].groupdict().items() if v is not None}
-        else:
-            warnings.warn('This function is for recording single unity test case only. Use the last matched one')
-            attrs = {k: v for k, v in res[-1].groupdict().items() if v is not None}
+        attrs = _parse_unity_test_output(log, self.case.name, self.dut.pexpect_proc.buffer_debug_str)
 
         if additional_attrs:
             attrs.update(additional_attrs)
 
-        if log:
-            attrs.update({'stdout': log})
-
         attrs.update({'app_path': self.dut.app.app_path})
 
         return attrs
-
-    def add_to_report(self, attrs):
-        testcase = TestCase(**attrs)
-        self.dut.testsuite.testcases.append(testcase)
-
-        if testcase.result == 'FAIL':
-            self.dut.testsuite.attrs['failures'] += 1
-        elif testcase.result == 'IGNORE':
-            self.dut.testsuite.attrs['skipped'] += 1
-        else:
-            self.dut.testsuite.attrs['tests'] += 1
 
 
 class MultiDevRunTestManager:
@@ -779,7 +768,9 @@ class MultiDevRunTestManager:
         output['time'] = time_attr
         output['name'] = ' <---> '.join(list(name_attr))
 
-        if 'FAIL' in results:
+        if _PRE_RUN_FAILURE_STR in results:
+            output['result'] = 'IGNORE'
+        elif 'FAIL' in results:
             output['result'] = 'FAIL'
         elif 'IGNORE' in results:
             output['result'] = 'IGNORE'
@@ -787,9 +778,6 @@ class MultiDevRunTestManager:
             output['result'] = (results - {'FAIL', 'IGNORE'}).pop()
 
         return output
-
-    def add_report_to_first_dut(self, attrs):
-        self.workers[0].add_to_report(attrs)
 
 
 class CaseTester:
@@ -856,7 +844,7 @@ class CaseTester:
         )
         data_to_report = mdm.gather()
         merged_data = mdm.get_merge_data(data_to_report)
-        mdm.add_report_to_first_dut(merged_data)
+        _add_test_case_to_test_suite(mdm.workers[0].dut.testsuite, merged_data)
 
     def run_normal_case(self, case: UnittestMenuCase, reset: bool = False, timeout: int = 90) -> None:
         """
