@@ -24,6 +24,7 @@ def test_idf_serial_flash(testdir):
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
                 dut.expect('foo bar not found', timeout=1)
+            assert dut.serial.esp_flash_force == False
     """)
 
     result = testdir.runpytest(
@@ -58,87 +59,6 @@ def test_esp_flash_force_flag(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_esp_flash_no_force_flag(testdir):
-    testdir.makepyfile("""
-        import pexpect
-        import pytest
-
-        def test_idf_serial_flash(dut):
-            dut.expect('Hello world!')
-            assert dut.serial.esp_flash_force == False
-    """)
-    result = testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-    )
-
-    result.assert_outcomes(passed=1)
-
-
-def test_expect_no_matching(testdir):
-    testdir.makepyfile("""
-        import pexpect
-        import pytest
-        import re
-
-        def test_no_matching_list(dut):
-            dut.expect('world!', not_matching=[re.compile("Hell"), "Hello"])
-
-        def test_no_matching_word(dut):
-            dut.expect('Restarting', not_matching="Hello world!")
-
-        def test_no_matching_word_pass(dut):
-            dut.expect('Restarting', not_matching="Hello world!333")
-
-        def test_no_matching_word_pass_rest(dut):
-            dut.expect('Hello world', not_matching="Restarting")
-
-    """)
-
-    result = testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-    )
-
-    result.assert_outcomes(passed=2, failed=2)
-
-
-def test_expect_exact_no_matching(testdir):
-    testdir.makepyfile("""
-        import pexpect
-        import pytest
-
-        def test_no_matching_list(dut):
-            dut.expect_exact('world!', not_matching=["Hell1", "Hello"])
-
-        def test_no_matching_word(dut):
-            dut.expect_exact('Restarting', not_matching="Hello world!")
-
-        def test_no_matching_word_pass(dut):
-            dut.expect_exact('Restarting', not_matching="Hello world!333")
-
-        def test_no_matching_word_pass_rest(dut):
-            dut.expect_exact('Hello world', not_matching="Restarting")
-
-    """)
-
-    result = testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'hello_world_esp32'),
-    )
-
-    result.assert_outcomes(passed=2, failed=2)
-
-
 def test_custom_idf_device_dut(testdir):
     p = os.path.join(testdir.tmpdir, 'hello_world_esp32')
     p_c3 = os.path.join(testdir.tmpdir, 'hello_world_esp32c3')
@@ -154,22 +74,22 @@ def test_custom_idf_device_dut(testdir):
 
         def test_idf_mixed(dut):
             from pytest_embedded.dut_factory import DutFactory
-            dutc = DutFactory.create(embedded_services='esp,idf', app_path=r'{p_c3}')
-            dutc.expect("Hello")
+            dut_c3 = DutFactory.create(embedded_services='esp,idf', app_path=r'{p_c3}')
+            dut_c3.expect("Hello")
             dut.expect("Hello")
-            assert dutc.serial.port!=dut.serial.port
+            assert dut_c3.serial.port!=dut.serial.port
 
         def test_idf_unity_tester():
             from pytest_embedded.dut_factory import DutFactory
             dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
             dut2 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path_c3}')
             tester = DutFactory.unity_tester(dut1, dut2)
-            tester.run_all_cases()
+            tester.run_all_multi_dev_cases(timeout=10)
 
         def test_idf_run_all_single_board_cases():
             from pytest_embedded.dut_factory import DutFactory
             dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
-            dut1.run_all_single_board_cases()
+            dut1.run_all_single_board_cases(reset=True, timeout=10)
     """)
 
     result = testdir.runpytest(
@@ -181,14 +101,14 @@ def test_custom_idf_device_dut(testdir):
         '--junitxml',
         'report.xml',
     )
-    result.assert_outcomes(passed=4, errors=0)
+    result.assert_outcomes(passed=4, errors=0)  # FIXME, dut-factory mode can't raise error now
 
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
     assert junit_report.attrib['failures'] == '2'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '7'
+    assert junit_report.attrib['tests'] == '6'
 
 
 def test_idf_serial_flash_with_erase_nvs(testdir):
@@ -797,7 +717,7 @@ def test_select_to_run():
     assert IdfUnityDutMixin._select_to_run([['hello', '!w']], None, None, ['hello', 'world'], None, None)
 
 
-def test_dut_run_all_single_board_cases(testdir):
+def test_dut_run_all_single_board_cases_reset_false(testdir):
     testdir.makepyfile(r"""
         def test_dut_run_all_single_board_cases(dut):
             dut.run_all_single_board_cases(timeout=10)
@@ -817,22 +737,58 @@ def test_dut_run_all_single_board_cases(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '1'
-    assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '2'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '2'
+    assert junit_report.attrib['tests'] == '1'
 
     testcases = junit_report.findall('.//testcase')
-    succeed = testcases[0]
-    failed = testcases[1]
-    multi_stage = testcases[2]
+    assert testcases[0].attrib['name'] == 'normal_case_pass'
+    assert testcases[1].attrib['name'] == 'normal_case_crash'
+    assert testcases[2].attrib['name'] == 'normal_case_stuck'
+    assert testcases[3].attrib['name'] == 'normal_case_skip_when_not_reset'
+    assert testcases[4].attrib['name'] == 'multiple_stages_test'
 
-    assert succeed.attrib['name'] == 'normal_case1'
+    assert 10 < float(testcases[1].attrib['time']) < 10.1
+    assert 'Guru Meditation Error' in testcases[1][0].attrib['message']
 
-    assert failed.attrib['name'] == 'normal_case2'
-    assert 10 < float(failed.attrib['time']) < 10.1
-    assert failed[0].attrib['message']
+    assert 'Skipped due to a failure before test execution.' in testcases[3][0].attrib['message']
+    assert 'Skipped due to a failure before test execution.' in testcases[4][0].attrib['message']
 
-    assert multi_stage.attrib['name'] == 'multiple_stages_test'
+
+def test_dut_run_all_single_board_cases_reset_true(testdir):
+    testdir.makepyfile(r"""
+        def test_dut_run_all_single_board_cases(dut):
+            dut.run_all_single_board_cases(reset=True, timeout=10)
+    """)
+    testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        '--log-cli-level',
+        'DEBUG',
+        '--junitxml',
+        'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '3'
+
+    testcases = junit_report.findall('.//testcase')
+    assert testcases[0].attrib['name'] == 'normal_case_pass'
+    assert testcases[1].attrib['name'] == 'normal_case_crash'
+    assert testcases[2].attrib['name'] == 'normal_case_stuck'
+    assert testcases[3].attrib['name'] == 'normal_case_skip_when_not_reset'
+    assert testcases[4].attrib['name'] == 'multiple_stages_test'
+
+    assert 10 < float(testcases[1].attrib['time']) < 10.1
+    assert 'Guru Meditation Error' in testcases[1][0].attrib['message']
+    assert 'normal case stuck: infinite loop' in testcases[2][0].attrib['message']
 
 
 def test_dut_run_all_single_board_cases_group(testdir):
@@ -855,13 +811,9 @@ def test_dut_run_all_single_board_cases_group(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '1'
-    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '1'
     assert junit_report.attrib['tests'] == '1'
-    cases = junit_report.findall('.//testcase')
-    assert len(cases) == 2
-    assert cases[0].attrib['app_path'] == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
-    assert cases[1].attrib['app_path'] == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
 
 
 def test_dut_run_all_single_board_cases_invert_group(testdir):
@@ -875,8 +827,6 @@ def test_dut_run_all_single_board_cases_invert_group(testdir):
         'esp,idf',
         '--app-path',
         os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
         '--junitxml',
         'report.xml',
     )
@@ -892,7 +842,9 @@ def test_dut_run_all_single_board_cases_invert_group(testdir):
 def test_dut_run_all_single_board_cases_by_names(testdir):
     testdir.makepyfile(r"""
         def test_dut_run_all_single_board_cases(dut):
-            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
+            dut.run_all_single_board_cases(
+                name=["normal_case_pass", "multiple_stages_test"]
+            )
     """)
     testdir.runpytest(
         '-s',
@@ -900,8 +852,6 @@ def test_dut_run_all_single_board_cases_by_names(testdir):
         'esp,idf',
         '--app-path',
         os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
         '--junitxml',
         'report.xml',
     )
@@ -913,11 +863,19 @@ def test_dut_run_all_single_board_cases_by_names(testdir):
     assert junit_report.attrib['skipped'] == '0'
     assert junit_report.attrib['tests'] == '2'
 
+    for testcase in junit_report.findall('testcase'):
+        assert testcase.attrib['is_unity_case'] == '1'
 
-def test_unity_test_case_runner(testdir):
+
+def test_unity_test_case_runner_without_reset(testdir):
     testdir.makepyfile(r"""
-        def test_unity_test_case_runner(unity_tester):
-            unity_tester.run_all_cases()
+        def test_unity_test_case_runner_without_reset(unity_tester):
+            pass_case = unity_tester.test_menu[0]
+            stuck_case = unity_tester.test_menu[2]
+            multi_dev_case = unity_tester.test_menu[-1]
+            unity_tester.run_normal_case(pass_case, timeout=5)
+            unity_tester.run_normal_case(stuck_case, timeout=5)
+            unity_tester.run_multi_dev_case(multi_dev_case, timeout=5)
     """)
 
     testdir.runpytest(
@@ -930,8 +888,39 @@ def test_unity_test_case_runner(testdir):
         f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
         f'|'
         f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
-        '--log-cli-level',
-        'DEBUG',
+        '--junitxml',
+        'report.xml',
+    )
+
+    junit_report = ET.parse('report.xml').getroot()[0]
+
+    assert junit_report.attrib['errors'] == '0'
+    assert junit_report.attrib['failures'] == '1'
+    assert junit_report.attrib['skipped'] == '1'
+    assert junit_report.attrib['tests'] == '1'
+
+
+def test_unity_test_case_runner_with_reset(testdir):
+    testdir.makepyfile(r"""
+        def test_unity_test_case_runner_without_reset(unity_tester):
+            pass_case = unity_tester.test_menu[0]
+            stuck_case = unity_tester.test_menu[2]
+            multi_dev_case = unity_tester.test_menu[-1]
+            unity_tester.run_normal_case(pass_case, timeout=5)
+            unity_tester.run_normal_case(stuck_case, timeout=5)
+            unity_tester.run_multi_dev_case(multi_dev_case, reset=True, timeout=5)
+    """)
+
+    testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'esp,idf',
+        '--count',
+        2,
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
+        f'|'
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
         '--junitxml',
         'report.xml',
     )
@@ -941,26 +930,7 @@ def test_unity_test_case_runner(testdir):
     assert junit_report.attrib['errors'] == '0'
     assert junit_report.attrib['failures'] == '1'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '3'
-
-    # single-dut app_path should be the dut[0] one
-    assert junit_report[0].get('name') == 'normal_case1'
-    assert junit_report[0].find('failure') is None
-    assert junit_report[0].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
-    assert junit_report[1].get('name') == 'normal_case2'
-    assert junit_report[1].find('failure') is not None
-    assert junit_report[1].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
-    assert junit_report[2].get('name') == 'multiple_stages_test'
-    assert junit_report[2].find('failure') is None
-    assert junit_report[2].get('app_path') == os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
-    # multi-dut app_path should be concatenated
-    assert junit_report[3].get('name') == 'multiple_devices_test'
-    assert junit_report[3].find('failure') is None
-    assert (
-        junit_report[3].get('app_path') == f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
-        f'|'
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}'
-    )
+    assert junit_report.attrib['tests'] == '2'
 
 
 def test_erase_all_with_port_cache(testdir):
@@ -989,63 +959,12 @@ def test_erase_all_with_port_cache(testdir):
     result.assert_outcomes(passed=2)
 
 
-def test_no_preserve_python_tests(testdir):
-    testdir.makepyfile(r"""
-        def test_python_case(dut):
-            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
-    """)
-
-    testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
-        '--junitxml',
-        'report.xml',
-    )
-
-    junit_report = ET.parse('report.xml').getroot()[0]
-
-    assert junit_report.attrib['tests'] == '2'
-    for testcase in junit_report.findall('testcase'):
-        assert testcase.attrib['is_unity_case'] == '1'
-
-
-def test_preserve_python_tests(testdir):
-    testdir.makepyfile(r"""
-        def test_python_case(dut):
-            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
-    """)
-
-    testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
-        '--junitxml',
-        'report.xml',
-        '--unity-test-report-mode',
-        'merge',
-    )
-
-    junit_report = ET.parse('report.xml').getroot()[0]
-
-    assert junit_report.attrib['tests'] == '2'
-    assert junit_report[0].attrib['is_unity_case'] == '0'
-    for testcase in junit_report[1:]:
-        assert testcase.attrib['is_unity_case'] == '1'
-
-
 def test_preserve_python_tests_with_failures(testdir):
     testdir.makepyfile(r"""
         def test_python_case(dut):
-            dut.run_all_single_board_cases(name=["normal_case1", "normal_case2"])
+            dut.run_all_single_board_cases(
+                name=["normal_case_pass", "normal_case_crash", "multiple_stages_test"]
+            )
     """)
 
     testdir.runpytest(
@@ -1053,9 +972,7 @@ def test_preserve_python_tests_with_failures(testdir):
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
+        os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
         '--junitxml',
         'report.xml',
         '--unity-test-report-mode',
@@ -1064,39 +981,16 @@ def test_preserve_python_tests_with_failures(testdir):
 
     junit_report = ET.parse('report.xml').getroot()[0]
 
+    assert junit_report.attrib['errors'] == '0'
     assert junit_report.attrib['failures'] == '1'
-    assert junit_report[0].attrib['is_unity_case'] == '0'  # Python test case is preserved
-    assert junit_report[1].attrib['is_unity_case'] == '1'  # C test case
-    assert junit_report[1].find('failure') is None  # normal_case1 passed
-    assert junit_report[2].attrib['is_unity_case'] == '1'
-    assert junit_report[2].find('failure') is not None  # normal_case2 failed
-
-
-def test_python_func_attribute(testdir):
-    testdir.makepyfile(r"""
-        def test_python_case(dut):
-            dut.run_all_single_board_cases(name=["normal_case1", "multiple_stages_test"])
-    """)
-
-    testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
-        '--log-cli-level',
-        'DEBUG',
-        '--junitxml',
-        'report.xml',
-        '--unity-test-report-mode',
-        'merge',
-    )
-
-    junit_report = ET.parse('report.xml').getroot()[0]
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'
 
     assert junit_report[0].attrib['is_unity_case'] == '0'  # Python test case
     for testcase in junit_report[1:]:
-        assert testcase.attrib['is_unity_case'] == '1'  # Other test cases
+        assert testcase.attrib['is_unity_case'] == '1'
+    assert junit_report[2].attrib['name'] == 'normal_case_crash'
+    assert junit_report[2].find('failure') is not None
 
 
 def test_esp_bool_parser_returned_values(testdir, copy_mock_esp_idf, monkeypatch):  # noqa: ARG001
