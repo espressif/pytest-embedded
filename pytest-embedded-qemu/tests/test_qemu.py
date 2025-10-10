@@ -5,9 +5,8 @@ import xml.etree.ElementTree as ET
 import pytest
 
 qemu_bin_required = pytest.mark.skipif(
-    shutil.which('qemu-system-xtensa') is None,
-    reason='Please make sure that `qemu-system-xtensa` is in your PATH env var. Build QEMU for ESP32 locally and then '
-    'run `pytest` again',
+    (shutil.which('qemu-system-xtensa') is None or shutil.which('qemu-system-riscv32') is None),
+    reason='Please make sure run `$IDF_PATH/tools/idf_tools.py install qemu-riscv32 qemu-xtensa` first.',
 )
 
 
@@ -202,7 +201,7 @@ def test_qemu_use_idf_mixin_methods(testdir):
         import pytest
 
         def test_qemu_use_idf_mixin_methods(dut):
-            dut.run_all_single_board_cases()
+            dut.run_all_single_board_cases(timeout=10)
     """)
 
     result = testdir.runpytest(
@@ -220,6 +219,6 @@ def test_qemu_use_idf_mixin_methods(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '1'
-    assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '2'
+    assert junit_report.attrib['failures'] == '2'
+    assert junit_report.attrib['skipped'] == '2'
+    assert junit_report.attrib['tests'] == '1'
