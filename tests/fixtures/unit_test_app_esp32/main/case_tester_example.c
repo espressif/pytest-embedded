@@ -8,27 +8,63 @@
 #include "esp_log.h"
 
 
-TEST_CASE("normal_case1", "[normal_case]")
+/*
+The ideal test result of `run_all_single_board_cases(reset=False)` should be:
+    normal_case_pass: pass
+    normal_case_crash: fail (crash)
+    normal_case_stuck: fail (infinite loop)
+    normal_case_skip_when_not_reset: skip (since the previous case will hang forever)
+    multiple_stages_test: skip (since the previous case will hang forever)
+
+The ideal test result of `run_all_single_board_cases(reset=True)` should be:
+    normal_case_pass: pass
+    normal_case_crash: fail (crash)
+    normal_case_stuck: fail (infinite loop)
+    normal_case_skip_when_not_reset: pass
+    multiple_stages_test: pass
+
+multiple_devices_test: skip (when reset=False, since the previous case will hang forever)
+multiple_devices_test: pass (when reset=True)
+*/
+
+TEST_CASE("normal_case_pass", "[normal_case]")
 {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    ESP_LOGI("normal case1", "This is %s chip with %d CPU core(s), WiFi%s%s, ",
+    ESP_LOGI("normal case pass", "This is %s chip with %d CPU core(s), WiFi%s%s, ",
            CONFIG_IDF_TARGET,
            chip_info.cores,
            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+
     TEST_ASSERT(true);
 }
 
-TEST_CASE("normal_case2", "[normal_case][timeout=10]")
+TEST_CASE("normal_case_crash", "[normal_case][timeout=10]")
 {
-    ESP_LOGI("normal case2", "delay 3s");
+    ESP_LOGI("normal case crash later", "delay 3s");
     vTaskDelay(pdMS_TO_TICKS(3000));
 
     // cause a crash
     volatile uint8_t *test = (uint8_t*)0x0;
     *test = 1;
 
+    TEST_ASSERT(true);
+}
+
+TEST_CASE("normal_case_stuck", "[normal_case][timeout=10]")
+{
+    ESP_LOGI("normal case stuck", "infinite loop");
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    TEST_ASSERT(true);
+}
+
+TEST_CASE("normal_case_skip_when_not_reset", "[normal_case][timeout=10]")
+{
+    ESP_LOGI("normal case skip when not reset", "skip this case if not reset, since the previous case will hang forever");
     TEST_ASSERT(true);
 }
 
@@ -44,7 +80,7 @@ void test_stage2(void)
 {
     ESP_LOGI("multi_stage", "stage2: assert fail");
     vTaskDelay(pdMS_TO_TICKS(100));
-    assert(false);  // this one will cause a panic, the test won't fail
+    assert(false);  // this one will cause a panic
 }
 
 void test_stage3(void)
