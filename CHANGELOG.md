@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v2.1.1 (2025-10-13)
+
+### 🐛 Bug Fixes
+
+- **qemu**: error when enable service `qemu` along without `idf` *(Fu Hanxi - 01efc71)*
+- mark the un-triggered test cases as "skipped" *(Fu Hanxi - 1b0aa5c)*
+- Add missing offsets for ESP32-C5 *(Lucas Saavedra Vaz - 54bc3d1)*
+
+
 ## v2.1.0 (2025-09-25)
 
 ### ✨ New Features
