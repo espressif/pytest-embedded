@@ -22,7 +22,7 @@ class NuttxSerial(EspSerial):
     binary_offsets: ClassVar[dict[str, int]] = {
         'esp32': 0x1000,
         'esp32c3': 0x0,
-        'esp32c5': 0x0,
+        'esp32c5': 0x2000,
         'esp32c6': 0x0,
         'esp32h2': 0x0,
         'esp32p4': 0x2000,
