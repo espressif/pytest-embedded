@@ -28,14 +28,14 @@ dynamic = ["version", "description"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "pytest-embedded~=2.1.1",
+    "pytest-embedded~=2.1.2",
     "esp-idf-panic-decoder",
     "esp-bool-parser>=0.1.2,<1"
 ]
 
 [project.optional-dependencies]
 serial = [
-    "pytest-embedded-serial-esp~=2.1.1",
+    "pytest-embedded-serial-esp~=2.1.2",
     "esp-coredump~=1.0",
 ]
 

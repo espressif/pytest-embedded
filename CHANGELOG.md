@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v2.1.2 (2025-10-16)
+
+### 🐛 Bug Fixes
+
+- Fix ESP32-C5 bootloader offset *(Lucas Saavedra Vaz - b77e2f7)*
+
+
 ## v2.1.1 (2025-10-13)
 
 ### 🐛 Bug Fixes
