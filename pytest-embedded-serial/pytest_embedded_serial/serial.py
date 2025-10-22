@@ -193,8 +193,53 @@ class _SerialRedirectThread(threading.Thread):
 
                 try:
                     s = self._s.read_all()
+                except OSError as e:
+                    logging.error(f'OSError detected: {e}. Serial connection may be lost.')
+                    if self._s.closed:
+                        logging.error('Serial port is already closed. Exiting event loop.')
+                        return
+
+                    port = self._s.port
+                    port_config = {
+                        'baudrate': self._s.baudrate,
+                        'bytesize': self._s.bytesize,
+                        'parity': self._s.parity,
+                        'stopbits': self._s.stopbits,
+                        'timeout': self._s.timeout,
+                        'xonxoff': self._s.xonxoff,
+                        'rtscts': self._s.rtscts,
+                    }
+                    for attempt in range(1, 4):
+                        delay = attempt * 1.5
+                        logging.warning(
+                            f'Attempting to reconnect to serial port {port} (try {attempt}/3) after {delay}s...'
+                        )
+                        time.sleep(delay)
+                        try:
+                            self._s.close()
+                            self._s = pyserial.serial_for_url(port, **port_config)
+                            logging.info(f'Successfully reconnected to serial port {port}.')
+                            break
+                        except Exception as e:
+                            logging.warning(f'Reconnection attempt {attempt} failed: {e}')
+                    else:
+                        logging.error(
+                            f'Failed to reconnect to serial port {port} after 3 attempts. Exiting event loop.'
+                        )
+                        return
+
+                    continue
+
+                except Exception as e:
+                    logging.warning(
+                        'unknown error: %s.\nRecommend to close the serial process by `dut.serial.close()`', str(e)
+                    )
+                    return
+
+                try:
                     self._q.put(s)
-                except OSError:
+                except OSError as e:
+                    logging.warning(f'OSError. Error msg: {e}')
                     return
                 except Exception as e:
                     logging.warning(
