@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.17.1 (2025-10-24)
+
+### Fix
+
+- mark the un-triggered test cases as "skipped"
+- **qemu**: error when enable service `qemu` along without `idf`
+
 ## v1.17.0 (2025-09-08)
 
 ### Fix
