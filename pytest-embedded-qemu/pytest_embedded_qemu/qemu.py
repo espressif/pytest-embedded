@@ -89,10 +89,13 @@ class Qemu(DuplicateStdoutPopen):
 
     @property
     def qemu_prog_name(self):
-        if self.app:
-            return self.app.qemu_prog_path
+        try:
+            if self.app:
+                return self.app.qemu_prog_path
+        except AttributeError:  # if app is not QemuApp
+            pass
 
-        logging.warning('App not set, use default qemu program name "%s"', self.QEMU_DEFAULT_PROG_PATH)
+        logging.warning('App not set, use default qemu program name "%s"', self.QEMU_PROG_PATH)
         return self.QEMU_PROG_PATH
 
     @property
