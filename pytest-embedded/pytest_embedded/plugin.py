@@ -1372,10 +1372,18 @@ class PytestEmbedded:
 
     @pytest.hookimpl(trylast=True)
     def pytest_runtest_call(self, item: Function):
-        # raise dut failed cases
+        all_duts: list[Dut] = []
+
+        # Check DUTs created by fixture
         if 'dut' in item.funcargs:
-            duts = [dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut)]
-            self._raise_dut_failed_cases_if_exists(duts)  # type: ignore
+            fixture_duts = [dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut)]
+            all_duts.extend(fixture_duts)
+
+        # Check DUTs created by DutFactory
+        factory_duts = DutFactory.get_all_duts()
+        all_duts.extend(factory_duts)
+
+        self._raise_dut_failed_cases_if_exists(all_duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:
