@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v2.2.0 (2025-10-24)
+
+### ✨ New Features
+
+- reconnect after serial lost connection *(horw - 019e38a)*
+
+
 ## v2.1.2 (2025-10-16)
 
 ### 🐛 Bug Fixes
