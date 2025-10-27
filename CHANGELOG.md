@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.18.0 (2025-10-27)
+
+### Feat
+
+- reconnect after serial lost connection
+
 ## v1.17.1 (2025-10-24)
 
 ### Fix
