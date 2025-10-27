@@ -65,7 +65,7 @@ jobs:
         if: failure()
         run: |
           zip -r logs.zip /tmp/pytest-embedded
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: logs-${{ matrix.python-version }}
