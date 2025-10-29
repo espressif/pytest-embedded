@@ -849,3 +849,16 @@ class DutFactory:
                 _close_or_terminate(obj)
             del layout
             raise e
+
+    @classmethod
+    def get_all_duts(cls) -> list[Dut]:
+        """Get all DUTs created by DutFactory."""
+
+        duts = []
+        for layout in cls.obj_stack:
+            # The DUT is always the last object in the layout
+            dut = layout[-1]
+            if isinstance(dut, Dut):
+                duts.append(dut)
+
+        return duts
