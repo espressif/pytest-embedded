@@ -101,7 +101,7 @@ def test_custom_idf_device_dut(testdir):
         '--junitxml',
         'report.xml',
     )
-    result.assert_outcomes(passed=4, errors=0)  # FIXME, dut-factory mode can't raise error now
+    result.assert_outcomes(passed=3, failed=1)
 
     junit_report = ET.parse('report.xml').getroot()[0]
 
