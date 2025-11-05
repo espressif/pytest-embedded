@@ -792,3 +792,32 @@ class TestTargetMarkers:
 
         result.assert_outcomes(passed=1)
         assert 'Unknown pytest.mark.esp32 - is this a typo?' not in result.stdout.str()
+
+
+def test_log_metric_with_path(pytester):
+    metric_file = pytester.path / 'metrics.txt'
+    pytester.makepyfile("""
+        def test_metric(log_metric):
+            log_metric('my_metric', 123.45, label1='value1', target='esp32')
+    """)
+
+    result = pytester.runpytest(f'--metric-path={metric_file}')
+    result.assert_outcomes(passed=1)
+
+    with open(metric_file) as f:
+        content = f.read()
+
+    assert content == 'my_metric{label1="value1",target="esp32"} 123.45\n'
+
+
+def test_log_metric_without_path(pytester):
+    pytester.makepyfile("""
+        import pytest
+
+        def test_metric_no_path(log_metric):
+            with pytest.warns(UserWarning, match='`--metric-path` is not specified, `log_metric` does nothing.'):
+                log_metric('my_metric', 123.45)
+    """)
+
+    result = pytester.runpytest()
+    result.assert_outcomes(passed=1)
