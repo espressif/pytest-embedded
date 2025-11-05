@@ -153,6 +153,10 @@ def pytest_addoption(parser):
     base_group.addoption(
         '--logfile-extension', default='.log', help='set the extension format of the log files. (Default: ".log")'
     )
+    base_group.addoption(
+        '--metric-path',
+        help='Path to openmetrics txt file to log metrics. (Default: None)',
+    )
 
     serial_group = parser.getgroup('embedded-serial')
     serial_group.addoption('--port', help='serial port. (Env: "ESPPORT" if service "esp" specified, Default: "None")')
@@ -632,6 +636,55 @@ def port_target_cache(cache_dir) -> dict[str, str]:
 def port_app_cache() -> dict[str, str]:
     """Session scoped port-app cache, for idf only"""
     return {}
+
+
+@pytest.fixture(scope='session')
+def metric_path(request: FixtureRequest) -> str | None:
+    """
+    Get the metric file path from the command line option.
+
+    :param request: pytest request object
+    :return: The path to the metric file, or None if not provided.
+    """
+    return request.config.getoption('metric_path', None)
+
+
+@pytest.fixture(scope='session')
+def log_metric(metric_path: str | None) -> t.Callable[..., None]:
+    """
+    Provides a function to log metrics in OpenMetrics format.
+
+    The file is cleared at the beginning of the test session.
+
+    :param metric_path: Path to the metric file, from the ``--metric-path`` option.
+    :return: A function to log metrics, or a no-op function if the path is not provided.
+    """
+    if not metric_path:
+
+        def no_op(key: str, value: t.Any, **kwargs: t.Any) -> None:  # noqa: ARG001
+            warnings.warn('`--metric-path` is not specified, `log_metric` does nothing.')
+
+        return no_op
+
+    if os.path.exists(metric_path):
+        os.remove(metric_path)
+    elif os.path.dirname(metric_path):
+        os.makedirs(os.path.dirname(metric_path), exist_ok=True)
+
+    def _log_metric_impl(key: str, value: t.Any, **kwargs: t.Any) -> None:
+        labels = ''
+        if kwargs:
+            label_str = ','.join(f'{k}="{v}"' for k, v in kwargs.items())
+            labels = f'{{{label_str}}}'
+
+        line = f'{key}{labels} {value}\n'
+
+        lock = filelock.FileLock(f'{metric_path}.lock')
+        with lock:
+            with open(metric_path, 'a') as f:
+                f.write(line)
+
+    return _log_metric_impl
 
 
 @pytest.fixture(scope='session', autouse=True)
