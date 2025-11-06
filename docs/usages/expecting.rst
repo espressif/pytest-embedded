@@ -2,35 +2,22 @@
  Expecting Functions
 #####################
 
-While we’re doing tests, most of our jobs is to expect a string or a pattern, and do assertions. This is supported by functions :func:`~pytest_embedded.dut.Dut.expect`, :func:`~pytest_embedded.dut.Dut.expect_exact`, and :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`.
+In testing, most of the work involves expecting a certain string or pattern and then making assertions. This is supported by the functions :func:`~pytest_embedded.dut.Dut.expect`, :func:`~pytest_embedded.dut.Dut.expect_exact`, and :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`.
 
-All of these functions share these possible keyword arguments:
+All of these functions accept the following keyword arguments:
 
--  ``timeout``
-
-   Set the timeout in seconds for this expect statement. (Default: 30 s)
-
-   Will throw an :obj:`pexpect.TIMEOUT` exception if it exceeded the specified value.
-
--  ``expect_all``.
-
-   Will match all specified patterns if this is set to True. (Default: False)
-
--  ``not_matching``
-
-   Will raise an exception if the pattern is found in the output, if specified. (Default: None)
-
--  ``return_what_before_match``
-
-      Will return the bytes read before the match if specified. (Default: False)
+-  ``timeout``: Sets the timeout in seconds for this expect statement (default: 30s). Throws a :obj:`pexpect.TIMEOUT` exception if the specified value is exceeded.
+-  ``expect_all``: Matches all specified patterns if set to ``True`` (default: ``False``).
+-  ``not_matching``: Raises an exception if the specified pattern is found in the output (default: ``None``).
+-  ``return_what_before_match``: Returns the bytes read before the match if specified (default: ``False``).
 
 *****************************************
  :func:`~pytest_embedded.dut.Dut.expect`
 *****************************************
 
-``pattern`` can be :obj:`str` or :obj:`bytes`, or a compiled regex with :obj:`bytes`.
+The ``pattern`` can be a :obj:`str`, :obj:`bytes`, or a compiled regex with :obj:`bytes`.
 
-If the pattern is :obj:`str` or :obj:`bytes`, it will convert to compiled regex with :obj:`bytes` and then run the function.
+If the pattern is a :obj:`str` or :obj:`bytes`, it will be converted to a compiled regex with :obj:`bytes` before the function is run.
 
 .. code:: python
 
@@ -44,12 +31,12 @@ If the pattern is :obj:`str` or :obj:`bytes`, it will convert to compiled regex 
        dut.expect('[be]{2}')
        dut.expect(re.compile(b'redirected'))
 
-If expecting success, the return value would be a :obj:`re.Match` object.
+If the expect call is successful, the return value will be a :obj:`re.Match` object.
 
 .. code:: python
 
    def test_expect_return_value(redirect, dut):
-       # here we use fixture `redirect` to write the sys.stdout to dut
+       # Use the `redirect` fixture to write `sys.stdout` to the DUT
        with redirect():
            print('this would be redirected')
 
@@ -58,7 +45,7 @@ If expecting success, the return value would be a :obj:`re.Match` object.
        assert res.group(1) == b'would'
        assert res.group(2).decode('utf-8') == 'redirected'
 
-You can get the bytes read before timeout by expecting a :obj:`pexpect.TIMEOUT` object.
+You can get the bytes read before a timeout by expecting a :obj:`pexpect.TIMEOUT` object.
 
 .. code:: python
 
@@ -88,7 +75,7 @@ You can also get all bytes in the pexpect process buffer by expecting a :obj:`pe
        dut.write('this would be redirected')
        dut.expect('this')
 
-       # close the pexpect process to generate an EOF
+       # Close the pexpect process to generate an EOF
        dut.pexpect_proc.terminate()
 
        res = dut.expect(pexpect.EOF, timeout=None)
@@ -96,7 +83,7 @@ You can also get all bytes in the pexpect process buffer by expecting a :obj:`pe
 
 .. note::
 
-   The pexpect process would only read from the process into the buffer when running expecting functions. If you're expecting :obj:`pexpect.EOF` as the first statement, it would return an empty byte string
+   The pexpect process only reads from the process into its buffer when running expect functions. If you expect :obj:`pexpect.EOF` as the first statement, it will return an empty byte string.
 
    .. code:: python
 
@@ -106,13 +93,13 @@ You can also get all bytes in the pexpect process buffer by expecting a :obj:`pe
       def test_expect_from_eof_at_first(dut):
           dut.write("this would be redirected")
 
-          # close the pexpect process to generate an EOF
+          # Close the pexpect process to generate an EOF
           dut.pexpect_proc.terminate()
 
           res = dut.expect(pexpect.EOF, timeout=None)
           assert res == b""
 
-What's more, argument ``pattern`` could be a list of all supported types.
+Additionally, the ``pattern`` argument can be a list of any of the supported types.
 
 .. code:: python
 
@@ -132,7 +119,7 @@ What's more, argument ``pattern`` could be a list of all supported types.
        for _ in range(4):
            dut.expect(pattern_list)
 
-If you set ``expect_all`` to ``True``, the :func:`~pytest_embedded.dut.Dut.expect` function would return with a list of returned values of each item.
+If you set ``expect_all`` to ``True``, the :func:`~pytest_embedded.dut.Dut.expect` function will return a list of the returned values for each item.
 
 You can also set ``return_what_before_match`` to ``True`` to get the bytes read before the match, instead of the match object.
 
@@ -172,9 +159,9 @@ You can also set ``return_what_before_match`` to ``True`` to get the bytes read 
  :func:`~pytest_embedded.dut.Dut.expect_exact`
 ***********************************************
 
-``pattern`` can be :obj:`str` or :obj:`bytes`.
+The ``pattern`` can be a :obj:`str` or :obj:`bytes`.
 
-If the pattern is :obj:`str`, would convert to :obj:`bytes` and then run the function.
+If the pattern is a :obj:`str`, it will be converted to :obj:`bytes` before the function is run.
 
 .. code:: python
 
@@ -184,7 +171,7 @@ If the pattern is :obj:`str`, would convert to :obj:`bytes` and then run the fun
        dut.expect_exact('this would')
        dut.expect_exact(b'be redirected')
 
-Same as :func:`~pytest_embedded.dut.Dut.expect` function, argument ``pattern`` could be a list of all supported types.
+As with the :func:`~pytest_embedded.dut.Dut.expect` function, the ``pattern`` argument can be a list of any of the supported types.
 
 .. code:: python
 
@@ -203,13 +190,13 @@ Same as :func:`~pytest_embedded.dut.Dut.expect` function, argument ``pattern`` c
  :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`
 ***********************************************************
 
-`Unity Test <https://github.com/ThrowTheSwitch/Unity>`__ is a c test framework.
+`Unity Test <https://github.com/ThrowTheSwitch/Unity>`__ is a C test framework.
 
-This function would parse the output as the unity output. The default value of ``timeout`` is 60 seconds.
+This function parses the output as Unity test output. The default ``timeout`` is 60 seconds.
 
-When the test script ends, the DUT object would raise :obj:`AssertionError` if any unity test case’s result is “FAIL”.
+When the test script finishes, the DUT object will raise an :obj:`AssertionError` if any Unity test case has a "FAIL" result.
 
-What’s more, it would dump the junit report under a temp folder and would combine the junit report into the main one if you use ``pytest --junitxml`` feature.
+Additionally, it will dump a JUnit report to a temporary folder and merge it with the main report if you use the ``pytest --junitxml`` feature.
 
 .. code:: python
 
@@ -232,7 +219,7 @@ What’s more, it would dump the junit report under a temp folder and would comb
        assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
        assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
 
-It also supports `unity fixtures <https://github.com/ThrowTheSwitch/Unity/tree/master/extras/fixture>`__ extra functionality
+It also supports `Unity fixtures <https://github.com/ThrowTheSwitch/Unity/tree/master/extras/fixture>`__.
 
 .. code:: python
 

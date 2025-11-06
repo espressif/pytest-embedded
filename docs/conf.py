@@ -12,8 +12,8 @@ project = 'pytest-embedded'
 project_homepage = 'https://github.com/espressif/pytest-embedded'
 copyright = f'2023-{datetime.now().year}, Espressif Systems (Shanghai) Co., Ltd.'  # noqa: A001
 author = 'Fu Hanxi'
-version = '1.x'
-release = '1.x'
+version = '2.x'
+release = '2.x'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
