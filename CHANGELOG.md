@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.18.1 (2025-11-06)
+
+### Fix
+
+- Raise exceptions for Dut created by DutFactory
+
 ## v1.18.0 (2025-10-27)
 
 ### Feat
