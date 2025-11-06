@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v2.3.0 (2025-11-06)
+
+### ✨ New Features
+
+- support log_metric *(Fu Hanxi - fb9dbfa)*
+
+### 📖 Documentation
+
+- remove the 1.x changelog *(Fu Hanxi - 0c6edaf)*
+- small fixes *(Fu Hanxi - e5d06e0)*
+
+
 ## v2.2.1 (2025-10-27)
 
 ### 🐛 Bug Fixes
