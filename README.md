@@ -1,6 +1,6 @@
 # pytest-embedded
 
-[![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest) ![Python 3.7+](https://img.shields.io/pypi/pyversions/pytest-embedded)
+[![Documentation Status](https://readthedocs.com/projects/espressif-pytest-embedded/badge/?version=latest)](https://docs.espressif.com/projects/pytest-embedded/en/latest/?badge=latest) ![Python 3.10+](https://img.shields.io/pypi/pyversions/pytest-embedded)
 
 A pytest plugin that has multiple services available for various functionalities. Designed for embedded testing.
 
@@ -17,15 +17,15 @@ A pytest plugin that has multiple services available for various functionalities
 
 Packages under this repo mainly use semantic versioning. Sometimes a bug fix version may contain some non-breaking new features as well.
 
-It is recommended to use `~=1.0` to get rid of breaking changes, and use the latest new features. For example,
+It is recommended to use `~=2.0` to get rid of breaking changes, and use the latest new features. For example,
 
 ```shell
-pip install -U pytest-embedded~=1.0
+pip install -U pytest-embedded~=2.0
 ```
 
 ## Quickstart
 
-- `pip install -U pytest-embedded~=1.0`
+- `pip install -U pytest-embedded~=2.0`
 - Create a file `test_basic.py`
 
 ```python

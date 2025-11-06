@@ -1,6 +1,6 @@
-##################
- Addition Markers
-##################
+####################
+ Additional Markers
+####################
 
 ``pytest-embedded`` provides additional markers to enhance testing functionality.
 
@@ -8,24 +8,24 @@
  ``skip_if_soc``
 *****************
 
-The ``skip_if_soc`` marker allows you to skip tests based on the ``soc_caps`` (system-on-chip capabilities) of a target device. These capabilities are defined in the ``esp-idf``. For example, for the ESP32, you can reference them in the ``soc_caps.h`` file: `soc_caps.h <https://github.com/espressif/esp-idf/blob/master/components/soc/esp32/include/soc/soc_caps.h>`_.
+The ``skip_if_soc`` marker allows you to skip tests based on the ``soc_caps`` (System-on-Chip capabilities) of a target device. These capabilities are defined in ``esp-idf``. For example, for the ESP32, you can find them in the header file `soc_caps.h <https://github.com/espressif/esp-idf/blob/master/components/soc/esp32/include/soc/soc_caps.h>`_.
 
 Use Case
 ========
 
-Imagine you have multiple targets, such as ``[esp32, esp32c3, ..., esp32s4]``. However, you may want to skip tests for chips that do not support specific features.
+Imagine you have multiple targets, such as ``[esp32, esp32c3, ..., esp32s4]``, but you want to skip tests for chips that do not support specific features.
 
-The ``skip_if_soc`` marker simplifies this by allowing you to define conditions based on the ``soc_caps`` property of your chip. This enables dynamic filtering of targets without the need for manual target-specific logic.
+The ``skip_if_soc`` marker simplifies this by allowing you to define conditions based on the ``soc_caps`` property of your chip. This enables dynamic filtering of targets without requiring manual, target-specific logic.
 
 Examples
 ========
 
-Here are examples of how to use ``skip_if_soc`` with different conditions:
+Here are some examples of how to use ``skip_if_soc`` with different conditions:
 
-**Condition 1**: A boolean expression such as ``SOC_ULP_SUPPORTED != 1 and SOC_UART_NUM != 3``. This skips tests for chips that:
+**Condition 1**: A boolean expression like ``SOC_ULP_SUPPORTED != 1 and SOC_UART_NUM != 3``. This skips tests for chips that:
 
-   -  Do not support the ``low power mode`` feature (``SOC_ULP_SUPPORTED != 1``).
-   -  **And** have a UART number other than 3 (``SOC_UART_NUM != 3``).
+-  Do not support the ``low-power mode`` feature (``SOC_ULP_SUPPORTED != 1``).
+-  **And** have a UART number other than 3 (``SOC_UART_NUM != 3``).
 
 .. code:: python
 
@@ -36,10 +36,10 @@ Here are examples of how to use ``skip_if_soc`` with different conditions:
 
 ----
 
-**Condition 2**: A boolean expression such as ``SOC_ULP_SUPPORTED != 1 or SOC_UART_NUM != 3``. This skips tests for chips that:
+**Condition 2**: A boolean expression like ``SOC_ULP_SUPPORTED != 1 or SOC_UART_NUM != 3``. This skips tests for chips that:
 
-   -  Either do not support the ``low power mode`` feature (``SOC_ULP_SUPPORTED != 1``).
-   -  **Or** have a UART number other than 3 (``SOC_UART_NUM != 3``).
+-  Either do not support the ``low-power mode`` feature (``SOC_ULP_SUPPORTED != 1``).
+-  **Or** have a UART number other than 3 (``SOC_UART_NUM != 3``).
 
 .. code:: python
 
@@ -66,12 +66,12 @@ Here are examples of how to use ``skip_if_soc`` with different conditions:
  ``idf_parametrize``
 *********************
 
-``idf_parametrize`` is a wrapper around ``pytest.mark.parametrize`` that simplifies and extends string-based parameterization for tests. By using ``idf_parametrize``, testing parameters becomes more flexible and easier to maintain.
+``idf_parametrize`` is a wrapper around ``pytest.mark.parametrize`` that simplifies and extends string-based parameterization for tests. Using ``idf_parametrize`` makes testing parameters more flexible and easier to maintain.
 
 **Key Features:**
 
 -  **Target Expansion**: Automatically expands lists of supported targets, reducing redundancy in test definitions.
--  **Markers**: use a marker as one of the parameters. If a marker is used, put it as the last parameter.
+-  **Markers**: Use a marker as one of the parameters. If a marker is used, it should be the last parameter.
 
 Use Cases
 =========
@@ -79,7 +79,7 @@ Use Cases
 Target Extension
 ----------------
 
-In scenarios where the supported targets are [esp32, esp32c3, esp32s3], ``idf_parametrize`` simplifies the process of creating parameterized tests by automatically expanding the target list.
+In scenarios where the supported targets are ``[esp32, esp32c3, esp32s3]``, ``idf_parametrize`` simplifies the process of creating parameterized tests by automatically expanding the target list.
 
 By default, the values for ``SUPPORTED_TARGETS`` and ``PREVIEW_TARGETS`` are imported from:
 
@@ -152,7 +152,7 @@ Another way to override ``supported_targets`` and ``preview_targets`` is by usin
    -  -  esp32s3
       -  psram
 
-SOC Related Targets
+SOC-Related Targets
 -------------------
 
 If you need to retrieve targets filtered by a specific SOC attribute, you can use the ``soc_filtered_targets`` function.
@@ -199,11 +199,11 @@ Filter only **supported** targets that support ULP:
 Markers
 -------
 
-Markers can also be combined for added flexibility. It must be placed in the last position. In this case, if some test cases do not have markers, you can skip their definition. Look at the example.
+Markers can also be combined for added flexibility. They must be placed in the last position. If some test cases do not have markers, you can skip their definition. See the example below.
 
 **Example:**
 
-In IDF testing, an environment marker (``marker``) determines which test runner will execute a test. This enables tests to run on various runners, such as:
+In IDF testing, an environment marker determines which test runner will execute a test. This enables tests to run on various runners, such as:
 
 -  **generic**: Tests run on generic runners.
 -  **sdcard**: Tests require an SD card runner.
