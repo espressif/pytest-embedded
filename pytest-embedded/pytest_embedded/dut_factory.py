@@ -851,7 +851,7 @@ class DutFactory:
             raise e
 
     @classmethod
-    def get_all_duts(cls) -> list[Dut]:
+    def get_all_duts(cls) -> t.List[Dut]:
         """Get all DUTs created by DutFactory."""
 
         duts = []
