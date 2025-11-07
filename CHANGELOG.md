@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.18.2 (2025-11-07)
+
+### Fix
+
+- typing for get_all_duts
+
 ## v1.18.1 (2025-11-06)
 
 ### Fix
