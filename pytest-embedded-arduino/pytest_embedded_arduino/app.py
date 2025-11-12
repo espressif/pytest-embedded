@@ -18,22 +18,26 @@ class ArduinoApp(App):
 
     #: dict of flash settings
     flash_settings: ClassVar[dict[str, dict[str, str]]] = {
-        'esp32': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32c3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32c5': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32c6': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32h2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '48m'},
-        'esp32p4': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32s2': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
-        'esp32s3': {'flash_mode': 'dio', 'flash_size': 'detect', 'flash_freq': '80m'},
+        'esp32': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32c2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '60m'},
+        'esp32c3': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32c5': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32c6': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32c61': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32h2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '48m'},
+        'esp32p4': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32s2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
+        'esp32s3': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
     }
 
     #: dict of binaries' offset.
     binary_offsets: ClassVar[dict[str, list[int]]] = {
         'esp32': [0x1000, 0x8000, 0x10000],
+        'esp32c2': [0x0, 0x8000, 0x10000],
         'esp32c3': [0x0, 0x8000, 0x10000],
         'esp32c5': [0x2000, 0x8000, 0x10000],
         'esp32c6': [0x0, 0x8000, 0x10000],
+        'esp32c61': [0x0, 0x8000, 0x10000],
         'esp32h2': [0x0, 0x8000, 0x10000],
         'esp32p4': [0x2000, 0x8000, 0x10000],
         'esp32s2': [0x1000, 0x8000, 0x10000],
