@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v2.4.0 (2025-11-12)
+
+### ✨ New Features
+
+- **arduino**: Add support for C2, C61 and fix deprecated commands *(Lucas Saavedra Vaz - c09d745)*
+
+
 ## v2.3.0 (2025-11-06)
 
 ### ✨ New Features
