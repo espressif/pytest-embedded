@@ -2,12 +2,7 @@ import os
 
 
 def test_arduino_serial_flash(testdir):
-    bin_path = os.path.join(
-        testdir.tmpdir,
-        'hello_world_arduino',
-        'build',
-        'hello_world_arduino.ino.merged.bin'
-    )
+    bin_path = os.path.join(testdir.tmpdir, 'hello_world_arduino', 'build', 'hello_world_arduino.ino.merged.bin')
 
     testdir.makepyfile(f"""
         import pexpect
