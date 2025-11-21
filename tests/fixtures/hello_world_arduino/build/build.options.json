@@ -1,12 +1,10 @@
 {
   "additionalFiles": "",
-  "builtInLibrariesFolders": "",
-  "builtInToolsFolders": "/Applications/Arduino.app/Contents/Java/tools-builder",
+  "builtInLibrariesFolders": "/Users/lucassvaz/Library/Arduino15/libraries",
   "compiler.optimization_flags": "-Os",
-  "customBuildProperties": "",
-  "fqbn": "espressif:esp32:esp32:PSRAM=enabled,PartitionScheme=huge_app",
-  "hardwareFolders": "/Users/prochy/Documents/Arduino/hardware",
-  "otherLibrariesFolders": "/Users/prochy/Documents/Arduino/libraries",
-  "runtime.ide.version": "10810",
-  "sketchLocation": "/Users/prochy/Documents/Arduino/hardware/espressif/esp32/tests/hello_world/hello_world.ino"
+  "customBuildProperties": "build.warn_data_percentage=75",
+  "fqbn": "espressif:esp32:esp32:UploadSpeed=921600,CPUFreq=240,FlashFreq=80,FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,DebugLevel=none,PSRAM=enabled,LoopCore=1,EventsCore=1,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default",
+  "hardwareFolders": "/Users/lucassvaz/Library/Arduino15/packages,/Users/lucassvaz/Espressif/Arduino/hardware",
+  "otherLibrariesFolders": "/Users/lucassvaz/Espressif/Arduino/libraries",
+  "sketchLocation": "/Users/lucassvaz/Espressif/Arduino/sketches/hello_world_arduino"
 }

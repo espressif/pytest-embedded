@@ -18,6 +18,13 @@ adapt the build folder appropriately when run from a different location.
 On success, this will create a `build` directory under the `hello_world`
 example.
 
+The Arduino service requires only the build directory to work properly.
+The app path is not required but can be used to derive the build directory. If not specified, it will be set to the current working directory.
+
+The build directory is the directory that contains the binary and configuration files.
+It can be specified as an absolute path or a relative path to the app path.
+If nothing is specified, it will look for the `build` directory in the app path. If it still doesn't find it, it will assume the build directory is the app path.
+
 ### Run the tests
 
 ```shell
@@ -33,3 +40,9 @@ $ pytest examples/arduino -k test_hello_arduino
 
 This will parse the `build` directory created earlier, flash the chip and
 expect the `Hello Arduino!` text to be printed.
+
+You can run the tests specifiying the build directory used to build the example:
+
+```shell
+$ pytest --build-dir build examples/arduino -k test_hello_arduino
+```
