@@ -37,7 +37,7 @@ jobs:
       image: python:${{ matrix.python-version }}
       options: --privileged
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           apt update && apt install -y socat zip

@@ -46,7 +46,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Check out
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run synchronization to Jira
         uses: espressif/sync-jira-actions@v1
