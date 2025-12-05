@@ -238,11 +238,6 @@ def pytest_addoption(parser):
         'and panic handler support while teardown the failing test case. '
         'Requires valid partition tool, project_description.json under the build dir. (Default: False)',
     )
-    idf_group.addoption(
-        '--panic-output-decode-script',
-        help='Panic output decode script that is used in conjunction with the check-panic-coredump option '
-        'to parse panic output. (Default: $IDF_PATH/tools/gdb_panic_server.py)',
-    )
 
     jtag_group = parser.getgroup('embedded-jtag')
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
@@ -945,13 +940,6 @@ def skip_check_coredump(request: FixtureRequest) -> bool | None:
     return _request_param_or_config_option_or_default(request, 'skip_check_coredump', None)
 
 
-@pytest.fixture
-@multi_dut_argument
-def panic_output_decode_script(request: FixtureRequest) -> bool | None:
-    """Enable parametrization for the same cli option"""
-    return _request_param_or_config_option_or_default(request, 'panic_output_decode_script', None)
-
-
 ########
 # jtag #
 ########
@@ -1104,7 +1092,6 @@ def parametrize_fixtures(
     confirm_target_elf_sha256,
     erase_nvs,
     skip_check_coredump,
-    panic_output_decode_script,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,

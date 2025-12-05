@@ -579,8 +579,6 @@ def test_check_coredump(testdir, caplog, first_index_of_messages):
         f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
         '--target',
         'esp32c3',
-        '--panic-output-decode-script',
-        os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
         '--log-cli-level',
         'INFO',
     )
@@ -608,8 +606,6 @@ def test_skip_check_coredump(testdir, caplog, first_index_of_messages):
         'esp,idf',
         '--app-path',
         f'{os.path.join(testdir.tmpdir, "hello_world_esp32c3_panic")}',
-        '--panic-output-decode-script',
-        os.path.join(testdir.tmpdir, 'gdb_panic_server.py'),
         '--skip-check-coredump',
         'True',
         '--log-cli-level',
