@@ -20,6 +20,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
 target_to_board = {
     'esp32': 'board-esp32-devkit-c-v4',
     'esp32c3': 'board-esp32-c3-devkitm-1',
+    'esp32c5': 'board-esp32-c5-devkitc-1',
     'esp32c6': 'board-esp32-c6-devkitc-1',
     'esp32h2': 'board-esp32-h2-devkitm-1',
     'esp32p4': 'board-esp32-p4-function-ev',

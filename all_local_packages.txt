@@ -6,3 +6,4 @@
 -e ./pytest-embedded-qemu/
 -e ./pytest-embedded-arduino/
 -e ./pytest-embedded-nuttx/
+-e ./pytest-embedded-wokwi/
