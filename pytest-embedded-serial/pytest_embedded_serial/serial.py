@@ -144,7 +144,7 @@ class Serial:
             logging.debug(f'released {port}')
 
     @contextlib.contextmanager
-    def disable_redirect_thread(self) -> bool:
+    def disable_redirect_thread(self, kill_port: bool = False) -> bool:
         """
         kill the redirect thread, and start a new one after got yield back
 
@@ -152,10 +152,14 @@ class Serial:
             True if redirect serial thread has been terminated
         """
         killed = self.stop_redirect_thread()
+        if kill_port:
+            self.proc.close()
 
         yield killed
 
         if killed:
+            if kill_port:
+                self._start()
             self.start_redirect_thread()
 
 

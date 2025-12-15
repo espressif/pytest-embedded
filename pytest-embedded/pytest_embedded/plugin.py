@@ -940,6 +940,13 @@ def skip_check_coredump(request: FixtureRequest) -> bool | None:
     return _request_param_or_config_option_or_default(request, 'skip_check_coredump', None)
 
 
+@pytest.fixture
+@multi_dut_argument
+def skip_decode_panic(request: FixtureRequest) -> bool | None:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'skip_decode_panic', None)
+
+
 ########
 # jtag #
 ########
@@ -1092,6 +1099,7 @@ def parametrize_fixtures(
     confirm_target_elf_sha256,
     erase_nvs,
     skip_check_coredump,
+    skip_decode_panic,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,

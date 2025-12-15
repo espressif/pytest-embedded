@@ -562,13 +562,44 @@ def test_unity_tester_with_linux(testdir):
 
 
 @toolchain_required
-def test_check_coredump(testdir, caplog, first_index_of_messages):
+@pytest.mark.parametrize(
+    'coredump_type',
+    ['flash', 'uart'],
+)
+def test_check_coredump(testdir, coredump_type, caplog, first_index_of_messages):
+    testdir.makepyfile(rf"""
+        import pexpect
+        import pytest
+        def test_check_coredump_{coredump_type}(dut):
+            dut.expect(pexpect.TIMEOUT, timeout=3)
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'esp,idf',
+        '--app-path',
+        f'{os.path.join(testdir.tmpdir, f"hello_world_esp32_coredump_{coredump_type}")}',
+        '--target',
+        'esp32',
+        '--log-cli-level',
+        'INFO',
+    )
+    first_index_of_messages(
+        re.compile('Please check coredump output file at:.+', re.MULTILINE),
+        caplog.messages,
+    )
+    result.assert_outcomes(passed=1)
+
+
+@toolchain_required
+def test_check_panic(testdir, caplog, first_index_of_messages):
     testdir.makepyfile(r"""
         import pexpect
         import pytest
 
-        def test_check_coredump(dut):
-            dut.expect(pexpect.TIMEOUT, timeout=10)
+        def test_check_panic(dut):
+            dut.expect(pexpect.TIMEOUT, timeout=3)
     """)
 
     result = testdir.runpytest(
@@ -583,7 +614,11 @@ def test_check_coredump(testdir, caplog, first_index_of_messages):
         'INFO',
     )
     first_index_of_messages(
-        re.compile(r'app_main \(\) at /COMPONENT_MAIN_DIR/hello_world_main.c:17', re.MULTILINE),
+        re.compile(r'Backtrace:\napp_main \(\) at /COMPONENT_MAIN_DIR/hello_world_main.c:17', re.MULTILINE),
+        caplog.messages,
+    )
+    first_index_of_messages(
+        re.compile(r'Please check decoded panic output file at:.+', re.MULTILINE),
         caplog.messages,
     )
 

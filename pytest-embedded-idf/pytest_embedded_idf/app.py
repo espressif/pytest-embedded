@@ -35,6 +35,8 @@ class IdfApp(App):
         'esp32p4',
         'esp32h2',
         'esp32c61',
+        'esp32h21',
+        'esp32h4',
     ]
 
     FLASH_ARGS_FILENAME = 'flash_args'
