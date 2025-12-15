@@ -1,1 +1,0 @@
-set substitute-path /COMPONENT_MAIN_DIR ./hello_world_esp32c3_panic/main
