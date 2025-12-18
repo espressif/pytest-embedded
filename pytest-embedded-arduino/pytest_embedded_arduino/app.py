@@ -1,6 +1,6 @@
 import json
+import logging
 import os
-from typing import ClassVar
 
 from pytest_embedded.app import App
 
@@ -13,36 +13,10 @@ class ArduinoApp(App):
         sketch (str): Sketch name.
         fqbn (str): Fully Qualified Board Name.
         target (str) : ESPxx chip.
-        flash_files (List[Tuple[int, str, str]]): List of (offset, file path, encrypted) of files need to be flashed in.
+        flash_settings (dict[str, str]): Flash settings for the target.
+        binary_file (str): Merged binary file path.
+        elf_file (str): ELF file path.
     """
-
-    #: dict of flash settings
-    flash_settings: ClassVar[dict[str, dict[str, str]]] = {
-        'esp32': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32c2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '60m'},
-        'esp32c3': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32c5': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32c6': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32c61': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32h2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '48m'},
-        'esp32p4': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32s2': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-        'esp32s3': {'flash-mode': 'dio', 'flash-size': 'detect', 'flash-freq': '80m'},
-    }
-
-    #: dict of binaries' offset.
-    binary_offsets: ClassVar[dict[str, list[int]]] = {
-        'esp32': [0x1000, 0x8000, 0x10000],
-        'esp32c2': [0x0, 0x8000, 0x10000],
-        'esp32c3': [0x0, 0x8000, 0x10000],
-        'esp32c5': [0x2000, 0x8000, 0x10000],
-        'esp32c6': [0x0, 0x8000, 0x10000],
-        'esp32c61': [0x0, 0x8000, 0x10000],
-        'esp32h2': [0x0, 0x8000, 0x10000],
-        'esp32p4': [0x2000, 0x8000, 0x10000],
-        'esp32s2': [0x1000, 0x8000, 0x10000],
-        'esp32s3': [0x0, 0x8000, 0x10000],
-    }
 
     def __init__(
         self,
@@ -50,23 +24,84 @@ class ArduinoApp(App):
     ):
         super().__init__(**kwargs)
 
-        self.sketch = os.path.basename(self.app_path)
+        # Extract information from binary files in the build directory
+        self.binary_path = self._get_build_path()
+        self.sketch = self._get_sketch_name(self.binary_path)
         self.fqbn = self._get_fqbn(self.binary_path)
         self.target = self.fqbn.split(':')[2]
-        self.flash_files = self._get_bin_files(self.binary_path, self.sketch, self.target)
+        self.flash_settings = self._get_flash_settings()
+        self.binary_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.merged.bin'))
         self.elf_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.elf'))
 
-    def _get_fqbn(self, build_path) -> str:
+        logging.debug(f'Build path: {self.binary_path}')
+        logging.debug(f'Sketch name: {self.sketch}')
+        logging.debug(f'FQBN: {self.fqbn}')
+        logging.debug(f'Target: {self.target}')
+        logging.debug(f'Flash settings: {self.flash_settings}')
+        logging.debug(f'Binary file: {self.binary_file}')
+        logging.debug(f'ELF file: {self.elf_file}')
+
+    def _get_build_path(self) -> str:
+        """Infer build path from binary path or app path."""
+
+        # Prioritize binary path over app path
+        build_path = self.binary_path or self.app_path
+
+        if not build_path:
+            raise ValueError('No binary path or app path provided.')
+
+        if os.path.isdir(build_path):
+            # If build path is a directory, we need to check if it contains a .ino.bin or .ino.merged.bin file
+            # If not we need to recursively check the subdirectories
+            for root, dirs, files in os.walk(build_path):
+                for filename in files:
+                    if filename.endswith('.ino.bin') or filename.endswith('.ino.merged.bin'):
+                        return root
+            raise ValueError(f'Could not find a valid binary file in {build_path} or its subdirectories.')
+        elif os.path.isfile(build_path) and (build_path.endswith('.ino.merged.bin') or build_path.endswith('.ino.bin')):
+            # If build path is a recognized binary file, use the directory of the file
+            return os.path.dirname(build_path)
+        else:
+            raise ValueError(f'Path {build_path} is not a directory or valid binary file.')
+
+    def _get_sketch_name(self, build_path: str) -> str:
+        """Extract sketch name from binary files in the build directory."""
+        if not build_path or not os.path.isdir(build_path):
+            logging.warning('No build path found. Using default sketch name "sketch".')
+            return 'sketch'
+
+        # Look for .ino.bin or .ino.merged.bin files
+        for filename in os.listdir(build_path):
+            if filename.endswith('.ino.bin') or filename.endswith('.ino.merged.bin'):
+                # Extract sketch name (everything before .ino.bin or .ino.merged.bin)
+                if filename.endswith('.ino.merged.bin'):
+                    return filename[: -len('.ino.merged.bin')]
+                else:
+                    return filename[: -len('.ino.bin')]
+
+        # If no .ino.bin or .ino.merged.bin files found, raise an error
+        raise ValueError(f'No .ino.bin or .ino.merged.bin file found in {build_path}')
+
+    def _get_fqbn(self, build_path: str) -> str:
+        """Get FQBN from build.options.json file."""
         options_file = os.path.realpath(os.path.join(build_path, 'build.options.json'))
         with open(options_file) as f:
             options = json.load(f)
         fqbn = options['fqbn']
         return fqbn
 
-    def _get_bin_files(self, build_path, sketch, target) -> list[tuple[int, str, bool]]:
-        bootloader = os.path.realpath(os.path.join(build_path, sketch + '.ino.bootloader.bin'))
-        partitions = os.path.realpath(os.path.join(build_path, sketch + '.ino.partitions.bin'))
-        app = os.path.realpath(os.path.join(build_path, sketch + '.ino.bin'))
-        files = [bootloader, partitions, app]
-        offsets = self.binary_offsets[target]
-        return [(offsets[i], files[i], False) for i in range(3)]
+    def _get_flash_settings(self) -> dict[str, str]:
+        """Get flash settings from flash_args file."""
+        flash_args_file = os.path.realpath(os.path.join(self.binary_path, 'flash_args'))
+        with open(flash_args_file) as f:
+            flash_args = f.readline().split(' ')
+
+        flash_settings = {}
+        for i, arg in enumerate(flash_args):
+            if arg.startswith('--'):
+                flash_settings[arg[2:].strip()] = flash_args[i + 1].strip()
+
+        if flash_settings == {}:
+            raise ValueError(f'Flash settings not found in {flash_args_file}')
+
+        return flash_settings
