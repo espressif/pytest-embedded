@@ -23,7 +23,8 @@ The app path is not required but can be used to derive the build directory. If n
 
 The build directory is the directory that contains the binary and configuration files.
 It can be specified as an absolute path or a relative path to the app path.
-If nothing is specified, it will look for the `build` directory in the app path. If it still doesn't find it, it will assume the build directory is the app path.
+If nothing is specified, it will use the app path instead.
+It will recursively search for the binary file in the build directory and its subdirectories. If no binary file is found, it will raise an error.
 
 ### Run the tests
 
