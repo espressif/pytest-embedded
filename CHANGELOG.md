@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v2.5.0 (2025-12-19)
+
+### ✨ New Features
+
+- **wokwi**: C5 support + add wokwi to local packages *(Lucas Saavedra Vaz - bb0152a)*
+
+### 🐛 Bug Fixes
+
+- **readme**: Fix Arduino readme *(Lucas Saavedra Vaz - 70b3581)*
+
+### 🏗️ Changes
+
+- **arduino**: Rework arduino app *(Lucas Saavedra Vaz - dff48ba)*
+
+
 ## v2.4.0 (2025-11-12)
 
 ### ✨ New Features
