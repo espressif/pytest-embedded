@@ -39,14 +39,9 @@ class ArduinoSerial(EspSerial):
         """
         Flash the binary files to the board.
         """
-        flash_files = []
-        for offset, path, encrypted in self.app.flash_files:
-            if encrypted:
-                continue
-            flash_files.extend((str(offset), path))
 
         flash_settings = []
-        for k, v in self.app.flash_settings[self.app.target].items():
+        for k, v in self.app.flash_settings.items():
             flash_settings.append(f'--{k}')
             flash_settings.append(v)
 
@@ -55,7 +50,14 @@ class ArduinoSerial(EspSerial):
 
         try:
             esptool.main(
-                ['--chip', self.app.target, 'write-flash', *flash_files, *flash_settings],
+                [
+                    '--chip',
+                    self.app.target,
+                    'write-flash',
+                    '0x0',  # Merged binary is flashed at offset 0
+                    self.app.binary_file,
+                    *flash_settings,
+                ],
                 esp=self.esp,
             )
         except Exception:

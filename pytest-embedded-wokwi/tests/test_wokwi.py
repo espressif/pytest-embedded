@@ -18,7 +18,7 @@ def test_pexpect_by_wokwi_esp32(testdir):
             dut.expect('Hello world!')
             dut.expect('Restarting')
             with pytest.raises(pexpect.TIMEOUT):
-                dut.expect('foo bar not found', timeout=1)
+                dut.expect('Hello world! or Restarting not found', timeout=1)
     """)
 
     result = testdir.runpytest(
@@ -40,7 +40,7 @@ def test_pexpect_by_wokwi_esp32_arduino(testdir):
         def test_pexpect_by_wokwi(dut):
             dut.expect('Hello Arduino!')
             with pytest.raises(pexpect.TIMEOUT):
-                dut.expect('foo bar not found', timeout=1)
+                dut.expect('Hello Arduino! not found', timeout=1)
     """)
 
     result = testdir.runpytest(
