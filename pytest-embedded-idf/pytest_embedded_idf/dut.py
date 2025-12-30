@@ -1,4 +1,3 @@
-import importlib.util
 import logging
 import os
 import re
@@ -27,6 +26,7 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
     Attributes:
         target (str): target chip type
         skip_check_coredump (bool): skip check core dumped or not while dut teardown if set to True
+        skip_decode_panic (bool): skip decode panic output or not while dut teardown if set to True
     """
 
     XTENSA_TARGETS = IdfApp.XTENSA_TARGETS
@@ -47,13 +47,12 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         self,
         app: IdfApp,
         skip_check_coredump: bool = False,
-        panic_output_decode_script: str | None = None,
+        skip_decode_panic: bool = False,
         **kwargs,
     ) -> None:
         self.target = app.target
         self.skip_check_coredump = skip_check_coredump
-        self._panic_output_decode_script = panic_output_decode_script
-
+        self.skip_decode_panic = skip_decode_panic
         super().__init__(app=app, **kwargs)
 
         self._hard_reset_func = self.serial.hard_reset
@@ -71,26 +70,6 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         else:
             raise ValueError(f'Unknown target: {self.target}')
 
-    @property
-    def panic_output_decode_script(self) -> str | None:
-        """
-        Returns:
-            Panic output decode script path
-        """
-
-        script_filepath = self._panic_output_decode_script
-        if not script_filepath or not os.path.isfile(script_filepath):
-            module = importlib.util.find_spec('esp_idf_panic_decoder.gdb_panic_server')
-            if not module:
-                raise ValueError(
-                    'Panic output decode script not found. '
-                    'Please use the --panic-output-decode-script flag to provide a script '
-                    'or install esp-idf-panic-decoder using the command: `pip install esp-idf-panic-decoder` .'
-                )
-            script_filepath = module.origin
-
-        return os.path.realpath(script_filepath)
-
     def _get_prefix_map_path(self) -> str:
         primary = os.path.join(self.app.binary_path, 'gdbinit', 'prefix_map')
         fallback = os.path.join(self.app.binary_path, 'prefix_map_gdbinit')
@@ -99,7 +78,11 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             return primary
         return fallback
 
-    def _check_panic_decode_trigger(self):  # type: () -> None
+    def _decode_panic(self):  # type: () -> None
+        if self.target not in self.RISCV32_TARGETS:
+            logging.debug('panic decode only supported for riscv32 targets')
+            return
+
         if not self.app.elf_file:
             logging.warning('No elf file found. Skipping decode panic output...')
             return
@@ -118,25 +101,27 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         with tempfile.NamedTemporaryFile(mode='wb', delete=False) as panic_output_file:
             panic_output_file.write(panic_output)
             panic_output_file.flush()
+
+        cmd = [
+            f'{self.toolchain_prefix}gdb',
+            '--command',
+            self._get_prefix_map_path(),
+            '--batch',
+            '-n',
+            self.app.elf_file,
+            '-ex',
+            f'target remote | "{sys.executable}" -m esp_idf_panic_decoder --target {self.target} "{panic_output_file.name}"',  # noqa: E501
+            '-ex',
+            'bt',
+        ]
         try:
-            cmd = [
-                f'{self.toolchain_prefix}-gdb',
-                '--command',
-                self._get_prefix_map_path(),
-                '--batch',
-                '-n',
-                self.app.elf_file,
-                '-ex',
-                f'target remote | "{sys.executable}" "{self.panic_output_decode_script}" --target {self.target} "{panic_output_file.name}"',  # noqa: E501
-                '-ex',
-                'bt',
-            ]
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            logging.info('\n\nBacktrace:\n')
-            logging.info(output.decode())
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
+            logging.info(f'Backtrace:\n{output}')
+            with open(self.logfile.replace('dut', 'panic_decoded', 1), 'w') as fw:
+                fw.write(output)
+                logging.info(f'Please check decoded panic output file at: {fw.name}')
         except subprocess.CalledProcessError as e:
-            logging.debug(f'Failed to run gdb_panic_server.py script: {e}\n{e.output}\n\n')
-            logging.info(panic_output.decode())
+            logging.error(f'Failed to decode panic output: {e.output}. Command was: \n{" ".join(cmd)}')
         finally:
             if panic_output_file is not None:
                 try:
@@ -160,8 +145,6 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
         Returns:
             None
         """
-        if self.target in self.RISCV32_TARGETS:
-            self._check_panic_decode_trigger()  # need IDF_PATH
         if self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_UART', False):
             self._dump_b64_coredumps()
         elif self.app.sdkconfig.get('ESP_COREDUMP_ENABLE_TO_FLASH', False):
@@ -189,12 +172,14 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
                     coredump = CoreDump(
                         chip=self.target,
                         core=coredump_file.name,
-                        core_format='b64',
                         prog=self.app.elf_file,
                     )
-                    with open(os.path.join(self._meta.logdir, f'coredump_output_{i}'), 'w') as fw:
+                    with open(self.logfile.replace('dut', 'coredump', 1), 'w') as fw:
                         with redirect_stdout(fw):
                             coredump.info_corefile()
+                        logging.info(f'Please check coredump output file at: {fw.name}')
+                except Exception as e:
+                    logging.error(f'Error dumping b64 coredump {i} for target: {self.target}: {e}')
                 finally:
                     if coredump_file:
                         os.remove(coredump_file.name)
@@ -206,30 +191,30 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
 
         from esp_coredump import CoreDump  # need IDF_PATH
 
-        if self.app.sdkconfig['ESP_COREDUMP_DATA_FORMAT_ELF']:
-            core_format = 'elf'
-        elif self.app.sdkconfig['ESP_COREDUMP_DATA_FORMAT_BIN']:
-            core_format = 'raw'
-        else:
-            raise ValueError('Invalid coredump format. Use _parse_b64_coredump for UART')
-
-        with self.serial.disable_redirect_thread():
+        self.serial.close()
+        with redirect_stdout(self._q):
             coredump = CoreDump(
                 chip=self.target,
-                core_format=core_format,
                 port=self.serial.port,
                 prog=self.app.elf_file,
             )
-            with open(os.path.join(self._meta.logdir, 'coredump_output'), 'w') as fw:
+            with open(self.logfile.replace('dut', 'coredump', 1), 'w') as fw:
                 with redirect_stdout(fw):
                     coredump.info_corefile()
+                logging.info(f'Please check coredump output file at: {fw.name}')
 
     def close(self) -> None:
+        if not self.skip_decode_panic:
+            try:
+                self._decode_panic()
+            except Exception as e:
+                logging.error(f'Error decoding panic output for target: {self.target}: {e}')
+
         if not self.skip_check_coredump:
             try:
                 self._check_coredump()
             except Exception as e:
-                logging.debug(e)
+                logging.error(f'Error checking coredump for target: {self.target}: {e}')
         super().close()
 
     def write(self, data: t.AnyStr) -> None:

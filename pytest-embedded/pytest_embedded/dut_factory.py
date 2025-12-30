@@ -128,7 +128,7 @@ def _fixture_classes_and_options_fn(
     confirm_target_elf_sha256,
     erase_nvs,
     skip_check_coredump,
-    panic_output_decode_script,
+    skip_decode_panic,
     openocd_prog_path,
     openocd_cli_args,
     gdb_prog_path,
@@ -404,7 +404,7 @@ def _fixture_classes_and_options_fn(
                     kwargs[fixture].update(
                         {
                             'skip_check_coredump': skip_check_coredump,
-                            'panic_output_decode_script': panic_output_decode_script,
+                            'skip_decode_panic': skip_decode_panic,
                         }
                     )
                 elif 'esp' in _services and 'nuttx' in _services:
@@ -667,7 +667,7 @@ class DutFactory:
         confirm_target_elf_sha256: bool | None = None,
         erase_nvs: bool | None = None,
         skip_check_coredump: bool | None = None,
-        panic_output_decode_script: str | None = None,
+        skip_decode_panic: bool | None = None,
         openocd_prog_path: str | None = None,
         openocd_cli_args: str | None = None,
         gdb_prog_path: str | None = None,
@@ -714,7 +714,7 @@ class DutFactory:
             confirm_target_elf_sha256: Confirm target ELF SHA256.
             erase_nvs: Erase NVS flag.
             skip_check_coredump: Skip coredump check flag.
-            panic_output_decode_script: Panic output decode script.
+            skip_decode_panic: TODO
             openocd_prog_path: OpenOCD program path.
             openocd_cli_args: OpenOCD CLI arguments.
             gdb_prog_path: GDB program path.
@@ -782,7 +782,7 @@ class DutFactory:
                 'confirm_target_elf_sha256': confirm_target_elf_sha256,
                 'erase_nvs': erase_nvs,
                 'skip_check_coredump': skip_check_coredump,
-                'panic_output_decode_script': panic_output_decode_script,
+                'skip_decode_panic': skip_decode_panic,
                 'openocd_prog_path': openocd_prog_path,
                 'openocd_cli_args': openocd_cli_args,
                 'gdb_prog_path': gdb_prog_path,

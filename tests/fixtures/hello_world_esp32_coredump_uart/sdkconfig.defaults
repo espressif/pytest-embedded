@@ -1,0 +1,7 @@
+    # This file was generated using idf.py save-defconfig. It can be edited manually.
+    # Espressif IoT Development Framework (ESP-IDF) 6.1.0 Project Minimal Configuration
+    #
+    # default:
+CONFIG_IDF_TARGET="esp32"
+CONFIG_ESP_COREDUMP_ENABLE_TO_UART=y
+CONFIG_APP_REPRODUCIBLE_BUILD=y

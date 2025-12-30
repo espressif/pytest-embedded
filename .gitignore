@@ -71,12 +71,26 @@ venv/
 .idea/
 
 # built binaries
-tests/fixtures/unit_test_app*/build/
-!tests/fixtures/**/bootloader.bin
-!tests/fixtures/**/partition-table.bin
-!tests/fixtures/**/sdkconfig.json
-!tests/fixtures/**/flasher_args.json
-!tests/fixtures/unit_test_app_*/build/**/case_tester_example.bin
+tests/fixtures/*/build/*
+!tests/fixtures/*_coredump_*/build/gdbinit/
+tests/fixtures/*_coredump_*/build/gdbinit/*
+!tests/fixtures/*_coredump_*/build/gdbinit/prefix_map
+!tests/fixtures/*_coredump_*/build/*.elf
+
+!tests/fixtures/*_panic/build/gdbinit/
+tests/fixtures/*_panic/build/gdbinit/*
+!tests/fixtures/*_panic/build/gdbinit/prefix_map
+!tests/fixtures/*_panic/build/*.elf
+
+!tests/fixtures/*/build/bootloader/
+tests/fixtures/*/build/bootloader/*
+!tests/fixtures/*/build/bootloader/*.bin
+!tests/fixtures/*/build/partition_table/
+!tests/fixtures/*/build/config/
+tests/fixtures/*/build/config/*
+!tests/fixtures/*/build/config/sdkconfig.json
+!tests/fixtures/*/build/flasher_args.json
+!tests/fixtures/*/build/*.bin
 
 sdkconfig
 sdkconfig.old
