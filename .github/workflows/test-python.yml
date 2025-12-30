@@ -26,7 +26,7 @@ jobs:
         include:
           - python-version: "3.10"
             arch: "ARM64"
-          - python-version: "3.13"
+          - python-version: "3.14"
             arch: "X64"
       fail-fast: false
     runs-on:
@@ -60,7 +60,8 @@ jobs:
             --cov=pytest_embedded_qemu \
             --cov=pytest_embedded_serial \
             --cov=pytest_embedded_serial_esp \
-            --cov=pytest_embedded_wokwi
+            --cov=pytest_embedded_wokwi \
+            --cov=pytest_embedded_nuttx
       - name: Zip log files
         if: failure()
         run: |

@@ -714,7 +714,7 @@ class DutFactory:
             confirm_target_elf_sha256: Confirm target ELF SHA256.
             erase_nvs: Erase NVS flag.
             skip_check_coredump: Skip coredump check flag.
-            skip_decode_panic: TODO
+            skip_decode_panic: Skip panic decoding flag.
             openocd_prog_path: OpenOCD program path.
             openocd_cli_args: OpenOCD CLI arguments.
             gdb_prog_path: GDB program path.
