@@ -1,4 +1,35 @@
+<a href="https://www.espressif.com">
+    <img src="https://www.espressif.com/sites/all/themes/espressif/logo-black.svg" align="right" height="20" />
+</a>
+
 # CHANGELOG
+
+> All notable changes to this project are documented in this file.
+> This list is not exhaustive - only important changes, fixes, and new features in the code are reflected here.
+
+<div style="text-align: center;">
+    <a href="https://keepachangelog.com/en/1.1.0/">
+        <img alt="Static Badge" src="https://img.shields.io/badge/Keep%20a%20Changelog-v1.1.0-salmon?logo=keepachangelog&logoColor=black&labelColor=white&link=https%3A%2F%2Fkeepachangelog.com%2Fen%2F1.1.0%2F">
+    </a>
+    <a href="https://www.conventionalcommits.org/en/v1.0.0/">
+        <img alt="Static Badge" src="https://img.shields.io/badge/Conventional%20Commits-v1.0.0-pink?logo=conventionalcommits&logoColor=black&labelColor=white&link=https%3A%2F%2Fwww.conventionalcommits.org%2Fen%2Fv1.0.0%2F">
+    </a>
+    <a href="https://semver.org/spec/v2.0.0.html">
+        <img alt="Static Badge" src="https://img.shields.io/badge/Semantic%20Versioning-v2.0.0-grey?logo=semanticrelease&logoColor=black&labelColor=white&link=https%3A%2F%2Fsemver.org%2Fspec%2Fv2.0.0.html">
+    </a>
+</div>
+<hr>
+
+## v2.6.0 (2026-01-16)
+
+### ✨ New Features
+
+- support 'skip_decode_panic', split panic decode output and coredump output *(Fu Hanxi - db11168)*
+
+### 🐛 Bug Fixes
+
+- **idf**: panic decoding. Remove '--panic-output-decode-script' cli option *(Ivan Grokhotkov - 57e7954)*
+
 
 ## v2.5.0 (2025-12-19)
 
@@ -14,6 +45,7 @@
 
 - **arduino**: Rework arduino app *(Lucas Saavedra Vaz - dff48ba)*
 
+---
 
 ## v2.4.0 (2025-11-12)
 
@@ -21,6 +53,7 @@
 
 - **arduino**: Add support for C2, C61 and fix deprecated commands *(Lucas Saavedra Vaz - c09d745)*
 
+---
 
 ## v2.3.0 (2025-11-06)
 
@@ -33,6 +66,7 @@
 - remove the 1.x changelog *(Fu Hanxi - 0c6edaf)*
 - small fixes *(Fu Hanxi - e5d06e0)*
 
+---
 
 ## v2.2.1 (2025-10-27)
 
@@ -40,6 +74,7 @@
 
 - Raise exceptions for Dut created by DutFactory *(Evgeny Torbin - c73f684)*
 
+---
 
 ## v2.2.0 (2025-10-24)
 
@@ -47,6 +82,7 @@
 
 - reconnect after serial lost connection *(horw - 019e38a)*
 
+---
 
 ## v2.1.2 (2025-10-16)
 
@@ -54,6 +90,7 @@
 
 - Fix ESP32-C5 bootloader offset *(Lucas Saavedra Vaz - b77e2f7)*
 
+---
 
 ## v2.1.1 (2025-10-13)
 
@@ -63,6 +100,7 @@
 - mark the un-triggered test cases as "skipped" *(Fu Hanxi - 1b0aa5c)*
 - Add missing offsets for ESP32-C5 *(Lucas Saavedra Vaz - 54bc3d1)*
 
+---
 
 ## v2.1.0 (2025-09-25)
 
@@ -71,6 +109,7 @@
 - add support for efuse in qemu *(horw - e682c45)*
 - add support for virtual efuse on NuttX *(Filipe Cavalcanti - 5e946a0)*
 
+---
 
 ## v2.0.0 (2025-09-23)
 
