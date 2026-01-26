@@ -262,11 +262,15 @@ class IdfUnityDutMixin:
                 self._ignore_first_ready_pattern = True
                 pass
 
-    def _get_ready(self, timeout: float = 30) -> None:
+    def _get_ready(self, timeout: float = 30, *, return_before: bool = False) -> bytes | None:
         if self._ignore_first_ready_pattern:
             self._ignore_first_ready_pattern = False
         else:
             self.expect_exact(READY_PATTERN_LIST, timeout=timeout)
+            if return_before:
+                return self.pexpect_proc.before
+
+        return None
 
     @property
     def test_menu(self) -> list[UnittestMenuCase]:
@@ -301,6 +305,11 @@ class IdfUnityDutMixin:
             self._add_test_case_to_suite(attrs)
             return
 
+        attrs = self._read_result_and_parse_attrs(case, start_time, timeout)
+
+        self._add_test_case_to_suite(attrs)
+
+    def _read_result_and_parse_attrs(self, case: UnittestMenuCase, start_time: float, timeout: float) -> dict:
         log = ''
         try:
             remaining_timeout = timeout - (time.perf_counter() - start_time)
@@ -311,16 +320,39 @@ class IdfUnityDutMixin:
             pass
         else:  # result block exists
             log = remove_asci_color_code(self.pexpect_proc.before)
-        finally:
-            attrs = _parse_unity_test_output(log, case.name, self.pexpect_proc.buffer_debug_str)
-            attrs.update(
-                {
-                    'app_path': self.app.app_path,
-                    'time': round(time.perf_counter() - start_time, 3),
-                }
-            )
 
-            self._add_test_case_to_suite(attrs)
+        attrs = _parse_unity_test_output(log, case.name, self.pexpect_proc.buffer_debug_str)
+        attrs.update(
+            {
+                'app_path': self.app.app_path,
+                'time': round(time.perf_counter() - start_time, 3),
+            }
+        )
+        return attrs
+
+    def _prepare_and_start_case(self, case: UnittestMenuCase, reset: bool, timeout: float) -> float:
+        if reset:
+            self._hard_reset()
+
+        _start_at = time.perf_counter()
+        self._get_ready(timeout)
+        self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+        return _start_at
+
+    def _squash_failed_subcases(self, failed_subcases: list[dict], start_time: float) -> dict:
+        squashed_attrs = failed_subcases[0].copy()
+        if len(failed_subcases) > 1:
+            for key in ('stdout', 'message'):
+                if key in squashed_attrs:
+                    squashed_attrs[key] = '\n---\n'.join(f.get(key, '') for f in failed_subcases)
+
+        squashed_attrs.update(
+            {
+                'app_path': self.app.app_path,
+                'time': round(time.perf_counter() - start_time, 3),
+            }
+        )
+        return squashed_attrs
 
     def _run_normal_case(
         self,
@@ -345,12 +377,7 @@ class IdfUnityDutMixin:
             return
 
         try:
-            if reset:
-                self._hard_reset()
-
-            _start_at = time.perf_counter()
-            self._get_ready(timeout)
-            self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+            _start_at = self._prepare_and_start_case(case, reset, timeout)
         except Exception as e:
             self._analyze_test_case_result(case, e)
         else:
@@ -379,19 +406,22 @@ class IdfUnityDutMixin:
             return
 
         try:
-            if reset:
-                self._hard_reset()
-
-            _start_at = time.perf_counter()
-            self._get_ready(timeout)
-            self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+            _start_at = self._prepare_and_start_case(case, reset, timeout)
         except Exception as e:
             self._analyze_test_case_result(case, e)
         else:
+            failed_subcases = []
             try:
                 for sub_case in case.subcases:
                     if sub_case != case.subcases[0]:
-                        self._get_ready(timeout)
+                        ready_before = self._get_ready(timeout, return_before=True)
+                        if ready_before and UNITY_SUMMARY_LINE_REGEX.search(ready_before):
+                            attrs = _parse_unity_test_output(
+                                remove_asci_color_code(ready_before), case.name, self.pexpect_proc.buffer_debug_str
+                            )
+                            if attrs['result'] == 'FAIL':
+                                failed_subcases.append(attrs)
+
                         self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
                     self.write(str(sub_case['index']))
@@ -400,7 +430,15 @@ class IdfUnityDutMixin:
                 # We'll stop sending commands and let the result recorder handle the failure.
                 pass
             finally:
-                self._analyze_test_case_result(case, None, start_time=_start_at, timeout=timeout)
+                attrs = self._read_result_and_parse_attrs(case, _start_at, timeout)
+
+                if attrs['result'] == 'FAIL':
+                    failed_subcases.append(attrs)
+
+                if failed_subcases:
+                    self._add_test_case_to_suite(self._squash_failed_subcases(failed_subcases, _start_at))
+                else:
+                    self._add_test_case_to_suite(attrs)
 
     def run_single_board_case(self, name: str, reset: bool = False, timeout: float = 30) -> None:
         for case in self.test_menu:
