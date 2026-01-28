@@ -46,6 +46,9 @@ class LinuxSerial(DuplicateStdoutPopen):
         if self.app.target != 'linux':
             raise ValueError(f'Targets do not match. App target: {self.app.target}, Cmd target: "linux".')
 
+        if not self.app.elf_file:
+            raise ValueError('No ELF file found. Please check the app build folder.')
+
         super().__init__(cmd=[self.app.elf_file], **kwargs)
 
     def hard_reset(self) -> None:
