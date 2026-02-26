@@ -1,4 +1,4 @@
-name: Test Python Packages
+name: Target Tests
 
 on:
   pull_request:
@@ -7,8 +7,6 @@ on:
       - "*/pyproject.toml"
       - .github/workflows/test-python.yml
       - "!docs/**"
-  push:
-    branches: [main]
 
 # cancel jobs if new commit pushed
 concurrency:
@@ -19,6 +17,57 @@ env:
   WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
 
 jobs:
+  test-qemu:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt install -y libgcrypt20 libglib2.0-0 libpixman-1-0 libsdl2-2.0-0 libslirp0
+          pip install -U pip
+          export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
+          pip install cryptography --prefer-binary
+          pip install -r requirements.txt
+          bash foreach.sh install
+      - name: Download and install QEMU
+        run: |
+          wget https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20250817/qemu-xtensa-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          wget https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20250817/qemu-riscv32-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          tar -xf qemu-xtensa-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          tar -xf qemu-riscv32-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          echo "$PWD/qemu/bin" >> $GITHUB_PATH
+
+      - name: Save PR number
+        run: echo ${{ github.event.number }} > pr_number.txt
+
+      - name: Run QEMU tests
+        run: |
+          pytest pytest-embedded-qemu/tests/test_qemu.py \
+            --junitxml pytest-qemu.xml \
+            --cov-report=xml:coverage-qemu.xml \
+            --cov=pytest_embedded \
+            --cov=pytest_embedded_arduino \
+            --cov=pytest_embedded_idf \
+            --cov=pytest_embedded_jtag \
+            --cov=pytest_embedded_qemu \
+            --cov=pytest_embedded_serial \
+            --cov=pytest_embedded_serial_esp \
+            --cov=pytest_embedded_wokwi \
+            --cov=pytest_embedded_nuttx
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: test-results-qemu
+          path: |
+            pr_number.txt
+            pytest-qemu.xml
+            coverage-qemu.xml
+
   test-python:
     timeout-minutes: 40
     strategy:
@@ -48,11 +97,12 @@ jobs:
           bash foreach.sh install
       - name: Check ports
         run: ls -la /dev/ttyUSB*
+
       - name: Run Tests with coverage
         run: |
           pytest \
-            --junitxml=pytest.xml \
-            --cov-report=term-missing \
+            --junitxml=pytest-${{ matrix.python-version }}-${{ matrix.arch }}.xml \
+            --cov-report=xml:coverage-${{ matrix.python-version }}-${{ matrix.arch }}.xml \
             --cov=pytest_embedded \
             --cov=pytest_embedded_arduino \
             --cov=pytest_embedded_idf \
@@ -62,12 +112,11 @@ jobs:
             --cov=pytest_embedded_serial_esp \
             --cov=pytest_embedded_wokwi \
             --cov=pytest_embedded_nuttx
-      - name: Zip log files
-        if: failure()
-        run: |
-          zip -r logs.zip /tmp/pytest-embedded
-      - uses: actions/upload-artifact@v6
-        if: failure()
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
         with:
-          name: logs-${{ matrix.python-version }}
-          path: logs.zip
+          name: test-results-${{ matrix.python-version }}-${{ matrix.arch }}
+          path: |
+            pytest-${{ matrix.python-version }}-${{ matrix.arch }}.xml
+            coverage-${{ matrix.python-version }}-${{ matrix.arch }}.xml
