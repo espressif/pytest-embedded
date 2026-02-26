@@ -84,12 +84,13 @@ class Wokwi(DuplicateStdoutPopen):
         self.client.upload_file('pytest.elf', Path(elf_path))
         if firmware_path.endswith('flasher_args.json'):
             firmware = self.client.upload_idf_firmware(firmware_path)
-            self.client.start_simulation(firmware.firmware, elf='pytest.elf')
+            kwargs = {'firmware': firmware.firmware, 'elf': 'pytest.elf', 'flash_size': firmware.flash_size}
         else:
             firmware = self.client.upload_file('pytest.bin', Path(firmware_path))
-            self.client.start_simulation(firmware, elf='pytest.elf')
+            kwargs = {'firmware': firmware, 'elf': 'pytest.elf'}
 
         logging.info('Uploaded diagram and firmware to Wokwi. Starting simulation...')
+        self.client.start_simulation(**kwargs)
 
     def _start_serial_monitoring(self):
         """Start monitoring serial output and forward to stdout and message queue."""
