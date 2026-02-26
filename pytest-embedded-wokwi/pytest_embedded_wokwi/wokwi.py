@@ -4,12 +4,9 @@ import os
 import typing as t
 from pathlib import Path
 
-from packaging.version import Version
 from pytest_embedded.log import DuplicateStdoutPopen, MessageQueue
 from pytest_embedded.utils import Meta
 from wokwi_client import GET_TOKEN_URL, WokwiClientSync
-
-from pytest_embedded_wokwi import WOKWI_CLI_MINIMUM_VERSION
 
 from .idf import IDFFirmwareResolver
 
@@ -61,15 +58,6 @@ class Wokwi(DuplicateStdoutPopen):
         # Initialize synchronous Wokwi client
         self.client = WokwiClientSync(token)
 
-        # Check version compatibility
-        if Version(self.client.version) < Version(WOKWI_CLI_MINIMUM_VERSION):
-            logging.warning(
-                'Wokwi client version %s < required %s (compatibility not guaranteed)',
-                self.client.version,
-                WOKWI_CLI_MINIMUM_VERSION,
-            )
-        logging.info('Wokwi client library version: %s', self.client.version)
-
         # Prepare diagram file if not supplied
         if wokwi_diagram is None:
             self.create_diagram_json()
@@ -77,8 +65,7 @@ class Wokwi(DuplicateStdoutPopen):
 
         # Connect and start simulation
         try:
-            flasher_args = firmware_resolver.resolve_firmware(app)
-            firmware_path = Path(flasher_args).as_posix()
+            firmware_path = Path(firmware_resolver.resolve_firmware(app)).as_posix()
             elf_path = Path(app.elf_file).as_posix()
 
             self._setup_simulation(wokwi_diagram, firmware_path, elf_path)
@@ -93,15 +80,16 @@ class Wokwi(DuplicateStdoutPopen):
         logging.info('Connected to Wokwi Simulator, server version: %s', hello.get('version', 'unknown'))
 
         # Upload files
-        self.client.upload_file('diagram.json', diagram)
-        firmware = self.client.upload_file('pytest.bin', firmware_path)
-
-        self.client.upload_file('pytest.elf', elf_path)
+        self.client.upload_file('diagram.json', Path(diagram))
+        self.client.upload_file('pytest.elf', Path(elf_path))
+        if firmware_path.endswith('flasher_args.json'):
+            firmware = self.client.upload_idf_firmware(firmware_path)
+            self.client.start_simulation(firmware.firmware, elf='pytest.elf')
+        else:
+            firmware = self.client.upload_file('pytest.bin', Path(firmware_path))
+            self.client.start_simulation(firmware, elf='pytest.elf')
 
         logging.info('Uploaded diagram and firmware to Wokwi. Starting simulation...')
-
-        # Start simulation
-        self.client.start_simulation(firmware, elf='pytest.elf')
 
     def _start_serial_monitoring(self):
         """Start monitoring serial output and forward to stdout and message queue."""

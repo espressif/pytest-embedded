@@ -32,7 +32,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "pytest-embedded~=2.6.0",
-    "wokwi-client>=0.2.0",
+    "wokwi-client>=0.4.0",
 ]
 
 [project.optional-dependencies]
