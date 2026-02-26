@@ -201,7 +201,7 @@ def test_qemu_use_idf_mixin_methods(testdir):
         import pytest
 
         def test_qemu_use_idf_mixin_methods(dut):
-            dut.run_all_single_board_cases(timeout=10)
+            dut.run_all_single_board_cases(timeout=3)
     """)
 
     result = testdir.runpytest(
@@ -209,7 +209,7 @@ def test_qemu_use_idf_mixin_methods(testdir):
         '--embedded-services',
         'idf,qemu',
         '--app-path',
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_qemu")}',
         '--junitxml',
         'report.xml',
     )
@@ -219,6 +219,6 @@ def test_qemu_use_idf_mixin_methods(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '2'
-    assert junit_report.attrib['skipped'] == '2'
-    assert junit_report.attrib['tests'] == '1'
+    assert junit_report.attrib['failures'] == '5'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '3'
