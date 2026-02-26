@@ -1,4 +1,4 @@
-name: Test Python Packages
+name: Target Tests
 
 on:
   pull_request:
@@ -19,6 +19,32 @@ env:
   WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
 
 jobs:
+  test-qemu:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt install -y libgcrypt20 libglib2.0-0 libpixman-1-0 libsdl2-2.0-0 libslirp0
+          pip install -U pip
+          export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
+          pip install cryptography --prefer-binary
+          pip install -r requirements.txt
+          bash foreach.sh install
+      - name: Download and install QEMU
+        run: |
+          wget https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20250817/qemu-xtensa-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          wget https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20250817/qemu-riscv32-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          tar -xf qemu-xtensa-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          tar -xf qemu-riscv32-softmmu-esp_develop_9.2.2_20250817-x86_64-linux-gnu.tar.xz
+          echo "$PWD/qemu/bin" >> $GITHUB_PATH
+      - name: Run QEMU tests
+        run: pytest pytest-embedded-qemu/tests/test_qemu.py
+
   test-python:
     timeout-minutes: 40
     strategy:
