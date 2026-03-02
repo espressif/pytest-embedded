@@ -3,7 +3,7 @@ import os
 import pytest
 
 wokwi_token_required = pytest.mark.skipif(
-    os.getenv('WOKWI_CLI_TOKEN') is None,
+    not os.getenv('WOKWI_CLI_TOKEN', None),
     reason='Please make sure that `WOKWI_CLI_TOKEN` env var is set. Get a token here: https://wokwi.com/dashboard/ci',
 )
 
