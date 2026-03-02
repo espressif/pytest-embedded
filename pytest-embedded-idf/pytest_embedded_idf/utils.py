@@ -120,4 +120,6 @@ def soc_filtered_targets(soc_statement: str, targets: ValidTargets = 'all') -> l
     for target in target_list:
         if stm.get_value(target, ''):
             result.append(target)
+    if not result:
+        raise ValueError(f"Invalid SOC statement '{soc_statement}': empty result for targets {target_list}")
     return result
