@@ -10,4 +10,4 @@ __all__ = [
     'Telnet',
 ]
 
-__version__ = '2.6.0'
+__version__ = '2.7.0'

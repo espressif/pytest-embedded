@@ -20,6 +20,21 @@
 </div>
 <hr>
 
+## v2.7.0 (2026-03-02)
+
+### ✨ New Features
+
+- proper exception on invalid soc statement *(horw - 5f0641a)*
+
+### 🐛 Bug Fixes
+
+- **wokwi**: pass flash size while simulating *(Fu Hanxi - 0a7651e)*
+- **wokwi**: support wokwi-client 0.4.0 *(Fu Hanxi - 6dbc86c)*
+- reset when first met pre-run-failure *(Fu Hanxi - b131a09)*
+- prevent multi-stage tests from passing when earlier stages fail *(Fu Hanxi - 7457ba1)*
+- linux elf not found explicit error msg *(horw - b23b2bd)*
+
+
 ## v2.6.0 (2026-01-16)
 
 ### ✨ New Features
