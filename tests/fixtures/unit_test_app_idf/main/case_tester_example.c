@@ -13,14 +13,14 @@ The ideal test result of `run_all_single_board_cases(reset=False)` should be:
     normal_case_pass: pass
     normal_case_crash: fail (crash)
     normal_case_stuck: fail (infinite loop)
-    normal_case_skip_when_not_reset: skip (since the previous case will hang forever)
-    multiple_stages_test: skip (since the previous case will hang forever)
+    normal_case_pass_auto_reset: pass (since the reset will be auto triggered)
+    multiple_stages_test: pass (since the reset was auto triggered in the previous case)
 
 The ideal test result of `run_all_single_board_cases(reset=True)` should be:
     normal_case_pass: pass
     normal_case_crash: fail (crash)
     normal_case_stuck: fail (infinite loop)
-    normal_case_skip_when_not_reset: pass
+    normal_case_pass_auto_reset: pass
     multiple_stages_test: pass
 
 multiple_devices_test: skip (when reset=False, since the previous case will hang forever)
@@ -62,7 +62,7 @@ TEST_CASE("normal_case_stuck", "[normal_case][timeout=10]")
     TEST_ASSERT(true);
 }
 
-TEST_CASE("normal_case_skip_when_not_reset", "[normal_case][timeout=10]")
+TEST_CASE("normal_case_pass_auto_reset", "[normal_case][timeout=10]")
 {
     ESP_LOGI("normal case skip when not reset", "skip this case if not reset, since the previous case will hang forever");
     TEST_ASSERT(true);

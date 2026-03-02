@@ -4,4 +4,4 @@ set(EXTRA_COMPONENT_DIRS
     "$ENV{IDF_PATH}/tools/test_apps/components")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(case_tester_example)
+project(unit_test_app_idf)

@@ -11,9 +11,9 @@
 /*
 The ideal test result of `run_all_single_board_cases` should be:
     normal_case_pass: pass
-    normal_case_fail: fail
-
-
+    normal_case_stuck: fail (infinite loop)
+    normal_case_skip_when_not_reset: fail
+    multiple_stages_test: skip (since it's not a normal case, should be manually ignored)
 */
 
 TEST_CASE("normal_case_pass", "[normal_case]")

@@ -62,8 +62,9 @@ def test_esp_flash_force_flag(testdir):
 def test_custom_idf_device_dut(testdir):
     p = os.path.join(testdir.tmpdir, 'hello_world_esp32')
     p_c3 = os.path.join(testdir.tmpdir, 'hello_world_esp32c3')
-    unity_test_path = os.path.join(testdir.tmpdir, 'unit_test_app_esp32')
-    unity_test_path_c3 = os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3')
+
+    unity_test_app_path = os.path.join(testdir.tmpdir, 'unit_test_app_idf')
+
     testdir.makepyfile(f"""
         import pytest
 
@@ -81,14 +82,20 @@ def test_custom_idf_device_dut(testdir):
 
         def test_idf_unity_tester():
             from pytest_embedded.dut_factory import DutFactory
-            dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
-            dut2 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path_c3}')
+            dut1 = DutFactory.create(
+                embedded_services='esp,idf', app_path=r'{unity_test_app_path}', build_dir='build_esp32'
+            )
+            dut2 = DutFactory.create(
+                embedded_services='esp,idf', app_path=r'{unity_test_app_path}', build_dir='build_esp32c3'
+            )
             tester = DutFactory.unity_tester(dut1, dut2)
             tester.run_all_multi_dev_cases(timeout=10)
 
         def test_idf_run_all_single_board_cases():
             from pytest_embedded.dut_factory import DutFactory
-            dut1 = DutFactory.create(embedded_services='esp,idf', app_path=r'{unity_test_path}')
+            dut1 = DutFactory.create(
+                embedded_services='esp,idf', app_path=r'{unity_test_app_path}', build_dir='build_esp32'
+            )
             dut1.run_all_single_board_cases(reset=True, timeout=10)
     """)
 
@@ -424,7 +431,9 @@ def test_flash_another_app(testdir):
     result = testdir.runpytest(
         '-s',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32',
         '--embedded-services',
         'esp,idf',
         '--part-tool',
@@ -748,55 +757,20 @@ def test_select_to_run():
     assert IdfUnityDutMixin._select_to_run([['hello', '!w']], None, None, ['hello', 'world'], None, None)
 
 
-def test_dut_run_all_single_board_cases_reset_false(testdir):
-    testdir.makepyfile(r"""
+@pytest.mark.parametrize('reset', [True, False])
+def test_dut_run_all_single_board_cases(testdir, reset):
+    testdir.makepyfile(rf"""
         def test_dut_run_all_single_board_cases(dut):
-            dut.run_all_single_board_cases(timeout=10)
+            dut.run_all_single_board_cases(timeout=10, reset={reset})
     """)
     testdir.runpytest(
         '-s',
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
-        '--log-cli-level',
-        'DEBUG',
-        '--junitxml',
-        'report.xml',
-    )
-
-    junit_report = ET.parse('report.xml').getroot()[0]
-
-    assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '2'
-    assert junit_report.attrib['skipped'] == '2'
-    assert junit_report.attrib['tests'] == '1'
-
-    testcases = junit_report.findall('.//testcase')
-    assert testcases[0].attrib['name'] == 'normal_case_pass'
-    assert testcases[1].attrib['name'] == 'normal_case_crash'
-    assert testcases[2].attrib['name'] == 'normal_case_stuck'
-    assert testcases[3].attrib['name'] == 'normal_case_skip_when_not_reset'
-    assert testcases[4].attrib['name'] == 'multiple_stages_test'
-
-    assert 10 < float(testcases[1].attrib['time']) < 10.1
-    assert 'Guru Meditation Error' in testcases[1][0].attrib['message']
-
-    assert 'Skipped due to a failure before test execution.' in testcases[3][0].attrib['message']
-    assert 'Skipped due to a failure before test execution.' in testcases[4][0].attrib['message']
-
-
-def test_dut_run_all_single_board_cases_reset_true(testdir):
-    testdir.makepyfile(r"""
-        def test_dut_run_all_single_board_cases(dut):
-            dut.run_all_single_board_cases(reset=True, timeout=10)
-    """)
-    testdir.runpytest(
-        '-s',
-        '--embedded-services',
-        'esp,idf',
-        '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32c3',
         '--log-cli-level',
         'DEBUG',
         '--junitxml',
@@ -814,7 +788,7 @@ def test_dut_run_all_single_board_cases_reset_true(testdir):
     assert testcases[0].attrib['name'] == 'normal_case_pass'
     assert testcases[1].attrib['name'] == 'normal_case_crash'
     assert testcases[2].attrib['name'] == 'normal_case_stuck'
-    assert testcases[3].attrib['name'] == 'normal_case_skip_when_not_reset'
+    assert testcases[3].attrib['name'] == 'normal_case_pass_auto_reset'
     assert testcases[4].attrib['name'] == 'multiple_stages_test'
 
     assert 10 < float(testcases[1].attrib['time']) < 10.1
@@ -832,7 +806,9 @@ def test_dut_run_all_single_board_cases_group(testdir):
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32',
         '--log-cli-level',
         'DEBUG',
         '--junitxml',
@@ -843,8 +819,8 @@ def test_dut_run_all_single_board_cases_group(testdir):
 
     assert junit_report.attrib['errors'] == '0'
     assert junit_report.attrib['failures'] == '2'
-    assert junit_report.attrib['skipped'] == '1'
-    assert junit_report.attrib['tests'] == '1'
+    assert junit_report.attrib['skipped'] == '0'
+    assert junit_report.attrib['tests'] == '2'
 
 
 def test_dut_run_all_single_board_cases_invert_group(testdir):
@@ -857,7 +833,9 @@ def test_dut_run_all_single_board_cases_invert_group(testdir):
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32',
         '--junitxml',
         'report.xml',
     )
@@ -882,7 +860,9 @@ def test_dut_run_all_single_board_cases_by_names(testdir):
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32'),
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32',
         '--junitxml',
         'report.xml',
     )
@@ -916,9 +896,9 @@ def test_unity_test_case_runner_without_reset(testdir):
         '--count',
         2,
         '--app-path',
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
-        f'|'
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
+        os.path.join(testdir.tmpdir, 'unit_test_app_idf'),
+        '--build-dir',
+        'build_esp32|build_esp32c3',
         '--junitxml',
         'report.xml',
     )
@@ -949,9 +929,9 @@ def test_unity_test_case_runner_with_reset(testdir):
         '--count',
         2,
         '--app-path',
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32")}'
-        f'|'
-        f'{os.path.join(testdir.tmpdir, "unit_test_app_esp32c3")}',
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_idf")}',
+        '--build-dir',
+        'build_esp32|build_esp32c3',
         '--junitxml',
         'report.xml',
     )
@@ -1003,7 +983,9 @@ def test_preserve_python_tests_with_failures(testdir):
         '--embedded-services',
         'esp,idf',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'unit_test_app_esp32c3'),
+        f'{os.path.join(testdir.tmpdir, "unit_test_app_idf")}',
+        '--build-dir',
+        'build_esp32c3',
         '--junitxml',
         'report.xml',
         '--unity-test-report-mode',

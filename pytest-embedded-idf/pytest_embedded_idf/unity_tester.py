@@ -379,9 +379,14 @@ class IdfUnityDutMixin:
         try:
             _start_at = self._prepare_and_start_case(case, reset, timeout)
         except Exception as e:
-            self._analyze_test_case_result(case, e)
-        else:
-            self._analyze_test_case_result(case, None, start_time=_start_at, timeout=timeout)
+            logging.debug('pre_run_failure: %s. hard reset and retry', e)
+            try:
+                _start_at = self._prepare_and_start_case(case, True, timeout)
+            except Exception as e2:
+                self._analyze_test_case_result(case, e2)
+                return
+
+        self._analyze_test_case_result(case, None, start_time=_start_at, timeout=timeout)
 
     def _run_multi_stage_case(
         self,
@@ -408,37 +413,42 @@ class IdfUnityDutMixin:
         try:
             _start_at = self._prepare_and_start_case(case, reset, timeout)
         except Exception as e:
-            self._analyze_test_case_result(case, e)
-        else:
-            failed_subcases = []
+            logging.debug('pre_run_failure: %s. hard reset and retry', e)
             try:
-                for sub_case in case.subcases:
-                    if sub_case != case.subcases[0]:
-                        ready_before = self._get_ready(timeout, return_before=True)
-                        if ready_before and UNITY_SUMMARY_LINE_REGEX.search(ready_before):
-                            attrs = _parse_unity_test_output(
-                                remove_asci_color_code(ready_before), case.name, self.pexpect_proc.buffer_debug_str
-                            )
-                            if attrs['result'] == 'FAIL':
-                                failed_subcases.append(attrs)
+                _start_at = self._prepare_and_start_case(case, True, timeout)
+            except Exception as e2:
+                self._analyze_test_case_result(case, e2)
+                return
 
-                        self.confirm_write(case.index, expect_str=f'Running {case.name}...')
+        failed_subcases = []
+        try:
+            for sub_case in case.subcases:
+                if sub_case != case.subcases[0]:
+                    ready_before = self._get_ready(timeout, return_before=True)
+                    if ready_before and UNITY_SUMMARY_LINE_REGEX.search(ready_before):
+                        attrs = _parse_unity_test_output(
+                            remove_asci_color_code(ready_before), case.name, self.pexpect_proc.buffer_debug_str
+                        )
+                        if attrs['result'] == 'FAIL':
+                            failed_subcases.append(attrs)
 
-                    self.write(str(sub_case['index']))
-            except Exception:
-                # Any exception during the sub-case loop is a runtime failure.
-                # We'll stop sending commands and let the result recorder handle the failure.
-                pass
-            finally:
-                attrs = self._read_result_and_parse_attrs(case, _start_at, timeout)
+                    self.confirm_write(case.index, expect_str=f'Running {case.name}...')
 
-                if attrs['result'] == 'FAIL':
-                    failed_subcases.append(attrs)
+                self.write(str(sub_case['index']))
+        except Exception:
+            # Any exception during the sub-case loop is a runtime failure.
+            # We'll stop sending commands and let the result recorder handle the failure.
+            pass
+        finally:
+            attrs = self._read_result_and_parse_attrs(case, _start_at, timeout)
 
-                if failed_subcases:
-                    self._add_test_case_to_suite(self._squash_failed_subcases(failed_subcases, _start_at))
-                else:
-                    self._add_test_case_to_suite(attrs)
+            if attrs['result'] == 'FAIL':
+                failed_subcases.append(attrs)
+
+            if failed_subcases:
+                self._add_test_case_to_suite(self._squash_failed_subcases(failed_subcases, _start_at))
+            else:
+                self._add_test_case_to_suite(attrs)
 
     def run_single_board_case(self, name: str, reset: bool = False, timeout: float = 30) -> None:
         for case in self.test_menu:

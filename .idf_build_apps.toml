@@ -1,0 +1,4 @@
+recursive = true
+check_warnings = true
+build_dir = "build_@t"
+verbose = 1  # INFO
