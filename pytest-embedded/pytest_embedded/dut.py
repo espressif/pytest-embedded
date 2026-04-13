@@ -50,8 +50,6 @@ class Dut(_InjectMixinCls):
         # junit related
         self.testsuite = TestSuite(self.test_case_name)
 
-
-
     @property
     def logdir(self):
         return self._meta.logdir
