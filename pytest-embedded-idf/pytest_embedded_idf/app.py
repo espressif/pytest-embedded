@@ -24,6 +24,9 @@ class IdfApp(App):
         flash_args (dict[str, Any]): dict of flasher_args.json
         flash_files (list[FlashFile]): list of (offset, file path, encrypted) of files need to be flashed in
         flash_settings (dict[str, Any]): dict of flash settings
+        is_loadable_elf (bool): Chip RAM app (``APP_BUILD_TYPE_RAM`` / ``APP_BUILD_TYPE_ELF_RAM``); esptool
+            ``load_ram`` path.
+        is_linux_elf (bool): Linux host ELF-only build (``APP_BUILD_TYPE_ELF_ONLY``), no flasher_args.json.
     """
 
     XTENSA_TARGETS: ClassVar[list[str]] = ['esp32', 'esp32s2', 'esp32s3']
@@ -74,10 +77,13 @@ class IdfApp(App):
         else:
             self.is_loadable_elf = False
 
+        # Linux target: ELF-only output, no flasher_args.json.
+        self.is_linux_elf = bool(self.sdkconfig.get('APP_BUILD_TYPE_ELF_ONLY'))
+
         self.bin_file = self._get_bin_file()
         self.flash_args, self.flash_files, self.flash_settings = {}, [], {}
 
-        if not self.is_loadable_elf:
+        if not (self.is_loadable_elf or self.is_linux_elf):
             self.flash_args, self.flash_files, self.flash_settings = self._parse_flash_args_json()
 
     @property
@@ -153,10 +159,15 @@ class IdfApp(App):
         if self._partition_table is not None:
             return self._partition_table
 
-        partition_file = os.path.join(
-            self.binary_path,
-            self.flash_args.get('partition_table', self.flash_args.get('partition-table', {})).get('file', ''),
+        # see - vs _ in 'partition table' key name
+        partition_rel_path = self.flash_args.get('partition_table', self.flash_args.get('partition-table', {})).get(
+            'file', ''
         )
+        if not partition_rel_path:
+            self._partition_table = {}
+            return self._partition_table
+
+        partition_file = os.path.join(self.binary_path, partition_rel_path)
         process = subprocess.Popen(
             [sys.executable, self.parttool_path, partition_file],
             stdout=subprocess.PIPE,
