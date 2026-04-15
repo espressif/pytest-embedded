@@ -72,6 +72,10 @@ class IdfSerial(EspSerial):
         else:
             if self.app.is_loadable_elf:
                 self.load_ram()
+            elif self.app.is_linux_elf:
+                # Host Linux ELF (IDF_TARGET_LINUX); no flasher_args.json.
+                logging.info('Linux ELF-only build; skipping auto flash.')
+                super()._start()
             else:
                 self.flash()
 

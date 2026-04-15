@@ -270,6 +270,11 @@ class IdfDut(IdfUnityDutMixin, SerialDut):
             # >>> self.gdb.write('load')
             return
 
+        if self.app.is_linux_elf:
+            # linux ELF file. OpenOCD is meaningless
+            logging.debug('Linux ELF-only build; skipping OpenOCD program_esp.')
+            return
+
         for _f in self.app.flash_files:
             if _f.encrypted:
                 raise ValueError("Encrypted files can't be flashed in via JTAG")
