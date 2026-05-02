@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import gc
 import io
@@ -42,8 +43,19 @@ DUT_GLOBAL_INDEX = 0
 PARAMETRIZED_FIXTURES_CACHE = {}
 
 
-def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1) -> None:
+_STDOUT_LOCK = None
+
+
+def set_stdout_lock(lock) -> None:
+    global _STDOUT_LOCK
+    _STDOUT_LOCK = lock
+
+
+def _listen(
+    q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1, _stdout_lock=None
+) -> None:
     shall_add_prefix = True
+    _pending = ''
     while True:
         msg = q.get()
         if not msg:
@@ -71,20 +83,25 @@ def _listen(q: MessageQueue, filepath: str, with_timestamp: bool = True, count: 
         if _s.endswith('\n'):  # complete line
             shall_add_prefix = True
             _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
+            with _stdout_lock if _stdout_lock else contextlib.nullcontext():
+                _stdout.write(_pending + _s)
+                _stdout.flush()
+            _pending = ''
         else:
             shall_add_prefix = False
             _s = _s.replace('\n', '\n' + prefix)
-
-        _stdout.write(_s)
-        _stdout.flush()
+            _pending += _s
 
 
-def _listener_gn(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total) -> multiprocessing.Process:
+def _listener_gn(
+    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock=None
+) -> multiprocessing.Process:
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
     kwargs = {
         'with_timestamp': with_timestamp,
         'count': dut_index,
         'total': dut_total,
+        '_stdout_lock': _stdout_lock,
     }
 
     return _ctx.Process(
@@ -753,7 +770,9 @@ class DutFactory:
             )
             logging.debug('You can get your custom DUT log file at the following path: %s.', _pexpect_logfile)
 
-            _listener = _listener_gn(msg_queue, _pexpect_logfile, True, DUT_GLOBAL_INDEX, DUT_GLOBAL_INDEX + 1)
+            _listener = _listener_gn(
+                msg_queue, _pexpect_logfile, True, DUT_GLOBAL_INDEX, DUT_GLOBAL_INDEX + 1, _stdout_lock=_STDOUT_LOCK
+            )
             layout.append(_listener)
 
             _pexpect_fr = _pexpect_fr_gn(_pexpect_logfile, _listener)
