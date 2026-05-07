@@ -124,9 +124,7 @@ class Wokwi(DuplicateStdoutPopen):
         # Fallback: auto-detect from chips/ directory
         return self._upload_chip_specs(self._chip_specs_from_dir(diagram_dir))
 
-    def _chip_specs_from_toml(
-        self, toml_path: Path
-    ) -> list[tuple[Path, Path, str]] | None:
+    def _chip_specs_from_toml(self, toml_path: Path) -> list[tuple[Path, Path, str]] | None:
         """Parse ``[[chip]]`` entries from *toml_path*.
 
         All relative paths in the ``[[chip]]`` entries are resolved relative to
