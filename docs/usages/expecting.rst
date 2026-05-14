@@ -186,6 +186,8 @@ As with the :func:`~pytest_embedded.dut.Dut.expect` function, the ``pattern`` ar
        for _ in range(2):
            dut.expect_exact(pattern_list)
 
+.. _multi-dut-synchronization:
+
 ***************************
  Multi-DUT Synchronization
 ***************************
@@ -200,14 +202,26 @@ When you use ``--count N`` (or equivalent), each board has its own serial stream
 
 ``DutGroup`` is a transparent proxy: **every method** available on a single :class:`~pytest_embedded.dut.Dut` can be called on the group. The call runs on all members **in parallel** and returns a list of per-DUT results.
 
+When you use ``--count N`` with N > 1, the ``dut`` fixture is **already a** ``DutGroup`` — you can call group methods on it directly:
+
+.. code:: python
+
+   def test_two_boards(dut):
+       # dut is a DutGroup -- use it directly
+       dut.expect_exact("[READY]", timeout=120)
+
+       # Individual DUTs are accessible by index
+       dut[0].write("hello from master")
+       dut[1].write("hello from slave")
+
+You can also construct a ``DutGroup`` manually from individual DUTs if you need a subset or custom naming:
+
 .. code:: python
 
    from pytest_embedded import DutGroup
 
    def test_two_boards(dut):
-       group = DutGroup(dut[0], dut[1])
-       # or from a list:
-       group = DutGroup(*dut)
+       group = DutGroup(dut[0], dut[1], names=("ap", "client"))
 
 It is also available as ``Dut.DutGroup`` for discoverability.
 
@@ -286,24 +300,22 @@ Full example
 
 .. code:: python
 
-   from pytest_embedded import DutGroup
-
    def test_wifi_ap(dut):
-       group = DutGroup(*dut)
+       # dut is already a DutGroup in multi-DUT mode
 
        # Phase 1: wait for both devices to be ready
-       group.expect_exact("[READY]", timeout=120)
+       dut.expect_exact("[READY]", timeout=120)
 
        # Phase 2: exchange SSID
-       group.expect_exact("Send SSID:", timeout=10)
-       group.write(ap_ssid)
+       dut.expect_exact("Send SSID:", timeout=10)
+       dut.write(ap_ssid)
 
        # Phase 3: exchange password
-       group.expect_exact("Send Password:", timeout=10)
-       group.write(ap_password)
+       dut.expect_exact("Send Password:", timeout=10)
+       dut.write(ap_password)
 
        # Phase 4: verify connection
-       results = group.expect(r"IP=(\S+)", timeout=30)
+       results = dut.expect(r"IP=(\S+)", timeout=30)
        for r in results:
            assert r.group(1) != b""
 
