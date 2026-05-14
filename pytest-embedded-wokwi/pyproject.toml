@@ -33,6 +33,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pytest-embedded~=2.7.0",
     "wokwi-client>=0.4.0",
+    "tomli>=1.1.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
