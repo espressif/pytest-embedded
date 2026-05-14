@@ -1264,13 +1264,11 @@ def unity_tester(dut: t.Union['IdfDut', DutGroup, tuple['IdfDut']]) -> t.Optiona
     except ImportError:
         yield None
     else:
-        dut_list = list(dut) if isinstance(dut, (DutGroup, tuple, list)) else [dut]
-        for _dut in dut_list:
+        for _dut in to_list(dut):
             if not isinstance(_dut, IdfDut):
                 yield None
-                return
 
-        yield CaseTester(dut_list)
+        yield CaseTester(to_list(dut))
 
 
 ##################
@@ -1457,11 +1455,7 @@ class PytestEmbedded:
 
         # Check DUTs created by fixture
         if 'dut' in item.funcargs:
-            raw_dut = item.funcargs['dut']
-            if isinstance(raw_dut, Dut):
-                fixture_duts = [raw_dut]
-            else:
-                fixture_duts = [d for d in raw_dut if isinstance(d, Dut)]
+            fixture_duts = [dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut)]
             all_duts.extend(fixture_duts)
 
         # Check DUTs created by DutFactory
