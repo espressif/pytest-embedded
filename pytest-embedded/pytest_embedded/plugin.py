@@ -28,7 +28,6 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
-from .group import DutGroup
 from .dut_factory import (
     DutFactory,
     _ctx,
@@ -46,6 +45,7 @@ from .dut_factory import (
     set_stdout_lock,
     wokwi_gn,
 )
+from .group import DutGroup
 from .log import MessageQueue, MessageQueueManager, PexpectProcess
 from .unity import JunitMerger, UnityTestReportMode, escape_illegal_xml_chars
 from .utils import (
