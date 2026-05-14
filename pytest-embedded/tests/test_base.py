@@ -821,3 +821,192 @@ def test_log_metric_without_path(pytester):
 
     result = pytester.runpytest()
     result.assert_outcomes(passed=1)
+
+
+# ---------------------------------------------------------------------------
+# Tests for the stdout-lock feature (_stdout_lock / set_stdout_lock / _listen)
+# ---------------------------------------------------------------------------
+
+
+def test_set_stdout_lock():
+    """set_stdout_lock updates the module-level _STDOUT_LOCK variable."""
+    import pytest_embedded.dut_factory as m
+    from pytest_embedded.dut_factory import set_stdout_lock
+
+    original = m._STDOUT_LOCK
+    try:
+        sentinel = object()
+        set_stdout_lock(sentinel)
+        assert m._STDOUT_LOCK is sentinel
+
+        set_stdout_lock(None)
+        assert m._STDOUT_LOCK is None
+    finally:
+        set_stdout_lock(original)
+
+
+def test_listen_no_data_loss_without_lock(tmp_path):
+    """_listen writes every queued message to the logfile when no lock is used."""
+    import time
+
+    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.log import MessageQueue
+
+    logfile = str(tmp_path / 'test.log')
+    q = MessageQueue()
+    messages = [f'line_{i}\n'.encode() for i in range(20)]
+
+    p = _ctx.Process(target=_listen, args=(q, logfile), kwargs={'with_timestamp': False})
+    p.start()
+    try:
+        for msg in messages:
+            q.put(msg)
+
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                content = open(logfile, 'rb').read()
+                if all(msg in content for msg in messages):
+                    break
+            except OSError:
+                pass
+            time.sleep(0.05)
+    finally:
+        p.terminate()
+        p.join(timeout=5)
+        assert p.exitcode is not None, 'listener process did not terminate'
+
+    content = open(logfile, 'rb').read()
+    for msg in messages:
+        assert msg in content, f'{msg!r} missing from logfile'
+
+
+def test_listen_no_data_loss_with_lock(tmp_path):
+    """_listen writes every queued message to the logfile when a Manager lock is used."""
+    import multiprocessing
+    import time
+
+    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.log import MessageQueue
+
+    logfile = str(tmp_path / 'test.log')
+    q = MessageQueue()
+    messages = [f'line_{i}\n'.encode() for i in range(20)]
+
+    manager = multiprocessing.Manager()
+    try:
+        lock = manager.Lock()
+        p = _ctx.Process(
+            target=_listen,
+            args=(q, logfile),
+            kwargs={'with_timestamp': False, '_stdout_lock': lock},
+        )
+        p.start()
+        try:
+            for msg in messages:
+                q.put(msg)
+
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                try:
+                    content = open(logfile, 'rb').read()
+                    if all(msg in content for msg in messages):
+                        break
+                except OSError:
+                    pass
+                time.sleep(0.05)
+        finally:
+            p.terminate()
+            p.join(timeout=5)
+            assert p.exitcode is not None, 'listener process did not terminate'
+    finally:
+        manager.shutdown()
+
+    content = open(logfile, 'rb').read()
+    for msg in messages:
+        assert msg in content, f'{msg!r} missing from logfile'
+
+
+def test_stdout_lock_concurrent_no_data_loss(tmp_path):
+    """Two concurrent _listen processes sharing a Manager lock both preserve all data."""
+    import multiprocessing
+    import time
+
+    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.log import MessageQueue
+
+    logfile0 = str(tmp_path / 'dut0.log')
+    logfile1 = str(tmp_path / 'dut1.log')
+    q0 = MessageQueue()
+    q1 = MessageQueue()
+    messages0 = [f'dut0_line_{i}\n'.encode() for i in range(20)]
+    messages1 = [f'dut1_line_{i}\n'.encode() for i in range(20)]
+
+    manager = multiprocessing.Manager()
+    try:
+        lock = manager.Lock()
+        p0 = _ctx.Process(
+            target=_listen,
+            args=(q0, logfile0),
+            kwargs={'with_timestamp': False, 'count': 1, 'total': 2, '_stdout_lock': lock},
+        )
+        p1 = _ctx.Process(
+            target=_listen,
+            args=(q1, logfile1),
+            kwargs={'with_timestamp': False, 'count': 2, 'total': 2, '_stdout_lock': lock},
+        )
+        p0.start()
+        p1.start()
+        try:
+            # interleave writes from both DUTs to maximize lock contention
+            for msg0, msg1 in zip(messages0, messages1):
+                q0.put(msg0)
+                q1.put(msg1)
+
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                try:
+                    c0 = open(logfile0, 'rb').read()
+                    c1 = open(logfile1, 'rb').read()
+                    if all(m in c0 for m in messages0) and all(m in c1 for m in messages1):
+                        break
+                except OSError:
+                    pass
+                time.sleep(0.05)
+        finally:
+            p0.terminate()
+            p1.terminate()
+            p0.join(timeout=5)
+            p1.join(timeout=5)
+            assert p0.exitcode is not None, 'dut0 listener process did not terminate'
+            assert p1.exitcode is not None, 'dut1 listener process did not terminate'
+    finally:
+        manager.shutdown()
+
+    c0 = open(logfile0, 'rb').read()
+    c1 = open(logfile1, 'rb').read()
+    for msg in messages0:
+        assert msg in c0, f'{msg!r} missing from dut0 logfile'
+    for msg in messages1:
+        assert msg in c1, f'{msg!r} missing from dut1 logfile'
+
+
+def test_multi_dut_no_data_loss(testdir):
+    """In a 2-DUT test, all messages written by each DUT can be expected - nothing is dropped."""
+    testdir.makepyfile(r"""
+        import pytest
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_concurrent_dut_writes(dut):
+            n = 15
+            for i in range(n):
+                dut[0].write(f'dut0_msg_{i}')
+                dut[1].write(f'dut1_msg_{i}')
+
+            for i in range(n):
+                dut[0].expect_exact(f'dut0_msg_{i}')
+                dut[1].expect_exact(f'dut1_msg_{i}')
+    """)
+
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
