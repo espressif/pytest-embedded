@@ -28,6 +28,7 @@ from _pytest.python import Function
 
 from .app import App
 from .dut import Dut
+from .group import DutGroup
 from .dut_factory import (
     DutFactory,
     _ctx,
@@ -440,7 +441,9 @@ def multi_dut_fixture(func) -> t.Callable[..., t.Any | tuple[t.Any]]:
 
 
 def multi_dut_generator_fixture(
-    func,
+    func=None,
+    *,
+    result_wrapper: t.Callable[..., t.Any] | None = None,
 ) -> t.Callable[..., t.Generator[t.Any | tuple[t.Any], t.Any, None]]:
     """
     Apply the multi-dut arguments to each fixture.
@@ -449,10 +452,16 @@ def multi_dut_generator_fixture(
         Run the `func()` for multiple times by iterating all `kwargs` via `itemgetter`. Auto call `close()` or
         `terminate()` method of the object after it yield back.
 
+    Args:
+        result_wrapper: Optional callable to wrap the multi-DUT result list before yielding.
+            For example, pass ``DutGroup`` to yield a :class:`DutGroup` instead of a plain list.
+
     Yields:
         The return value, if `count` is 1.
         The tuple of return values, if `count` is greater than 1.
     """
+    if func is None:
+        return functools.partial(multi_dut_generator_fixture, result_wrapper=result_wrapper)
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -525,7 +534,7 @@ def multi_dut_generator_fixture(
                     raise
 
             try:
-                yield res
+                yield result_wrapper(*res) if result_wrapper else res
             finally:
                 if res:
                     for item in res:
@@ -1231,7 +1240,7 @@ def wokwi(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wok
 
 
 @pytest.fixture
-@multi_dut_generator_fixture
+@multi_dut_generator_fixture(result_wrapper=DutGroup)
 def dut(
     _fixture_classes_and_options: ClassCliOptions,
     openocd: t.Optional['OpenOcd'],
@@ -1240,7 +1249,7 @@ def dut(
     serial: t.Union['Serial', 'LinuxSerial'] | None,
     qemu: t.Optional['Qemu'],
     wokwi: t.Optional['Wokwi'],
-) -> Dut | list[Dut]:
+) -> Dut | DutGroup:
     """
     A device under test (DUT) object that could gather output from various sources and redirect them to the pexpect
     process, and run `expect()` via its pexpect process.
@@ -1249,18 +1258,19 @@ def dut(
 
 
 @pytest.fixture
-def unity_tester(dut: t.Union['IdfDut', tuple['IdfDut']]) -> t.Optional['CaseTester']:
+def unity_tester(dut: t.Union['IdfDut', DutGroup, tuple['IdfDut']]) -> t.Optional['CaseTester']:
     try:
         from pytest_embedded_idf import CaseTester, IdfDut
     except ImportError:
         yield None
     else:
-        # all dut instance must be IdfDut to use this fixture
-        for _dut in to_list(dut):
+        dut_list = list(dut) if isinstance(dut, (DutGroup, tuple, list)) else [dut]
+        for _dut in dut_list:
             if not isinstance(_dut, IdfDut):
                 yield None
+                return
 
-        yield CaseTester(to_list(dut))
+        yield CaseTester(dut_list)
 
 
 ##################
@@ -1447,7 +1457,11 @@ class PytestEmbedded:
 
         # Check DUTs created by fixture
         if 'dut' in item.funcargs:
-            fixture_duts = [dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut)]
+            raw_dut = item.funcargs['dut']
+            if isinstance(raw_dut, Dut):
+                fixture_duts = [raw_dut]
+            else:
+                fixture_duts = [d for d in raw_dut if isinstance(d, Dut)]
             all_duts.extend(fixture_duts)
 
         # Check DUTs created by DutFactory

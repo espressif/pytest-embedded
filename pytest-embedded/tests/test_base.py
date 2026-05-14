@@ -55,6 +55,8 @@ def test_fixtures(testdir):
         import pexpect
         import tempfile
 
+        from pytest_embedded import Dut, DutGroup
+
         def test_fixtures_root_logdir(session_root_logdir):
             assert session_root_logdir == os.getcwd()
             assert session_root_logdir != tempfile.gettempdir()
@@ -70,6 +72,8 @@ def test_fixtures(testdir):
             assert app.app_path.endswith('hello_world_esp32')
 
         def test_fixtures_dut(dut):
+            assert isinstance(dut, Dut)
+            assert not isinstance(dut, DutGroup)
             assert dut.app.app_path.endswith('hello_world_esp32')
 
         def test_fixture_redirect(pexpect_proc, dut, redirect):
@@ -108,10 +112,36 @@ def test_multi_dut(testdir):
 
         from pytest_embedded import Dut, DutGroup, DutGroupMemberError
 
+        # -- dut fixture returns DutGroup --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_returns_dutgroup(dut):
+            assert isinstance(dut, DutGroup), f'expected DutGroup, got {type(dut).__name__}'
+            assert len(dut) == 2
+            assert isinstance(dut[0], Dut)
+            assert isinstance(dut[1], Dut)
+            assert dut[0] is not dut[1]
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_group_operations(dut):
+            assert isinstance(dut, DutGroup)
+            dut[0].write('[READY]')
+            dut[1].write('[READY]')
+            r = dut.expect_exact('[READY]', timeout=5)
+            assert len(r) == 2
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_group_write_broadcast(dut):
+            assert isinstance(dut, DutGroup)
+            dut.write('broadcast msg')
+            r = dut.expect_exact('broadcast msg', timeout=5)
+            assert len(r) == 2
+
         # -- container protocol --
 
         @pytest.mark.parametrize('count', [3], indirect=True)
         def test_multi_dut_container(dut):
+            assert isinstance(dut, DutGroup)
             group = DutGroup(*dut)
             assert len(group) == 3
             assert group[0] is dut[0]
@@ -279,7 +309,7 @@ def test_multi_dut(testdir):
     """)
 
     result = testdir.runpytest('-s')
-    result.assert_outcomes(passed=16)
+    result.assert_outcomes(passed=19)
 
 
 def test_multi_count_fixtures(testdir):
