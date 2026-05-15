@@ -20,6 +20,18 @@
 </div>
 <hr>
 
+## v2.8.0 (2026-05-15)
+
+### ✨ New Features
+
+- **wokwi**: Add support for custom chips *(Lucas Saavedra Vaz - cdcaa9b)*
+
+### 🐛 Bug Fixes
+
+- Add lock for simultaneous printing *(Lucas Saavedra Vaz - 5d225e6)*
+- support linux target not generating flasher_args.json *(Jan Beran - 7a81a5d)*
+
+
 ## v2.7.0 (2026-03-02)
 
 ### ✨ New Features
