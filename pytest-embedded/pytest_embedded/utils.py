@@ -134,14 +134,16 @@ def to_list(s: _T) -> list[_T]:
     Returns:
         List (list[_T])
 
-        - `list(s)` (List. If `s` is a tuple or a set.
+        - `list(s)`. If `s` is a tuple, set, or :class:`~pytest_embedded.group.DutGroup`.
         - itself. If `s` is a list.
         - `[s]`. If `s` is other types.
     """
     if not s:
         return s
 
-    if isinstance(s, set) or isinstance(s, tuple):
+    from .group import DutGroup
+
+    if isinstance(s, (set, tuple, DutGroup)):
         return list(s)
     elif isinstance(s, list):
         return s

@@ -55,6 +55,8 @@ def test_fixtures(testdir):
         import pexpect
         import tempfile
 
+        from pytest_embedded import Dut, DutGroup
+
         def test_fixtures_root_logdir(session_root_logdir):
             assert session_root_logdir == os.getcwd()
             assert session_root_logdir != tempfile.gettempdir()
@@ -70,6 +72,8 @@ def test_fixtures(testdir):
             assert app.app_path.endswith('hello_world_esp32')
 
         def test_fixtures_dut(dut):
+            assert isinstance(dut, Dut)
+            assert not isinstance(dut, DutGroup)
             assert dut.app.app_path.endswith('hello_world_esp32')
 
         def test_fixture_redirect(pexpect_proc, dut, redirect):
@@ -95,6 +99,217 @@ def test_fixtures(testdir):
     )
 
     result.assert_outcomes(passed=6)
+
+
+def test_multi_dut(testdir):
+    testdir.makepyfile("""
+        import re
+        import threading
+        import time
+
+        import pexpect
+        import pytest
+
+        from pytest_embedded import Dut, DutGroup, DutGroupMemberError
+
+        # -- dut fixture returns DutGroup --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_returns_dutgroup(dut):
+            assert isinstance(dut, DutGroup), f'expected DutGroup, got {type(dut).__name__}'
+            assert len(dut) == 2
+            assert isinstance(dut[0], Dut)
+            assert isinstance(dut[1], Dut)
+            assert dut[0] is not dut[1]
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_group_operations(dut):
+            assert isinstance(dut, DutGroup)
+            dut[0].write('[READY]')
+            dut[1].write('[READY]')
+            r = dut.expect_exact('[READY]', timeout=5)
+            assert len(r) == 2
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_dut_fixture_group_write_broadcast(dut):
+            assert isinstance(dut, DutGroup)
+            dut.write('broadcast msg')
+            r = dut.expect_exact('broadcast msg', timeout=5)
+            assert len(r) == 2
+
+        # -- container protocol --
+
+        @pytest.mark.parametrize('count', [3], indirect=True)
+        def test_multi_dut_container(dut):
+            assert isinstance(dut, DutGroup)
+            group = DutGroup(*dut)
+            assert len(group) == 3
+            assert group[0] is dut[0]
+            assert group[2] is dut[2]
+            assert group.duts == tuple(dut)
+            assert list(group) == list(dut)
+            assert group[-1] is dut[2]
+            # also reachable via Dut class attribute
+            group2 = Dut.DutGroup(dut[0], dut[1])
+            assert len(group2) == 2
+
+        # -- expect_exact: broadcast same pattern --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_exact_broadcast(dut):
+            group = DutGroup(*dut)
+            dut[0].write('[READY]')
+            dut[1].write('[READY]')
+            r = group.expect_exact('[READY]', timeout=5)
+            assert len(r) == 2
+
+        # -- expect: broadcast same regex --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_regex(dut):
+            group = DutGroup(*dut)
+            dut[0].write('id=42')
+            dut[1].write('id=99')
+            r = group.expect(re.compile(br'id=(\\d+)'), timeout=5)
+            assert r[0].group(1) == b'42'
+            assert r[1].group(1) == b'99'
+
+        # -- keyword pattern= (aligned with Dut.expect / Dut.expect_exact) --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_exact_keyword_pattern(dut):
+            group = DutGroup(*dut)
+            dut[0].write('[READY]')
+            dut[1].write('[READY]')
+            r = group.expect_exact(pattern='[READY]', timeout=5)
+            assert len(r) == 2
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_keyword_pattern(dut):
+            group = DutGroup(*dut)
+            dut[0].write('id=42')
+            dut[1].write('id=99')
+            r = group.expect(pattern=re.compile(br'id=(\\d+)'), timeout=5)
+            assert r[0].group(1) == b'42'
+            assert r[1].group(1) == b'99'
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_duplicate_pattern_raises(dut):
+            group = DutGroup(*dut)
+            with pytest.raises(TypeError, match='multiple values'):
+                group.expect('a', pattern=re.compile(br'x'))
+
+        # -- write: broadcast and verify --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_write_broadcast(dut):
+            group = DutGroup(*dut)
+            group.write('hello all')
+            r = group.expect_exact('hello all', timeout=5)
+            assert len(r) == 2
+
+        # -- proxy forwards arbitrary Dut methods --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_proxy_method(dut):
+            group = DutGroup(*dut)
+            group.write('ping')
+            r = group.expect_exact('ping', timeout=5)
+            assert len(r) == 2
+            assert all(v == b'ping' for v in r)
+
+        # -- proxy returns list of non-callable attributes --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_proxy_attribute(dut):
+            group = DutGroup(*dut)
+            procs = group.pexpect_proc
+            assert isinstance(procs, list)
+            assert len(procs) == 2
+
+        # -- per-DUT operations via indexing --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_per_dut_indexing(dut):
+            group = DutGroup(*dut)
+            group[0].write('[AP] ready')
+            group[1].write('[CLIENT] ready')
+            group[0].expect_exact('[AP] ready', timeout=5)
+            group[1].expect_exact('[CLIENT] ready', timeout=5)
+
+        # -- timeout --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_timeout(dut):
+            group = DutGroup(*dut)
+            dut[0].write('only one')
+            with pytest.raises(DutGroupMemberError) as ei:
+                group.expect_exact('never appears', timeout=1)
+            assert isinstance(ei.value.__cause__, pexpect.TIMEOUT)
+            assert ei.value.member_name in ('dut-0', 'dut-1')
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_timeout_named(dut):
+            group = DutGroup(*dut, names=('ap', 'client'), group_name='wifi')
+            dut[0].write('only one')
+            with pytest.raises(DutGroupMemberError) as ei:
+                group.expect_exact('never appears', timeout=1)
+            assert ei.value.group_name == 'wifi'
+            assert ei.value.member_name in ('ap', 'client')
+            assert isinstance(ei.value.__cause__, pexpect.TIMEOUT)
+            assert 'wifi' in str(ei.value)
+
+        # -- parallel execution: wall time bounded --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_parallel(dut):
+            group = DutGroup(*dut)
+            def late():
+                time.sleep(0.4)
+                dut[0].write('marker')
+                dut[1].write('marker')
+            threading.Thread(target=late, daemon=True).start()
+            t0 = time.monotonic()
+            group.expect_exact('marker', timeout=3)
+            assert time.monotonic() - t0 < 2.0
+
+        # -- expect_exact: per-DUT patterns --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_exact_per_dut(dut):
+            group = DutGroup(*dut)
+            dut[0].write('[AP] ready')
+            dut[1].write('[CLIENT] ready')
+            r = group.expect_exact('[AP] ready', '[CLIENT] ready', timeout=5)
+            assert r[0] == b'[AP] ready'
+            assert r[1] == b'[CLIENT] ready'
+
+        # -- expect: per-DUT regex patterns --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_expect_per_dut_regex(dut):
+            group = DutGroup(*dut)
+            dut[0].write('alpha=hello')
+            dut[1].write('beta=world')
+            r = group.expect(r'alpha=(\\w+)', r'beta=(\\w+)', timeout=5)
+            assert r[0].group(1) == b'hello'
+            assert r[1].group(1) == b'world'
+
+        # -- multi-phase synchronization --
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi_dut_multi_phase(dut):
+            group = DutGroup(*dut)
+            group.write('phase1')
+            group.expect_exact('phase1', timeout=5)
+            group.write('phase2')
+            group.expect_exact('phase2', timeout=5)
+            group.write('done')
+            group.expect_exact('done', timeout=5)
+    """)
+
+    result = testdir.runpytest('-s')
+    result.assert_outcomes(passed=19)
 
 
 def test_multi_count_fixtures(testdir):

@@ -12,6 +12,11 @@
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pytest_embedded.group
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: pytest_embedded.dut_factory
    :members:
    :undoc-members:
