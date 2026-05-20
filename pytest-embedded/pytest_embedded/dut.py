@@ -1,5 +1,7 @@
+import contextlib
 import functools
 import logging
+import os
 import os.path
 import re
 from collections.abc import Callable
@@ -33,10 +35,12 @@ class Dut(_InjectMixinCls):
         pexpect_logfile: str,
         test_case_name: str,
         meta: Meta | None = None,
+        _mute_event=None,
         **kwargs,
     ) -> None:
         self._q = msg_queue
         self._meta = meta
+        self._mute_event = _mute_event
 
         self.pexpect_proc = pexpect_proc
         self.app = app
@@ -58,6 +62,139 @@ class Dut(_InjectMixinCls):
             junit_report = os.path.splitext(self.logfile)[0] + '.xml'
             self.testsuite.dump(junit_report)
             logging.info(f'Created unity output junit report: {junit_report}')
+
+    def mute_echo(self) -> None:
+        """Suppress stdout echo from the listener process. Log file writing is unaffected."""
+        if self._mute_event is not None:
+            self._mute_event.set()
+
+    def unmute_echo(self) -> None:
+        """Resume stdout echo from the listener process."""
+        if self._mute_event is not None:
+            self._mute_event.clear()
+
+    @contextlib.contextmanager
+    def muted_echo(self):
+        """Context manager that suppresses stdout echo while still logging to file."""
+        self.mute_echo()
+        try:
+            yield
+        finally:
+            self.unmute_echo()
+
+    def capture_payload(
+        self,
+        start: str,
+        end: str,
+        start_timeout: float = 10,
+        timeout: float = 60,
+        mute: bool = False,
+    ) -> bytes | None:
+        """Capture a delimited payload from the serial output.
+
+        Waits for the *start* marker, then reads until the *end* marker and
+        returns the raw bytes **between** the two markers.
+
+        Stdout echo suppression is best handled automatically by
+        registering the markers via the ``mute_patterns`` fixture (see
+        :func:`pytest_embedded.plugin.mute_patterns`).  When *mute* is
+        ``True`` the event-based manual mute is also engaged as a
+        fallback.
+
+        Args:
+            start: exact string that marks the beginning of the payload.
+            end: exact string that marks the end of the payload.
+            start_timeout: seconds to wait for *start* before giving up.
+            timeout: seconds to wait for *end* after *start* has been seen.
+            mute: additionally engage the manual mute event. (default: False)
+
+        Returns:
+            The captured bytes between the markers, or ``None`` if the start
+            marker was not seen or the end marker timed out.
+        """
+        ctx = self.muted_echo() if mute else contextlib.nullcontext()
+        with ctx:
+            try:
+                self.pexpect_proc.expect(start, timeout=start_timeout)
+            except (pexpect.EOF, pexpect.TIMEOUT):
+                logging.debug('capture_payload: start marker %r not found within %ss', start, start_timeout)
+                return None
+            except Exception:
+                logging.debug('capture_payload: unexpected error waiting for start marker', exc_info=True)
+                return None
+
+            try:
+                self.pexpect_proc.expect(end, timeout=timeout)
+                return self.pexpect_proc.before
+            except pexpect.TIMEOUT:
+                logging.warning('capture_payload: end marker %r not found within %ss', end, timeout)
+                return None
+            except Exception:
+                logging.debug('capture_payload: unexpected error waiting for end marker', exc_info=True)
+                return None
+
+    def capture_payload_to_file(
+        self,
+        start: str,
+        end: str,
+        filepath: str,
+        start_timeout: float = 10,
+        timeout: float = 60,
+        mute: bool = True,
+        append: bool = True,
+        include_markers: bool = True,
+    ) -> bool:
+        """Capture a delimited payload and write it to a file.
+
+        This is a convenience wrapper around :meth:`capture_payload` that
+        persists the result to *filepath*.
+
+        Args:
+            start: exact string that marks the beginning of the payload.
+            end: exact string that marks the end of the payload.
+            filepath: destination file path (parent directories are created
+                automatically).
+            start_timeout: seconds to wait for *start* before giving up.
+            timeout: seconds to wait for *end* after *start* has been seen.
+            mute: suppress stdout echo while capturing. (default: True)
+            append: open the file in append mode so that successive calls
+                accumulate data (e.g. one call per reboot). (default: True)
+            include_markers: wrap the written data with ``start`` / ``end``
+                lines so downstream parsers can re-identify each block.
+                (default: True)
+
+        Returns:
+            ``True`` if the payload was captured and written, ``False``
+            otherwise.
+        """
+        data = self.capture_payload(
+            start=start,
+            end=end,
+            start_timeout=start_timeout,
+            timeout=timeout,
+            mute=mute,
+        )
+        if data is None:
+            return False
+
+        if isinstance(data, bytes):
+            data = data.decode('utf-8', errors='replace')
+
+        try:
+            os.makedirs(os.path.dirname(filepath) or '.', exist_ok=True)
+            mode = 'a' if append else 'w'
+            with open(filepath, mode) as fh:
+                if include_markers:
+                    fh.write(start + '\n')
+                fh.write(data)
+                if include_markers:
+                    fh.write(end + '\n')
+            logging.info('capture_payload_to_file: payload written to %s', filepath)
+        except Exception:
+            logging.debug('capture_payload_to_file: failed to write %s', filepath, exc_info=True)
+            return False
+
+        return True
 
     def write(self, s: AnyStr) -> None:
         """

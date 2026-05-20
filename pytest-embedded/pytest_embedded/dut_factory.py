@@ -52,10 +52,20 @@ def set_stdout_lock(lock) -> None:
 
 
 def _listen(
-    q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1, _stdout_lock=None
+    q: MessageQueue,
+    filepath: str,
+    with_timestamp: bool = True,
+    count: int = 1,
+    total: int = 1,
+    _stdout_lock=None,
+    mute_event=None,
+    mute_patterns=(),
 ) -> None:
     shall_add_prefix = True
     _pending = ''
+    _active_mute_pair = None
+    _max_pat_len = max((len(s) for pair in mute_patterns for s in pair), default=0)
+    _match_buf = ''
     while True:
         msg = q.get()
         if not msg:
@@ -69,6 +79,8 @@ def _listen(
         if not _s:
             continue
 
+        raw = _s
+
         prefix = ''
         if total > 1:
             prefix = f'[dut-{count}] '
@@ -79,22 +91,62 @@ def _listen(
         if shall_add_prefix:
             _s = prefix + _s
 
+        _was_in_mute_at_chunk_start = _active_mute_pair is not None
+        _entered_mute_this_chunk = False
+        if mute_patterns:
+            _match_buf += raw
+            changed = True
+            while changed:
+                changed = False
+                if _active_mute_pair is None:
+                    for start_pat, end_pat in mute_patterns:
+                        if start_pat in _match_buf:
+                            _active_mute_pair = (start_pat, end_pat)
+                            _entered_mute_this_chunk = True
+                            _match_buf = _match_buf[_match_buf.index(start_pat) + len(start_pat) :]
+                            changed = True
+                            break
+                else:
+                    _, end_pat = _active_mute_pair
+                    if end_pat in _match_buf:
+                        _match_buf = _match_buf[_match_buf.index(end_pat) + len(end_pat) :]
+                        _active_mute_pair = None
+                        changed = True
+            if _max_pat_len > 1:
+                _match_buf = _match_buf[-(_max_pat_len - 1) :] if len(_match_buf) >= _max_pat_len else _match_buf
+
+        _muted = (
+            _was_in_mute_at_chunk_start
+            or _entered_mute_this_chunk
+            or _active_mute_pair is not None
+            or (mute_event is not None and mute_event.is_set())
+        )
+
         _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
         if _s.endswith('\n'):  # complete line
             shall_add_prefix = True
             _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
-            with _stdout_lock if _stdout_lock else contextlib.nullcontext():
-                _stdout.write(_pending + _s)
-                _stdout.flush()
+            if not _muted:
+                with _stdout_lock if _stdout_lock else contextlib.nullcontext():
+                    _stdout.write(_pending + _s)
+                    _stdout.flush()
             _pending = ''
         else:
             shall_add_prefix = False
             _s = _s.replace('\n', '\n' + prefix)
-            _pending += _s
+            if not _muted:
+                _pending += _s
 
 
 def _listener_gn(
-    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock=None
+    msg_queue,
+    _pexpect_logfile,
+    with_timestamp,
+    dut_index,
+    dut_total,
+    _stdout_lock=None,
+    _mute_event=None,
+    mute_patterns=(),
 ) -> multiprocessing.Process:
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
     kwargs = {
@@ -102,6 +154,8 @@ def _listener_gn(
         'count': dut_index,
         'total': dut_total,
         '_stdout_lock': _stdout_lock,
+        'mute_event': _mute_event,
+        'mute_patterns': mute_patterns,
     }
 
     return _ctx.Process(
@@ -167,6 +221,7 @@ def _fixture_classes_and_options_fn(
     pexpect_proc,
     msg_queue,
     _meta,
+    _mute_event=None,
     **kwargs,
 ) -> ClassCliOptions:
     classes: dict[str, type] = {}
@@ -350,6 +405,7 @@ def _fixture_classes_and_options_fn(
                 'pexpect_logfile': _pexpect_logfile,
                 'test_case_name': test_case_name,
                 'meta': _meta,
+                '_mute_event': _mute_event,
             }
             if 'idf' in _services and 'esp' not in _services:
                 # esp,idf will use IdfDut, which based on IdfUnityDutMixin already
@@ -770,8 +826,17 @@ class DutFactory:
             )
             logging.debug('You can get your custom DUT log file at the following path: %s.', _pexpect_logfile)
 
+            _mute_event = _ctx.Event()
+            layout.append(_mute_event)
+
             _listener = _listener_gn(
-                msg_queue, _pexpect_logfile, True, DUT_GLOBAL_INDEX, DUT_GLOBAL_INDEX + 1, _stdout_lock=_STDOUT_LOCK
+                msg_queue,
+                _pexpect_logfile,
+                True,
+                DUT_GLOBAL_INDEX,
+                DUT_GLOBAL_INDEX + 1,
+                _stdout_lock=_STDOUT_LOCK,
+                _mute_event=_mute_event,
             )
             layout.append(_listener)
 
@@ -824,6 +889,7 @@ class DutFactory:
                 '_pexpect_logfile': _pexpect_logfile,
                 'pexpect_proc': pexpect_proc,
                 'msg_queue': msg_queue,
+                '_mute_event': _mute_event,
             }
 
             _fixture_classes_and_options = _fixture_classes_and_options_fn(**_kwargs)

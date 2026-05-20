@@ -149,3 +149,41 @@ The ``--qemu-cli-args`` option applies to the first DUT (with the ``qemu`` servi
 ``pytest-embedded`` prints all DUT output with a timestamp. To remove the timestamp, run pytest with the ``--with-timestamp n`` option.
 
 By default, ``pytest`` swallows ``stdout``. To see the live output, run pytest with the ``-s`` option.
+
+*************
+ Echo Muting
+*************
+
+The listener process that echoes serial output to ``stdout`` supports two complementary muting mechanisms. When muted, output is still written to the log file — only the terminal echo is suppressed.
+
+Automatic Muting via ``mute_patterns``
+======================================
+
+Override the ``mute_patterns`` fixture in your ``conftest.py`` to provide ``(start, end)`` string pairs. When the listener sees *start* in the serial stream it suppresses echo until *end* is seen:
+
+.. code:: python
+
+   @pytest.fixture
+   def mute_patterns():
+       return [("<<<DUMP_START>>>", "<<<DUMP_END>>>")]
+
+This is the recommended approach because it operates inside the listener process itself, so there is no race condition between the DUT producing output and the test code reacting to it.
+
+Manual Muting via ``Dut``
+=========================
+
+For ad-hoc suppression you can call :func:`~pytest_embedded.dut.Dut.mute_echo` / :func:`~pytest_embedded.dut.Dut.unmute_echo`, or use the :func:`~pytest_embedded.dut.Dut.muted_echo` context manager:
+
+.. code:: python
+
+   def test_verbose_section(dut):
+       with dut.muted_echo():
+           dut.expect("noisy output")
+
+*****************
+ Payload Capture
+*****************
+
+:func:`~pytest_embedded.dut.Dut.capture_payload` and :func:`~pytest_embedded.dut.Dut.capture_payload_to_file` let you extract delimited data blocks from the serial output — for example Base64-encoded binary dumps, coverage data, or diagnostic payloads.
+
+Both methods pair naturally with ``mute_patterns``: register the same start/end markers so the raw dump never clutters the terminal, then call ``capture_payload`` to retrieve the data programmatically.
