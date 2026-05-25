@@ -2,7 +2,6 @@ import json
 import os
 
 import pytest
-
 from pytest_embedded_wokwi.wokwi import Wokwi
 
 wokwi_token_required = pytest.mark.skipif(
