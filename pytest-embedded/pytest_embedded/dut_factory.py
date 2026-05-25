@@ -157,6 +157,7 @@ def _fixture_classes_and_options_fn(
     qemu_extra_args,
     qemu_efuse_path,
     wokwi_diagram,
+    wokwi_usb_serial_jtag,
     skip_regenerate_image,
     encrypt,
     keyfile,
@@ -335,6 +336,7 @@ def _fixture_classes_and_options_fn(
                 kwargs[fixture].update(
                     {
                         'wokwi_diagram': wokwi_diagram,
+                        'wokwi_usb_serial_jtag': wokwi_usb_serial_jtag,
                         'msg_queue': msg_queue,
                         'app': None,
                         'meta': _meta,
@@ -696,6 +698,7 @@ class DutFactory:
         qemu_extra_args: str | None = None,
         qemu_efuse_path: str | None = None,
         wokwi_diagram: str | None = None,
+        wokwi_usb_serial_jtag: bool | None = None,
         skip_regenerate_image: bool | None = None,
         encrypt: bool | None = None,
         keyfile: str | None = None,
@@ -743,6 +746,7 @@ class DutFactory:
             qemu_extra_args: Additional QEMU arguments.
             qemu_efuse_path: Efuse binary path.
             wokwi_diagram: Wokwi diagram path.
+            wokwi_usb_serial_jtag: Use USB Serial JTAG instead of UART for Wokwi serial communication.
             skip_regenerate_image: Skip image regeneration flag.
             encrypt: Encryption flag.
             keyfile: Keyfile for encryption.
@@ -813,6 +817,7 @@ class DutFactory:
                 'qemu_extra_args': qemu_extra_args,
                 'qemu_efuse_path': qemu_efuse_path,
                 'wokwi_diagram': wokwi_diagram,
+                'wokwi_usb_serial_jtag': wokwi_usb_serial_jtag,
                 'skip_regenerate_image': skip_regenerate_image,
                 'encrypt': encrypt,
                 'keyfile': keyfile,

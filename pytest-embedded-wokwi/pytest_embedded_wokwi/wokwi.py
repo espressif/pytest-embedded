@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import typing as t
 from pathlib import Path
 
@@ -47,6 +48,7 @@ class Wokwi(DuplicateStdoutPopen):
         msg_queue: MessageQueue,
         firmware_resolver: IDFFirmwareResolver,
         wokwi_diagram: str | None = None,
+        wokwi_usb_serial_jtag: bool | None = None,
         app: t.Optional['IdfApp'] = None,
         meta: Meta | None = None,
         **kwargs,
@@ -55,6 +57,7 @@ class Wokwi(DuplicateStdoutPopen):
         super().__init__(msg_queue=msg_queue, meta=meta, **kwargs)
 
         self.app = app
+        self._usb_serial_jtag = wokwi_usb_serial_jtag
 
         # Get Wokwi API token
         token = os.getenv('WOKWI_CLI_TOKEN')
@@ -68,6 +71,9 @@ class Wokwi(DuplicateStdoutPopen):
         if wokwi_diagram is None:
             self.create_diagram_json()
             wokwi_diagram = os.path.join(self.app.app_path, 'diagram.json')
+
+        if self._usb_serial_jtag:
+            wokwi_diagram = self._apply_serial_interface_override(wokwi_diagram)
 
         # Connect and start simulation
         try:
@@ -318,6 +324,43 @@ class Wokwi(DuplicateStdoutPopen):
 
         with open(diagram_json_path, 'w') as f:
             json.dump(diagram, f, indent=2)
+
+    @staticmethod
+    def _apply_serial_interface_override(diagram_path: str) -> str:
+        """Override the serial interface to USB Serial JTAG in a diagram file.
+
+        Reads the diagram JSON, sets the ``serialInterface`` attribute to
+        ``USB_SERIAL_JTAG`` on the main board part and removes any
+        ``$serialMonitor`` connections.  The modified diagram is written to a
+        temporary file so the original is never mutated.
+
+        Returns the path to the modified diagram file.
+        """
+        with open(diagram_path) as f:
+            diagram = json.load(f)
+
+        for part in diagram.get('parts', []):
+            if part.get('type', '').startswith('board-'):
+                part.setdefault('attrs', {})
+                part['attrs']['serialInterface'] = 'USB_SERIAL_JTAG'
+                break
+
+        diagram['connections'] = [
+            conn
+            for conn in diagram.get('connections', [])
+            if not any('$serialMonitor' in str(endpoint) for endpoint in conn)
+        ]
+
+        fd, tmp_path = tempfile.mkstemp(suffix='.json', prefix='wokwi_diagram_')
+        try:
+            with os.fdopen(fd, 'w') as f:
+                json.dump(diagram, f, indent=2)
+        except Exception:
+            os.close(fd)
+            raise
+
+        logging.info('Applied USB Serial JTAG interface override to diagram: %s', tmp_path)
+        return tmp_path
 
     def _hard_reset(self):
         """Fake hard_reset to maintain API consistency."""

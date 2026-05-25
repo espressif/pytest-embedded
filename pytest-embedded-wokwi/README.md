@@ -30,6 +30,19 @@ To run your tests with Wokwi, make sure to specify the `wokwi` service when runn
 pytest --embedded-services idf,wokwi
 ```
 
+#### USB Serial JTAG
+
+By default, Wokwi diagrams use UART connections (`$serialMonitor:TX`/`$serialMonitor:RX`) for serial communication. Some targets (e.g. ESP32-P4) can use USB Serial JTAG instead. You can enable this with the `--wokwi-usb-serial-jtag` flag:
+
+```
+pytest --embedded-services idf,wokwi --wokwi-usb-serial-jtag true
+```
+
+This works for both auto-generated diagrams and diagrams loaded from disk (including those specified via `--wokwi-diagram`). When enabled, the flag will:
+
+- Set the `serialInterface` attribute to `USB_SERIAL_JTAG` on the board part
+- Remove any `$serialMonitor` connections from the diagram
+
 #### Writing Tests
 
 When writing tests for your firmware, you can use the same pytest fixtures and assertions as you would for local testing. The main difference is that your tests will be executed in the Wokwi simulation environment and you have access to the Wokwi API for controlling the simulation through the `wokwi` fixture.
