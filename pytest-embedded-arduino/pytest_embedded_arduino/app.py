@@ -1,8 +1,11 @@
 import json
 import logging
 import os
+import re
 
 from pytest_embedded.app import App
+
+_HEX_ADDR_RE = re.compile(r'^0x[0-9a-fA-F]+$')
 
 
 class ArduinoApp(App):
@@ -14,6 +17,8 @@ class ArduinoApp(App):
         fqbn (str): Fully Qualified Board Name.
         target (str) : ESPxx chip.
         flash_settings (dict[str, str]): Flash settings for the target.
+        flash_files (list[tuple[str, str]]): ``(address, filepath)`` pairs parsed
+            from ``flash_args``.  Each filepath is absolute.
         binary_file (str): Merged binary file path.
         elf_file (str): ELF file path.
     """
@@ -29,7 +34,7 @@ class ArduinoApp(App):
         self.sketch = self._get_sketch_name(self.binary_path)
         self.fqbn = self._get_fqbn(self.binary_path)
         self.target = self.fqbn.split(':')[2]
-        self.flash_settings = self._get_flash_settings()
+        self.flash_settings, self.flash_files = self._parse_flash_args()
         self.binary_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.merged.bin'))
         self.elf_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.elf'))
 
@@ -38,6 +43,7 @@ class ArduinoApp(App):
         logging.debug(f'FQBN: {self.fqbn}')
         logging.debug(f'Target: {self.target}')
         logging.debug(f'Flash settings: {self.flash_settings}')
+        logging.debug(f'Flash files: {self.flash_files}')
         logging.debug(f'Binary file: {self.binary_file}')
         logging.debug(f'ELF file: {self.elf_file}')
 
@@ -90,18 +96,45 @@ class ArduinoApp(App):
         fqbn = options['fqbn']
         return fqbn
 
-    def _get_flash_settings(self) -> dict[str, str]:
-        """Get flash settings from flash_args file."""
+    def _parse_flash_args(self) -> tuple[dict[str, str], list[tuple[str, str]]]:
+        """Parse the ``flash_args`` file produced by the Arduino build system.
+
+        Returns ``(flash_settings, flash_files)`` where *flash_settings* is a
+        dict of ``--flag value`` pairs (e.g. ``{'flash-mode': 'dio'}``), and
+        *flash_files* is a list of ``(hex_address, absolute_path)`` pairs for
+        each binary that should be flashed.
+
+        Format of ``flash_args``::
+
+            --flash-mode dio --flash-freq 80m --flash-size 4MB
+            0x0 sketch.ino.bootloader.bin
+            0x8000 sketch.ino.partitions.bin
+            0xe000 boot_app0.bin
+            0x10000 sketch.ino.bin
+        """
         flash_args_file = os.path.realpath(os.path.join(self.binary_path, 'flash_args'))
         with open(flash_args_file) as f:
-            flash_args = f.readline().split(' ')
+            lines = f.read().splitlines()
 
-        flash_settings = {}
-        for i, arg in enumerate(flash_args):
-            if arg.startswith('--'):
-                flash_settings[arg[2:].strip()] = flash_args[i + 1].strip()
+        flash_settings: dict[str, str] = {}
+        flash_files: list[tuple[str, str]] = []
 
-        if flash_settings == {}:
+        for line in lines:
+            tokens = line.split()
+            if not tokens:
+                continue
+
+            if tokens[0].startswith('--'):
+                for i, tok in enumerate(tokens):
+                    if tok.startswith('--') and i + 1 < len(tokens):
+                        flash_settings[tok[2:].strip()] = tokens[i + 1].strip()
+            elif _HEX_ADDR_RE.match(tokens[0]) and len(tokens) >= 2:
+                addr = tokens[0]
+                name = tokens[1]
+                path = os.path.realpath(os.path.join(self.binary_path, name))
+                flash_files.append((addr, path))
+
+        if not flash_settings:
             raise ValueError(f'Flash settings not found in {flash_args_file}')
 
-        return flash_settings
+        return flash_settings, flash_files
