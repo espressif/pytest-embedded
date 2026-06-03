@@ -141,6 +141,7 @@ def _fixture_classes_and_options_fn(
     erase_all,
     esptool_baud,
     esp_flash_force,
+    no_fast_flash,
     part_tool,
     confirm_target_elf_sha256,
     erase_nvs,
@@ -254,6 +255,7 @@ def _fixture_classes_and_options_fn(
                     kwargs[fixture].update(
                         {
                             'app': None,
+                            'fast_flash': not no_fast_flash if no_fast_flash is not None else True,
                         }
                     )
                 elif 'nuttx' in _services:
@@ -682,6 +684,7 @@ class DutFactory:
         erase_all: bool | None = None,
         esptool_baud: int | None = None,
         esp_flash_force: bool | None = False,
+        no_fast_flash: bool | None = None,
         part_tool: str | None = None,
         confirm_target_elf_sha256: bool | None = None,
         erase_nvs: bool | None = None,
@@ -801,6 +804,7 @@ class DutFactory:
                 'erase_all': erase_all,
                 'esptool_baud': esptool_baud,
                 'esp_flash_force': esp_flash_force,
+                'no_fast_flash': no_fast_flash,
                 'part_tool': part_tool,
                 'confirm_target_elf_sha256': confirm_target_elf_sha256,
                 'erase_nvs': erase_nvs,
