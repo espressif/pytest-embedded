@@ -20,6 +20,14 @@
 </div>
 <hr>
 
+## v2.8.1 (2026-06-16)
+
+### ✨ New Features
+
+- **arduino**: Add support for fast flashing with esptool *(Lucas Saavedra Vaz - 7ef3196)*
+- **wokwi**: Add support for using the USB Serial JTAG *(Lucas Saavedra Vaz - 5280180)*
+
+
 ## v2.8.0 (2026-05-15)
 
 ### ✨ New Features

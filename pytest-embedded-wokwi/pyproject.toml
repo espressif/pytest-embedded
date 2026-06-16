@@ -31,14 +31,14 @@ dynamic = ["version", "description"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "pytest-embedded~=2.8.0",
+    "pytest-embedded~=2.8.1",
     "wokwi-client>=0.4.0",
     "tomli>=1.1.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
 idf = [
-    "pytest-embedded-idf~=2.8.0",
+    "pytest-embedded-idf~=2.8.1",
 ]
 
 [project.urls]
