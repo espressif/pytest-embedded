@@ -19,7 +19,8 @@ class ArduinoApp(App):
         flash_settings (dict[str, str]): Flash settings for the target.
         flash_files (list[tuple[str, str]]): ``(address, filepath)`` pairs parsed
             from ``flash_args``.  Each filepath is absolute.
-        binary_file (str): Merged binary file path.
+        binary_file (str): Application binary file path (``.ino.merged.bin`` if present,
+            otherwise ``.ino.bin``).
         elf_file (str): ELF file path.
     """
 
@@ -35,7 +36,9 @@ class ArduinoApp(App):
         self.fqbn = self._get_fqbn(self.binary_path)
         self.target = self.fqbn.split(':')[2]
         self.flash_settings, self.flash_files = self._parse_flash_args()
-        self.binary_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.merged.bin'))
+        merged_bin = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.merged.bin'))
+        ino_bin = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.bin'))
+        self.binary_file = merged_bin if os.path.exists(merged_bin) else ino_bin
         self.elf_file = os.path.realpath(os.path.join(self.binary_path, self.sketch + '.ino.elf'))
 
         logging.debug(f'Build path: {self.binary_path}')

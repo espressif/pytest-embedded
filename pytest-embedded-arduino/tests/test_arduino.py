@@ -2,7 +2,10 @@ import os
 
 
 def test_arduino_serial_flash(testdir):
-    bin_path = os.path.join(testdir.tmpdir, 'hello_world_arduino', 'build', 'hello_world_arduino.ino.merged.bin')
+    build_dir = os.path.join(testdir.tmpdir, 'hello_world_arduino', 'build')
+    merged_bin = os.path.join(build_dir, 'hello_world_arduino.ino.merged.bin')
+    ino_bin = os.path.join(build_dir, 'hello_world_arduino.ino.bin')
+    bin_path = merged_bin if os.path.exists(merged_bin) else ino_bin
 
     testdir.makepyfile(f"""
         import pexpect
