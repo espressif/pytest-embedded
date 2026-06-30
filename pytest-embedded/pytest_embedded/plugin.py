@@ -783,8 +783,42 @@ def with_timestamp(request: FixtureRequest) -> bool:
 
 @pytest.fixture
 @multi_dut_generator_fixture
+def _mute_event():
+    """Per-DUT event that, when set, suppresses stdout echo in the listener while still logging to file."""
+    return _ctx.Event()
+
+
+@pytest.fixture
+def mute_patterns():
+    """Return a sequence of ``(start, end)`` string pairs.
+
+    When the listener process sees *start* in the serial output it
+    suppresses stdout echo until *end* is seen.  Log-file writing is
+    unaffected.  Override this fixture in ``conftest.py`` to register
+    project-specific patterns::
+
+        @pytest.fixture
+        def mute_patterns():
+            return [('<<<GCOV_DUMP_START>>>', '<<<GCOV_DUMP_END>>>')]
+    """
+    return ()
+
+
+@pytest.fixture
+def _mute_patterns_safe(mute_patterns):
+    """Wrap mute_patterns in a dict to prevent multi-DUT splitting.
+
+    ``multi_dut_generator_fixture`` splits all ``list``/``tuple`` kwargs
+    by DUT index.  ``mute_patterns`` is a sequence of pattern pairs shared
+    across all DUTs, not a per-DUT value, so it must not be split.
+    """
+    return {'patterns': tuple(mute_patterns)}
+
+
+@pytest.fixture
+@multi_dut_generator_fixture
 def _listener(
-    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock
+    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock, _mute_event, _mute_patterns_safe
 ) -> multiprocessing.Process:
     """
     The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
@@ -794,8 +828,12 @@ def _listener(
     2. write the string to `_pexpect_logfile`
 
     A shared lock (_stdout_lock) is used to prevent interleaved output when multiple DUTs print simultaneously.
+    When ``_mute_event`` is set, stdout echo is suppressed while log file writing continues.
+    ``mute_patterns`` provides automatic muting based on start/end marker pairs.
     """
-    return _listener_gn(**locals())
+    kwargs = dict(locals())
+    kwargs['mute_patterns'] = kwargs.pop('_mute_patterns_safe')['patterns']
+    return _listener_gn(**kwargs)
 
 
 @pytest.fixture
@@ -1194,6 +1232,7 @@ def _fixture_classes_and_options(
     _pexpect_logfile,
     pexpect_proc,
     msg_queue,
+    _mute_event,
 ) -> ClassCliOptions:
     """
     classes: the class that the fixture should instantiate

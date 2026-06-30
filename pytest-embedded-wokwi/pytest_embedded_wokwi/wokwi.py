@@ -231,13 +231,6 @@ class Wokwi(DuplicateStdoutPopen):
         """Start monitoring serial output and forward to stdout and message queue."""
 
         def serial_callback(data: bytes):
-            # Write to stdout for live monitoring
-            try:
-                decoded = data.decode('utf-8', errors='replace')
-                print(decoded, end='', flush=True)
-            except Exception as e:
-                logging.debug(f'Error writing to stdout: {e}')
-
             # Write to log file if available
             try:
                 if hasattr(self, '_fw') and self._fw and not self._fw.closed:
@@ -247,7 +240,9 @@ class Wokwi(DuplicateStdoutPopen):
             except Exception as e:
                 logging.debug(f'Error writing to log file: {e}')
 
-            # Put in message queue for expect() functionality
+            # Put in message queue for expect() functionality.
+            # The listener process handles timestamped stdout echo and
+            # respects mute_patterns / mute_event, so we don't print here.
             try:
                 if hasattr(self, '_q') and self._q:
                     self._q.put(data)
