@@ -555,7 +555,7 @@ def dut_gn(
     serial: t.Union['Serial', 'LinuxSerial'] | None,
     qemu: t.Optional['Qemu'],
     wokwi: t.Optional['Wokwi'],
-) -> Dut | list[Dut]:
+) -> Dut:
     global DUT_GLOBAL_INDEX
     DUT_GLOBAL_INDEX += 1
 

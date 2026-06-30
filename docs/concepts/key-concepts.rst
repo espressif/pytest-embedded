@@ -88,7 +88,9 @@ Here are a few examples of how to enable this feature. For detailed information,
 Enable multi DUTs by specifying ``--count``
 ===========================================
 
-When multi-DUT mode is enabled, all fixtures become a tuple of instances. Each instance in the tuple is independent. For parametrization, each configuration uses ``|`` as a separator for each instance's values.
+When multi-DUT mode is enabled, most fixtures become a tuple of instances. Each instance in the tuple is independent. For parametrization, each configuration uses ``|`` as a separator for each instance's values.
+
+The ``dut`` fixture is special: instead of a plain tuple, it becomes a :class:`~pytest_embedded.group.DutGroup` — a transparent proxy that supports indexing, iteration, and **parallel method calls** across all DUTs (see :ref:`multi-dut-synchronization` for details).
 
 For example, running shell command:
 
@@ -99,9 +101,9 @@ For example, running shell command:
    --count 2 \
    --app-path <master_bin>|<slave_bin>
 
-enables two DUTs with the ``serial`` service. The ``app`` fixture becomes a tuple of two ``App`` instances, and ``dut`` becomes a tuple of two ``Dut`` instances.
+enables two DUTs with the ``serial`` service. The ``app`` fixture becomes a tuple of two ``App`` instances, and ``dut`` becomes a :class:`~pytest_embedded.group.DutGroup` containing two ``Dut`` instances.
 
-You can test with:
+You can access individual DUTs by index, or call methods directly on the group to run them in parallel:
 
 .. code:: python
 
@@ -111,6 +113,9 @@ You can test with:
 
        master.expect("sent")
        slave.expect("received")
+
+       # Or use the group directly for parallel operations:
+       dut.expect_exact("[DONE]", timeout=10)
 
 Specify once when applying to all DUTs
 ======================================
