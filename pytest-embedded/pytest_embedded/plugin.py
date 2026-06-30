@@ -70,7 +70,7 @@ if t.TYPE_CHECKING:
 _T = t.TypeVar('_T')
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser):
     base_group = parser.getgroup('embedded')
     base_group.addoption(
         '--count',
@@ -1415,7 +1415,7 @@ class PytestEmbedded:
 
             from esp_bool_parser import parse_bool_expr
 
-            target = config.getoption('--target', None)
+            target = config.getoption('target', None)
             if hasattr(item, 'callspec'):
                 target = item.callspec.params.get('target', None)
             if target == 'auto' or not isinstance(target, str):
@@ -1491,7 +1491,7 @@ class PytestEmbedded:
         self._raise_dut_failed_cases_if_exists(all_duts)  # type: ignore
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
-    def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:
+    def pytest_sessionfinish(self, session: Session) -> None:
         modifier: JunitMerger = session.config.stash[_junit_merger_key]
         _stash_session_tempdir = session.config.stash.get(_session_tempdir_key, None)
         _stash_junit_report_path = session.config.stash.get(_junit_report_path_key, None)
@@ -1509,4 +1509,8 @@ class PytestEmbedded:
             if self.prettify_junit_report:
                 _prettify_xml(_stash_junit_report_path)
 
-        exitstatus = int(modifier.failed)  # True -> 1  False -> 0  # noqa
+        # escalate the session exit status to failure if the merged junit report contains failures,
+        # without downgrading an already-failing run
+        current_exitstatus = getattr(session, 'exitstatus', pytest.ExitCode.OK)
+        if modifier.failed and current_exitstatus == pytest.ExitCode.OK:
+            session.exitstatus = pytest.ExitCode.TESTS_FAILED
