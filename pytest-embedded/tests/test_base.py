@@ -1010,3 +1010,84 @@ def test_multi_dut_no_data_loss(testdir):
 
     result = testdir.runpytest()
     result.assert_outcomes(passed=1)
+
+
+def _drain(q, deadline_s=10):
+    """Collect everything the queue yields until it stays quiet for a moment."""
+    import queue as _q
+    import time
+
+    chunks = []
+    deadline = time.monotonic() + deadline_s
+    while time.monotonic() < deadline:
+        try:
+            chunks.append(q.get(timeout=0.2))
+        except _q.Empty:
+            if chunks:
+                break
+    return b''.join(chunks)
+
+
+def test_forward_io_survives_split_multibyte_char(tmp_path):
+    """A multi-byte sequence split across two appends must not kill the forwarder.
+
+    The redirect log is written to while it is being read, so the reader keeps hitting a
+    temporary EOF. Decoding there turns any UTF-8 sequence straddling that boundary into
+    a UnicodeDecodeError, which the forwarder's `except Exception` swallows: the process
+    exits 0 and DUT output stops for the rest of the session.
+    """
+    import time
+
+    from pytest_embedded.log import MessageQueue, _PopenRedirectProcess
+
+    logfile = str(tmp_path / 'redirect.log')
+    open(logfile, 'wb').close()
+
+    q = MessageQueue()
+    p = _PopenRedirectProcess(q, logfile)
+    p.start()
+    try:
+        with open(logfile, 'ab') as fw:
+            fw.write(b'head\n')
+            fw.flush()
+        assert b'head\n' in _drain(q), 'nothing forwarded before the split'
+
+        # U+2014 EM DASH, torn in half: the reader reaches EOF between the two bytes.
+        with open(logfile, 'ab') as fw:
+            fw.write(b'dash \xe2')
+            fw.flush()
+        time.sleep(0.5)
+        assert p.is_alive(), f'forwarder died on a split sequence (exitcode={p.exitcode})'
+
+        with open(logfile, 'ab') as fw:
+            fw.write(b'\x80\x94 tail\n')
+            fw.flush()
+        assert b'dash \xe2\x80\x94 tail\n' in _drain(q), 'the split character was not reassembled'
+    finally:
+        p.terminate()
+        p.join(timeout=5)
+
+
+def test_forward_io_preserves_carriage_returns(tmp_path):
+    """The forwarder passes the log through byte for byte, CR included.
+
+    Reading in text mode used to apply universal-newline translation, so a device sending
+    CRLF was forwarded as LF. The serial transport never did that, and the console writer
+    and the Unity parser both handle CRLF themselves.
+    """
+    from pytest_embedded.log import MessageQueue, _PopenRedirectProcess
+
+    logfile = str(tmp_path / 'redirect.log')
+    open(logfile, 'wb').close()
+
+    q = MessageQueue()
+    p = _PopenRedirectProcess(q, logfile)
+    p.start()
+    try:
+        with open(logfile, 'ab') as fw:
+            fw.write(b'first\r\nsecond\r\n')
+            fw.flush()
+        assert _drain(q) == b'first\r\nsecond\r\n'
+    finally:
+        p.terminate()
+        p.join(timeout=5)
