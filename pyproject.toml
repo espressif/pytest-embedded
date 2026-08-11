@@ -22,6 +22,8 @@ version_files = [
     "pytest-embedded-jtag/pyproject.toml",
     "pytest-embedded-qemu/pytest_embedded_qemu/__init__.py",
     "pytest-embedded-qemu/pyproject.toml",
+    "pytest-embedded-espemu/pytest_embedded_espemu/__init__.py",
+    "pytest-embedded-espemu/pyproject.toml",
     "pytest-embedded-serial/pytest_embedded_serial/__init__.py",
     "pytest-embedded-serial/pyproject.toml",
     "pytest-embedded-serial-esp/pytest_embedded_serial_esp/__init__.py",

@@ -4,6 +4,7 @@
 -e ./pytest-embedded-idf/
 -e ./pytest-embedded-jtag/
 -e ./pytest-embedded-qemu/
+-e ./pytest-embedded-espemu/
 -e ./pytest-embedded-arduino/
 -e ./pytest-embedded-nuttx/
 -e ./pytest-embedded-wokwi/

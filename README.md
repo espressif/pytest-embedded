@@ -11,6 +11,7 @@ A pytest plugin that has multiple services available for various functionalities
 [![pytest-embedded-serial-esp](https://img.shields.io/pypi/v/pytest-embedded-serial-esp?color=green&label=pytest-embedded-serial-esp)](https://pypi.org/project/pytest-embedded-serial-esp/)
 [![pytest-embedded-idf](https://img.shields.io/pypi/v/pytest-embedded-idf?color=green&label=pytest-embedded-idf)](https://pypi.org/project/pytest-embedded-idf/)
 [![pytest-embedded-qemu](https://img.shields.io/pypi/v/pytest-embedded-qemu?color=green&label=pytest-embedded-qemu)](https://pypi.org/project/pytest-embedded-qemu/)
+[![pytest-embedded-espemu](https://img.shields.io/pypi/v/pytest-embedded-espemu?color=green&label=pytest-embedded-espemu)](https://pypi.org/project/pytest-embedded-espemu/)
 [![pytest-embedded-arduino](https://img.shields.io/pypi/v/pytest-embedded-arduino?color=green&label=pytest-embedded-arduino)](https://pypi.org/project/pytest-embedded-arduino/)
 [![pytest-embedded-wokwi](https://img.shields.io/pypi/v/pytest-embedded-wokwi?color=green&label=pytest-embedded-wokwi)](https://pypi.org/project/pytest-embedded-wokwi/)
 [![pytest-embedded-nuttx](https://img.shields.io/pypi/v/pytest-embedded-nuttx?color=green&label=pytest-embedded-nuttx)](https://pypi.org/project/pytest-embedded-nuttx/)
@@ -76,6 +77,7 @@ Available services:
 - `idf`: auto-detect more app info with [ESP-IDF](https://github.com/espressif/esp-idf) specific rules, auto-flash the binary into the target.
 - `jtag`: openocd/gdb utilities
 - `qemu`: running test cases on QEMU instead of the real target.
+- `espemu`: running test cases on [esp-emu](https://github.com/espressif/esp-emulator) instead of the real target.
 - `arduino`: auto-detect more app info with [arduino](https://github.com/arduino/Arduino) specific rules, auto-flash the binary into the target.
 - `wokwi`: running test cases with [Wokwi](https://wokwi.com/) instead of the real target.
 - `nuttx`: service for [nuttx](https://nuttx.apache.org/) project, optionally with espressif devices.
