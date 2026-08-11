@@ -54,6 +54,7 @@ jobs:
             --cov=pytest_embedded_idf \
             --cov=pytest_embedded_jtag \
             --cov=pytest_embedded_qemu \
+            --cov=pytest_embedded_espemu \
             --cov=pytest_embedded_serial \
             --cov=pytest_embedded_serial_esp \
             --cov=pytest_embedded_wokwi \
@@ -67,6 +68,48 @@ jobs:
             pr_number.txt
             pytest-qemu.xml
             coverage-qemu.xml
+
+  test-espemu:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          pip install -U pip
+          export PIP_EXTRA_INDEX_URL="https://dl.espressif.com/pypi"
+          pip install cryptography --prefer-binary
+          pip install -r requirements.txt
+          bash foreach.sh install
+      - name: Download and install esp-emu
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh -s -- --version 0.38.0
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Save PR number
+        run: echo ${{ github.event.number }} > pr_number.txt
+
+      - name: Run esp-emu tests
+        run: |
+          pytest pytest-embedded-espemu/tests/test_espemu.py \
+            --junitxml pytest-espemu.xml \
+            --cov-report=xml:coverage-espemu.xml \
+            --cov=pytest_embedded \
+            --cov=pytest_embedded_espemu \
+            --cov=pytest_embedded_idf \
+            --cov=pytest_embedded_serial
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-espemu
+          path: |
+            pr_number.txt
+            pytest-espemu.xml
+            coverage-espemu.xml
 
   test-python:
     timeout-minutes: 40

@@ -35,6 +35,7 @@ def test_services(testdir):
                 ('idf,serial', {'IdfApp', 'Serial', 'SerialDut'}),
                 ('idf,esp', {'IdfApp', 'IdfSerial', 'IdfDut'}),
                 ('idf,qemu', {'QemuApp', 'Qemu', 'QemuDut'}),
+                ('idf,espemu', {'EspEmuApp', 'EspEmu', 'EspEmuDut'}),
                 ('arduino,esp', {'ArduinoApp', 'ArduinoSerial', 'SerialDut'}),
             ],
             indirect=True
@@ -45,7 +46,7 @@ def test_services(testdir):
 
     result = testdir.runpytest()
 
-    result.assert_outcomes(passed=7)
+    result.assert_outcomes(passed=8)
 
 
 def test_fixtures(testdir):
