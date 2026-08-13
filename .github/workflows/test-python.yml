@@ -86,7 +86,7 @@ jobs:
           bash foreach.sh install
       - name: Download and install esp-emu
         run: |
-          curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh -s -- --version 0.38.0
+          curl -fsSL https://raw.githubusercontent.com/espressif/esp-emulator/main/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Save PR number
