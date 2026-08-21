@@ -154,7 +154,13 @@ class _PopenRedirectProcess(_ctx.Process):
 
     @staticmethod
     def _forward_io(msg_queue, logfile) -> None:
-        with open(logfile) as fr:
+        # Binary, because the file is still being written to: a text-mode read finalizes the
+        # decoder at every temporary EOF, and a UTF-8 sequence straddling that boundary raises
+        # UnicodeDecodeError. `except Exception` below would swallow it and this process would
+        # exit 0, cutting the output off for the rest of the session. Decoding here is not
+        # needed either - `MessageQueue.put` re-encodes with `to_bytes`, the pexpect buffer is
+        # bytes, and the serial transport already forwards `read_all()` undecoded.
+        with open(logfile, 'rb') as fr:
             while True:
                 try:
                     msg_queue.put(fr.read())  # msg_queue may be closed
