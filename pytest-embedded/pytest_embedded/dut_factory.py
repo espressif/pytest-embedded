@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 if t.TYPE_CHECKING:
+    from pytest_embedded_espemu import EspEmu
     from pytest_embedded_idf import LinuxSerial
     from pytest_embedded_idf.dut import IdfDut
     from pytest_embedded_jtag import Gdb, OpenOcd
@@ -157,6 +158,10 @@ def _fixture_classes_and_options_fn(
     qemu_cli_args,
     qemu_extra_args,
     qemu_efuse_path,
+    espemu_image_path,
+    espemu_prog_path,
+    espemu_cli_args,
+    espemu_extra_args,
     wokwi_diagram,
     wokwi_usb_serial_jtag,
     skip_regenerate_image,
@@ -193,6 +198,18 @@ def _fixture_classes_and_options_fn(
                             'keyfile': keyfile,
                             'qemu_prog_path': qemu_prog_path,
                             'qemu_efuse_path': qemu_efuse_path,
+                        }
+                    )
+                elif 'espemu' in _services:
+                    from pytest_embedded_espemu import EspEmuApp
+
+                    classes[fixture] = EspEmuApp
+                    kwargs[fixture].update(
+                        {
+                            'msg_queue': msg_queue,
+                            'part_tool': part_tool,
+                            'espemu_image_path': espemu_image_path,
+                            'skip_regenerate_image': skip_regenerate_image,
                         }
                     )
                 else:
@@ -330,6 +347,24 @@ def _fixture_classes_and_options_fn(
                     'meta': _meta,
                     'dut_index': dut_index,
                 }
+        elif fixture == 'espemu':
+            if 'espemu' in _services:
+                from pytest_embedded_espemu import (
+                    DEFAULT_IMAGE_FN,
+                    EspEmu,
+                )
+
+                classes[fixture] = EspEmu
+                kwargs[fixture] = {
+                    'msg_queue': msg_queue,
+                    'espemu_image_path': espemu_image_path
+                    or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
+                    'espemu_prog_path': espemu_prog_path,
+                    'espemu_cli_args': espemu_cli_args,
+                    'espemu_extra_args': espemu_extra_args,
+                    'app': None,
+                    'meta': _meta,
+                }
         elif fixture == 'wokwi':
             if 'wokwi' in _services:
                 from pytest_embedded_wokwi import Wokwi
@@ -381,6 +416,15 @@ def _fixture_classes_and_options_fn(
                     kwargs['wokwi'].update({'firmware_resolver': ArduinoFirmwareResolver()})
                 else:
                     raise SystemExit('wokwi service should be used together with idf or arduino service')
+            elif 'espemu' in _services:
+                from pytest_embedded_espemu import EspEmuDut
+
+                classes[fixture] = EspEmuDut
+                kwargs[fixture].update(
+                    {
+                        'espemu': None,
+                    }
+                )
             elif 'qemu' in _services:
                 if 'nuttx' in _services:
                     from pytest_embedded_nuttx import NuttxQemuDut
@@ -534,6 +578,19 @@ def qemu_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Q
     return cls(**_drop_none_kwargs(kwargs))
 
 
+def espemu_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['EspEmu']:
+    if 'espemu' not in _fixture_classes_and_options.classes:
+        return None
+
+    cls = _fixture_classes_and_options.classes['espemu']
+    kwargs = _fixture_classes_and_options.kwargs['espemu']
+
+    if 'app' in kwargs and kwargs['app'] is None:
+        kwargs['app'] = app
+
+    return cls(**_drop_none_kwargs(kwargs))
+
+
 def wokwi_gn(_fixture_classes_and_options: ClassCliOptions, app) -> t.Optional['Wokwi']:
     """A wokwi subprocess that could read/redirect/write"""
     if 'wokwi' not in _fixture_classes_and_options.classes:
@@ -555,6 +612,7 @@ def dut_gn(
     serial: t.Union['Serial', 'LinuxSerial'] | None,
     qemu: t.Optional['Qemu'],
     wokwi: t.Optional['Wokwi'],
+    espemu: t.Optional['EspEmu'] = None,
 ) -> Dut | list[Dut]:
     global DUT_GLOBAL_INDEX
     DUT_GLOBAL_INDEX += 1
@@ -584,6 +642,8 @@ def dut_gn(
                 kwargs[k] = gdb
             elif k == 'qemu':
                 kwargs[k] = qemu
+            elif k == 'espemu':
+                kwargs[k] = espemu
             elif k == 'wokwi':
                 kwargs[k] = wokwi
     return cls(**_drop_none_kwargs(kwargs), mixins=mixins)
@@ -700,6 +760,10 @@ class DutFactory:
         qemu_cli_args: str | None = None,
         qemu_extra_args: str | None = None,
         qemu_efuse_path: str | None = None,
+        espemu_image_path: str | None = None,
+        espemu_prog_path: str | None = None,
+        espemu_cli_args: str | None = None,
+        espemu_extra_args: str | None = None,
         wokwi_diagram: str | None = None,
         wokwi_usb_serial_jtag: bool | None = None,
         skip_regenerate_image: bool | None = None,
@@ -748,6 +812,10 @@ class DutFactory:
             qemu_cli_args: QEMU CLI arguments.
             qemu_extra_args: Additional QEMU arguments.
             qemu_efuse_path: Efuse binary path.
+            espemu_image_path: esp-emu image path.
+            espemu_prog_path: esp-emu program path.
+            espemu_cli_args: esp-emu CLI arguments.
+            espemu_extra_args: Additional esp-emu arguments.
             wokwi_diagram: Wokwi diagram path.
             wokwi_usb_serial_jtag: Use USB Serial JTAG instead of UART for Wokwi serial communication.
             skip_regenerate_image: Skip image regeneration flag.
@@ -820,6 +888,10 @@ class DutFactory:
                 'qemu_cli_args': qemu_cli_args,
                 'qemu_extra_args': qemu_extra_args,
                 'qemu_efuse_path': qemu_efuse_path,
+                'espemu_image_path': espemu_image_path,
+                'espemu_prog_path': espemu_prog_path,
+                'espemu_cli_args': espemu_cli_args,
+                'espemu_extra_args': espemu_extra_args,
                 'wokwi_diagram': wokwi_diagram,
                 'wokwi_usb_serial_jtag': wokwi_usb_serial_jtag,
                 'skip_regenerate_image': skip_regenerate_image,
@@ -850,11 +922,13 @@ class DutFactory:
 
             qemu = qemu_gn(_fixture_classes_and_options, app)
             layout.append(qemu)
+            espemu = espemu_gn(_fixture_classes_and_options, app)
+            layout.append(espemu)
 
             wokwi = wokwi_gn(_fixture_classes_and_options, app)
             layout.append(wokwi)
 
-            dut = dut_gn(_fixture_classes_and_options, openocd, gdb, app, serial, qemu, wokwi)
+            dut = dut_gn(_fixture_classes_and_options, openocd, gdb, app, serial, qemu, wokwi, espemu)
             layout.append(dut)
 
             cls.obj_stack.append(layout)

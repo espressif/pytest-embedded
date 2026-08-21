@@ -9,6 +9,7 @@ DEFAULT_PACKAGES=" \
   pytest-embedded-idf \
   pytest-embedded-jtag \
   pytest-embedded-qemu \
+  pytest-embedded-espemu \
   pytest-embedded-arduino \
   pytest-embedded-wokwi \
   pytest-embedded-nuttx \

@@ -26,6 +26,7 @@ graph LR
 
     pytest-embedded-idf -->|optional, support test on espressif chips| pytest-embedded-serial-esp
     pytest-embedded-idf -->|optional, support test on qemu| pytest-embedded-qemu
+    pytest-embedded-idf -->|optional, support test on esp-emu| pytest-embedded-espemu
     pytest-embedded-idf -->|optional, support test on wokwi| pytest-embedded-wokwi
 
     pytest-embedded-arduino -->|optional, support test on espressif chips| pytest-embedded-serial-esp
@@ -50,6 +51,9 @@ Activate a service would enable a set of fixtures or add some extra functionalit
 ```
 
 ```{include} ../../pytest-embedded-qemu/README.md
+```
+
+```{include} ../../pytest-embedded-espemu/README.md
 ```
 
 ```{include} ../../pytest-embedded-arduino/README.md
