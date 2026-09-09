@@ -422,10 +422,8 @@ def parse_multi_dut_args(count: int, s: str) -> t.Any | tuple[t.Any]:
             return tuple(_str_bool(item) for item in res)
 
 
-def multi_dut_argument(func) -> t.Callable[..., str | None | tuple[str | None]]:
-    """
-    Used for parse the multi-dut argument according to the `count` amount.
-    """
+def multi_dut_argument(func) -> t.Callable[..., str | tuple[str | None, ...] | None]:
+    """Decorator to parse the multi-dut argument based on the `count` parameter."""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
