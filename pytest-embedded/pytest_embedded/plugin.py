@@ -233,7 +233,7 @@ def pytest_addoption(parser: pytest.Parser):
     idf_group.addoption(
         '--part-tool',
         help='Partition tool path, used for parsing partition table. '
-        '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py"',
+        '(Default: "$IDF_PATH/components/partition_table/gen_esp32part.py")',
     )
     idf_group.addoption(
         '--confirm-target-elf-sha256',
@@ -259,7 +259,7 @@ def pytest_addoption(parser: pytest.Parser):
     jtag_group.addoption('--gdb-prog-path', help='GDB program path. (Default: "xtensa-esp32-elf-gdb")')
     jtag_group.addoption(
         '--gdb-cli-args',
-        help='GDB cli arguments. (Default: "--quiet"',
+        help='GDB cli arguments. (Default: "--quiet")',
     )
     jtag_group.addoption(
         '--no-gdb',
@@ -291,7 +291,7 @@ def pytest_addoption(parser: pytest.Parser):
     )
     qemu_group.addoption(
         '--qemu-efuse-path',
-        help='This option makes it possible to use efuse in QEMU when it is set up.',
+        help='Path to an eFuse file for QEMU simulation. (Default: None)',
     )
     qemu_group.addoption(
         '--skip-regenerate-image',
@@ -300,7 +300,7 @@ def pytest_addoption(parser: pytest.Parser):
     )
     qemu_group.addoption(
         '--encrypt',
-        help='y/yes/true for True and n/no/false for False. Set to True for pre-encryption workflow (Default: False)',
+        help='y/yes/true for True and n/no/false for False. Set to True for pre-encryption workflow. (Default: False)',
     )
     qemu_group.addoption(
         '--keyfile',
@@ -328,7 +328,7 @@ def pytest_addoption(parser: pytest.Parser):
     wokwi_group = parser.getgroup('embedded-wokwi')
     wokwi_group.addoption(
         '--wokwi-diagram',
-        help='Path to the wokwi diagram file (Default: None)',
+        help='Path to the wokwi diagram file. (Default: None)',
     )
     wokwi_group.addoption(
         '--wokwi-usb-serial-jtag',
@@ -1477,14 +1477,13 @@ class PytestEmbedded:
             skip_marker = item.get_closest_marker('skip_if_soc')
             if not skip_marker:
                 continue
-            if 'idf' not in map(str.strip, config.getoption('embedded_services').split(',')):
+            services = self.get_param(item, 'embedded_services', config.getoption('embedded_services', ''))
+            if 'idf' not in map(str.strip, (services or '').split(',')):
                 raise ValueError("'skip_if_soc' marker must be used with the 'idf' embedded service.")
 
             from esp_bool_parser import parse_bool_expr
 
-            target = config.getoption('target', None)
-            if hasattr(item, 'callspec'):
-                target = item.callspec.params.get('target', None)
+            target = self.get_param(item, 'target', config.getoption('target', None))
             if target == 'auto' or not isinstance(target, str):
                 warnings.warn(
                     f"Ignoring pytest.mark.skip_if_soc for test item '{item.originalname}': "

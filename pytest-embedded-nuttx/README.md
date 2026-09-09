@@ -1,14 +1,37 @@
 ### pytest-embedded-nuttx
 
-Pytest embedded service for the NuttX project, compatible with Espressif devices.
+A `pytest-embedded` service for testing Apache [NuttX](https://nuttx.apache.org/) RTOS firmware on physical targets or in QEMU.
 
-Using the 'nuttx' service alongside 'serial' enables reading from and writing to the serial port, taking NuttShell into account when running programs and retrieving return codes.
+#### Service Activation
 
-The `nuttx` service provides basic serial communication and testing. Adding the 'esp' service enables further capabilities for Espressif devices, including flashing and device rebooting. Alternatively, using the 'qemu' service is also supported with NuttX
-binaries.
+Activate this service by passing `nuttx` to `--embedded-services`. Combine with `serial` (and optionally `esp` for Espressif chips):
 
-Additional Features:
+```shell
+pytest --embedded-services serial,esp,nuttx --app-path /path/to/nuttx/build
+```
 
-- `app`: Scans the NuttX binary directory to locate firmware and bootloader files.
-- `serial`: Parses binary information and flashes the board. Requires the 'esp' service.
-- `dut`: Sends commands to the device through the serial port. Requires the 'serial' service, 'esp' service for Espressif devices or 'qemu' service for emulation.
+Or run NuttX tests inside QEMU:
+
+```shell
+pytest --embedded-services qemu,nuttx --app-path /path/to/nuttx/build
+```
+
+#### Extra Functionalities
+
+- **NuttX App Detection**: Scans the NuttX build directory for bootloader, partition table, and firmware ELF/binary files.
+- **NuttShell (NSH) Interaction**: Seamlessly runs commands in NuttShell via the serial port and verifies command exit codes.
+- **Flashing & Reset Support**: Leverages the `esp` service to automatically flash Espressif chips and trigger hardware resets.
+- **Emulation Support**: Supports running NuttX binaries inside the QEMU emulator.
+
+#### Quick Example
+
+```python
+from pytest_embedded import Dut
+
+
+def test_nuttx_shell(dut: Dut):
+    # Wait for the NuttShell prompt
+    dut.expect('nsh>')
+    dut.write('help\n')
+    dut.expect('Builtin Apps:')
+```

@@ -2,242 +2,162 @@
  Expecting Functions
 #####################
 
-In testing, most of the work involves expecting a certain string or pattern and then making assertions. This is supported by the functions :func:`~pytest_embedded.dut.Dut.expect`, :func:`~pytest_embedded.dut.Dut.expect_exact`, and :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`.
+In embedded testing, most test steps involve sending input to a device and verifying the output received on the serial port or console. ``pytest-embedded`` provides three core expectation methods on the ``dut`` fixture:
 
-All of these functions accept the following keyword arguments:
+-  :func:`~pytest_embedded.dut.Dut.expect`
+-  :func:`~pytest_embedded.dut.Dut.expect_exact`
+-  :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`
 
--  ``timeout``: Sets the timeout in seconds for this expect statement (default: 30s). Throws a :obj:`pexpect.TIMEOUT` exception if the specified value is exceeded.
--  ``expect_all``: Matches all specified patterns if set to ``True`` (default: ``False``).
--  ``not_matching``: Raises an exception if the specified pattern is found in the output (default: ``None``).
--  ``return_what_before_match``: Returns the bytes read before the match if specified (default: ``False``).
+All expectation functions accept the following common keyword arguments:
+
+-  ``timeout``: Maximum waiting time in seconds (default: 30 seconds). Raises :obj:`pexpect.TIMEOUT` if the pattern is not matched before timeout expires.
+-  ``expect_all``: When matching a list of patterns, requires all patterns to match if set to ``True`` (default: ``False``).
+-  ``not_matching``: A pattern that must **not** appear in the output. If this pattern appears while waiting for the expected pattern, a :obj:`ValueError` is raised immediately (default: ``None``).
+-  ``return_what_before_match``: Returns the raw bytes received before the matched pattern instead of a match object (default: ``False``). Cannot be used together with ``expect_all``.
 
 *****************************************
  :func:`~pytest_embedded.dut.Dut.expect`
 *****************************************
 
-The ``pattern`` can be a :obj:`str`, :obj:`bytes`, or a compiled regex with :obj:`bytes`.
+Matches a regular expression or string against the incoming buffer.
 
-If the pattern is a :obj:`str` or :obj:`bytes`, it will be converted to a compiled regex with :obj:`bytes` before the function is run.
+The ``pattern`` argument can be:
+
+-  A :obj:`str` or :obj:`bytes` (automatically compiled into a regex)
+-  A compiled regular expression object (:obj:`re.compile`)
+-  A list of any of the above types
+
+Basic Usage
+===========
 
 .. code:: python
 
    import re
+
 
    def test_basic_expect(dut):
-       dut.write('this would be redirected')
+       dut.write(b"reboot\r\n")
 
-       dut.expect(b'this')
-       dut.expect('would')
-       dut.expect('[be]{2}')
-       dut.expect(re.compile(b'redirected'))
+       # Match plain string, bytes, regex, or compiled pattern
+       dut.expect("Restarting")
+       dut.expect(b"Booting")
+       dut.expect(r"Chip revision: v\d+\.\d+")
+       dut.expect(re.compile(b"App version: [0-9.]+"))
 
-If the expect call is successful, the return value will be a :obj:`re.Match` object.
+Capturing Groups
+================
+
+When a pattern matches successfully, :func:`~pytest_embedded.dut.Dut.expect` returns a :obj:`re.Match` object:
 
 .. code:: python
 
-   def test_expect_return_value(redirect, dut):
-       # Use the `redirect` fixture to write `sys.stdout` to the DUT
+   def test_capture_groups(redirect, dut):
        with redirect():
-           print('this would be redirected')
+           print("IP address: 192.168.1.100")
 
-       res = dut.expect('this (would) be ([cdeirt]+)')
-       assert res.group() == b'this would be redirected'
-       assert res.group(1) == b'would'
-       assert res.group(2).decode('utf-8') == 'redirected'
+       match = dut.expect(r"IP address: (\d+\.\d+\.\d+\.\d+)")
+       ip_addr = match.group(1).decode("utf-8")
+       assert ip_addr == "192.168.1.100"
 
-You can get the bytes read before a timeout by expecting a :obj:`pexpect.TIMEOUT` object.
+Matching a List of Patterns
+===========================
 
-.. code:: python
-
-   import time
-   import threading
-   import pexpect
-
-   def test_expect_from_eof(dut):
-       def write_bytes():
-           for _ in range(5):
-               dut.write('1')
-               time.sleep(2)
-
-       write_thread = threading.Thread(target=write_bytes, daemon=True)
-       write_thread.start()
-
-       res = dut.expect(pexpect.TIMEOUT, timeout=3)
-       assert res == b'11'
-
-You can also get all bytes in the pexpect process buffer by expecting a :obj:`pexpect.EOF` object.
+You can pass a list of patterns. By default, the function succeeds when **any** pattern in the list matches:
 
 .. code:: python
 
-   import pexpect
+   def test_match_any(dut):
+       # Succeeds as soon as either "SUCCESS" or "OK" is received
+       dut.expect(["SUCCESS", "OK"])
 
-   def test_expect_from_eof_current_buffer(dut):
-       dut.write('this would be redirected')
-       dut.expect('this')
-
-       # Close the pexpect process to generate an EOF
-       dut.pexpect_proc.terminate()
-
-       res = dut.expect(pexpect.EOF, timeout=None)
-       assert res == b' would be redirected'
-
-.. note::
-
-   The pexpect process only reads from the process into its buffer when running expect functions. If you expect :obj:`pexpect.EOF` as the first statement, it will return an empty byte string.
-
-   .. code:: python
-
-      import pexpect
-
-
-      def test_expect_from_eof_at_first(dut):
-          dut.write("this would be redirected")
-
-          # Close the pexpect process to generate an EOF
-          dut.pexpect_proc.terminate()
-
-          res = dut.expect(pexpect.EOF, timeout=None)
-          assert res == b""
-
-Additionally, the ``pattern`` argument can be a list of any of the supported types.
+If you set ``expect_all=True``, the function waits until **all** patterns in the list have been matched:
 
 .. code:: python
 
-   import re
+   def test_match_all(dut):
+       dut.expect(["Connected to Wi-Fi", "Obtained IP", "Starting server"], expect_all=True)
 
+Reading Text Before Match
+=========================
 
-   def test_expect_from_list(dut):
-       dut.write("this would be redirected")
+Use ``return_what_before_match=True`` to retrieve the bytes received before the matched pattern:
 
-       pattern_list = [
-           "this",
-           b"would",
-           "[be]+",
-           re.compile(b"redirected"),
-       ]
+.. code:: python
 
-       for _ in range(4):
-           dut.expect(pattern_list)
+   def test_read_before(redirect, dut):
+       with redirect():
+           print("device_id=ESP32_A1B2C3 ready")
 
-If you set ``expect_all`` to ``True``, the :func:`~pytest_embedded.dut.Dut.expect` function will return a list of the returned values for each item.
+       # Returns b"device_id=ESP32_A1B2C3 "
+       raw_bytes = dut.expect("ready", return_what_before_match=True)
+       assert b"device_id=ESP32_A1B2C3" in raw_bytes
 
-You can also set ``return_what_before_match`` to ``True`` to get the bytes read before the match, instead of the match object.
+.. tip::
+
+   Using ``return_what_before_match=True`` is significantly faster than using regex greedy capture groups like ``(.*)pattern``, because it avoids expensive backtracking.
+
+Handling Timeouts and EOF
+=========================
+
+You can expect :obj:`pexpect.TIMEOUT` or :obj:`pexpect.EOF` to inspect the buffered output:
 
 .. code:: python
 
    import pexpect
 
-   def test_expect_before_match(dut):
-       dut.write('this would be redirected')
 
-       res = dut.expect('would', return_what_before_match=True)
-       assert res == b'this '
+   def test_timeout_buffer(dut):
+       dut.write(b"slow_task\n")
 
-       res = dut.expect_exact('be ', return_what_before_match=True)
-       assert res == b' '
-
-       res = dut.expect('ected', return_what_before_match=True)
-       assert res == b'redir'
-
-.. hint::
-
-   For better performance when retrieving text before a pattern, use:
-
-   .. code:: python
-
-      before_str = dut.expect('pattern', return_what_before_match=True).decode('utf-8')
-
-   Instead of:
-
-   .. code:: python
-
-      before_str = dut.expect('(.+)pattern').group(1).decode('utf-8')
-
-   The latter performs unnecessary recursive matching of preceding bytes.
+       # Returns all bytes accumulated before timeout occurred
+       buffer_content = dut.expect(pexpect.TIMEOUT, timeout=5)
+       assert b"Still processing" in buffer_content
 
 ***********************************************
  :func:`~pytest_embedded.dut.Dut.expect_exact`
 ***********************************************
 
-The ``pattern`` can be a :obj:`str` or :obj:`bytes`.
+Matches exact string or byte sequences without regex compilation.
 
-If the pattern is a :obj:`str`, it will be converted to :obj:`bytes` before the function is run.
+Use :func:`~pytest_embedded.dut.Dut.expect_exact` whenever you are looking for a fixed literal string. It is faster than regex matching and does not require escaping special characters (such as ``[``, ``]``, ``(``, ``)``, or ``.``).
 
 .. code:: python
 
    def test_expect_exact(dut):
-       dut.write('this would be redirected')
+       # No regex escaping needed for parentheses or dots
+       dut.expect_exact("Version (v1.2.3)")
+       dut.expect_exact(b"[WiFi] Connected successfully.")
 
-       dut.expect_exact('this would')
-       dut.expect_exact(b'be redirected')
-
-As with the :func:`~pytest_embedded.dut.Dut.expect` function, the ``pattern`` argument can be a list of any of the supported types.
+Like :func:`~pytest_embedded.dut.Dut.expect`, it also accepts a list of patterns:
 
 .. code:: python
 
-   def test_expect_exact_from_list(dut):
-       dut.write('this would be redirected')
-
-       pattern_list = [
-           'this would',
-           b'be redirected',
-       ]
-
-       for _ in range(2):
-           dut.expect_exact(pattern_list)
+   def test_expect_exact_list(dut):
+       dut.expect_exact(["Ready.", "System idle."])
 
 ***********************************************************
  :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`
 ***********************************************************
 
-`Unity Test <https://github.com/ThrowTheSwitch/Unity>`__ is a C test framework.
+Parses `Unity test framework <https://github.com/ThrowTheSwitch/Unity>`_ results printed by C firmware running on the target.
 
-This function parses the output as Unity test output. The default ``timeout`` is 60 seconds.
+Features:
 
-When the test script finishes, the DUT object will raise an :obj:`AssertionError` if any Unity test case has a "FAIL" result.
-
-Additionally, it will dump a JUnit report to a temporary folder and merge it with the main report if you use the ``pytest --junitxml`` feature.
-
-.. code:: python
-
-   import inspect
-   import pytest
-
-   def test_expect_unity_test_output_basic(dut):
-       dut.write(inspect.cleandoc('''
-           foo.c:100:test_case:FAIL:Expected 2 was 1
-           foo.c:101:test_case_2:FAIL:Expected 1 was 2
-           -------------------
-           2 Tests 2 Failures 0 Ignored
-           FAIL
-       '''))
-       with pytest.raises(AssertionError):
-           dut.expect_unity_test_output()
-
-       assert len(dut.testsuite.testcases) == 2
-       assert dut.testsuite.attrs['failures'] == 2
-       assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
-       assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
-
-It also supports `Unity fixtures <https://github.com/ThrowTheSwitch/Unity/tree/master/extras/fixture>`__.
+-  Parses individual Unity test cases, assertions, and summaries.
+-  Automatically raises an :obj:`AssertionError` if any Unity test case fails.
+-  Generates a JUnit XML test report and merges it into the pytest report when ``--junitxml`` is used.
 
 .. code:: python
 
-   import inspect
-   import pytest
+   def test_firmware_unit_tests(dut):
+       # Instruct firmware to execute unit tests
+       dut.write(b"run_all_tests\r\n")
 
-   def test_expect_unity_test_output_fixture(dut):
-       dut.write(inspect.cleandoc('''
-           TEST(group, test_case)foo.c:100::FAIL:Expected 2 was 1
-           TEST(group, test_case_2)foo.c:101::FAIL:Expected 1 was 2
-           -------------------
-           2 Tests 2 Failures 0 Ignored
-           FAIL
-       '''))
-       with pytest.raises(AssertionError):
-           dut.expect_unity_test_output()
+       # Wait for and validate Unity test suite completion
+       dut.expect_unity_test_output(timeout=120)
 
-       assert len(dut.testsuite.testcases) == 2
-       assert dut.testsuite.attrs['failures'] == 2
-       assert dut.testsuite.testcases[0].attrs['message'] == 'Expected 2 was 1'
-       assert dut.testsuite.testcases[1].attrs['message'] == 'Expected 1 was 2'
+Additional arguments for :func:`~pytest_embedded.dut.Dut.expect_unity_test_output`:
+
+-  ``timeout``: Test suite timeout in seconds (default: 60 seconds).
+-  ``remove_asci_escape_code``: Strips ANSI color escape sequences from the console before parsing (default: ``True``).
+-  ``extra_before``: Prepends additional log text read previously to the buffer.

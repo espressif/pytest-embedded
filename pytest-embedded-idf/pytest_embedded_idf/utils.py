@@ -55,21 +55,21 @@ def idf_parametrize(
     indirect: (bool | t.Sequence[str]) = False,
 ) -> t.Callable[..., None]:
     """
-    A decorator to unify pytest.mark.parametrize usage in esp-idf.
+    A decorator to unify pytest.mark.parametrize usage for ESP-IDF tests.
 
     Args:
-        param_names: A comma-separated string of parameter names that will be passed to
-            the test function.
-        values: A list of parameter values where each value corresponds to the parameters
-            defined in param_names.
-        indirect: A list of arguments names (subset of argnames) or a boolean. If True
-            the list contains all names from the argnames. Each argvalue corresponding to an
-            argname in this list will be passed as request.param to its respective argname
-            fixture function so that it can perform more expensive setups during the setup
-            phase of a test rather than at collection time.
+        param_names: Comma-separated parameter names passed to the test function.
+            Supports special parameters:
+            - 'target': Automatically expands the placeholder strings 'supported_targets'
+              and 'preview_targets' into lists of target chips.
+            - 'markers': If provided, accepts test marks (e.g. pytest.mark.usb_device)
+              as the last element of each parameter tuple without passing them as function arguments.
+        values: List of parameter values corresponding to param_names.
+        indirect: Sequence of argument names or boolean indicating whether parameters
+            are passed indirectly to fixture functions.
 
     Returns:
-        Decorated test function with parametrization applied
+        Decorated test function with parametrization applied.
     """
     param_list = [name.strip() for name in param_names.split(',')]
     for param in param_list:

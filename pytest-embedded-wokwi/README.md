@@ -52,21 +52,22 @@ All interactions with the Wokwi simulation is through the `wokwi.client` - [wokw
 For example, you can use `wokwi.client.set_control()` to control virtual components in the simulation, such as buttons, LEDs, and other peripherals.
 Whole documentations can be found at [Wokwi Documentation](https://wokwi.github.io/wokwi-python-client/)
 
-Button test:
-```py
+#### Quick Example: Button Test
+
+```python
 import logging
-from pytest_embedded_wokwi import Wokwi
 from pytest_embedded import Dut
+from pytest_embedded_wokwi import Wokwi
 
 
 def test_gpio(dut: Dut, wokwi: Wokwi):
-    LOGGER = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
-    LOGGER.info("Waiting for Button test begin...")
-    dut.expect_exact("Butston test")
+    logger.info("Waiting for Button test begin...")
+    dut.expect_exact("Button test")
 
     for i in range(3):
-        LOGGER.info(f"Setting button pressed for {i + 1} seconds")
+        logger.info(f"Setting button pressed for {i + 1} seconds")
         wokwi.client.set_control("btn1", "pressed", 1)
 
         dut.expect_exact(f"Button pressed {i + 1} times")

@@ -830,16 +830,14 @@ class MultiDevRunTestManager:
 
 class CaseTester:
     """
-    The Generic tester of all the types
+    Generic runner and manager for Unity test cases on target DUTs.
 
-    Attributes:
-        dut (IdfDut): The first dut if there is more than one
-        test_menu (t.List[UnittestMenuCase]): The list of the cases
+    Supports running single-device and multi-device test cases parsed from the Unity test menu.
     """
 
     def __init__(self, dut: t.Union['IdfDut', list['IdfDut']]) -> None:  # type: ignore
         """
-        Create the object for every dut and put them into the group
+        Initialize the CaseTester with one or more target DUTs.
         """
         if isinstance(dut, Iterable):
             self.is_multi_dut = True

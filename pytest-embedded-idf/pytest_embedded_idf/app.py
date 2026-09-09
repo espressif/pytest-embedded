@@ -116,7 +116,8 @@ class IdfApp(App):
             logging.warning(f"{sdkconfig_json_path} doesn't exist. Skipping...")
             self._sdkconfig = {}
         else:
-            self._sdkconfig = json.load(open(sdkconfig_json_path))
+            with open(sdkconfig_json_path, encoding='utf-8') as f:
+                self._sdkconfig = json.load(f)
         return self._sdkconfig
 
     @property
@@ -178,7 +179,8 @@ class IdfApp(App):
 
         partition_table = {}
         for line in raw_data.splitlines():
-            if line[0] != '#':
+            line = line.strip()
+            if line and not line.startswith('#'):
                 try:
                     _name, _type, _subtype, _offset, _size, _flags = line.split(',')
                     if _size[-1] == 'K':

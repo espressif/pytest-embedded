@@ -199,29 +199,29 @@ Filter only **supported** targets that support ULP:
 Markers
 -------
 
-Markers can also be combined for added flexibility. They must be placed in the last position. If some test cases do not have markers, you can skip their definition. See the example below.
+You can also pass markers as the last item in a parameter tuple. If a test case does not need extra markers, you can omit them.
 
 **Example:**
 
-In IDF testing, an environment marker determines which test runner will execute a test. This enables tests to run on various runners, such as:
+In ESP-IDF testing, environment markers specify which test runner should execute the test. For example:
 
--  **generic**: Tests run on generic runners.
--  **sdcard**: Tests require an SD card runner.
--  **usb_device**: Tests require a USB device runner.
+-  **generic**: Tests that run on standard test runners.
+-  **sdcard**: Tests that require an SD card runner.
+-  **usb_device**: Tests that require a USB device runner.
 
 .. code:: python
 
    @pytest.mark.generic
    @idf_parametrize('config', [
-       'defaults'
+       'defaults',
    ], indirect=['config'])
    @idf_parametrize('target, markers', [
        ('esp32', (pytest.mark.usb_device,)),
-       ('esp32c3')
-       ('esp32', (pytest.mark.sdcard,))
+       ('esp32c3',),
+       ('esp32', (pytest.mark.sdcard,)),
    ], indirect=['target'])
-   def test_console(dut: Dut, test_on: str) -> None:
-     ...
+   def test_console(dut: Dut, config: str, target: str) -> None:
+       ...
 
 **Resulting Parameters Matrix:**
 
@@ -229,12 +229,19 @@ In IDF testing, an environment marker determines which test runner will execute 
    :header-rows: 1
 
    -  -  Target
+      -  Config
       -  Markers
+
    -  -  esp32
+      -  defaults
       -  generic, usb_device
+
    -  -  esp32c3
-      -  generic, sdcard
+      -  defaults
+      -  generic
+
    -  -  esp32
+      -  defaults
       -  generic, sdcard
 
 Examples
@@ -250,7 +257,7 @@ Target with Config
    @idf_parametrize('target, config', [
        ('esp32', 'release'),
        ('esp32c3', 'default'),
-       ('supported_target', 'psram')
+       ('supported_targets', 'psram'),
    ], indirect=True)
    def test_st(dut: Dut) -> None:
        ...
@@ -273,17 +280,17 @@ Target with Config
    -  -  esp32s3
       -  psram
 
-Supported Target on Runners
----------------------------
+Supported Targets on Runners
+----------------------------
 
 **Example:**
 
 .. code:: python
 
    @idf_parametrize('target, markers', [
-       ('esp32', (pytest.mark.generic, )),
-       ('esp32c3', (pytest.mark.sdcard, )),
-       ('supported_target', (pytest.mark.usb_device, ))
+       ('esp32', (pytest.mark.generic,)),
+       ('esp32c3', (pytest.mark.sdcard,)),
+       ('supported_targets', (pytest.mark.usb_device,)),
    ], indirect=True)
    def test_st(dut: Dut) -> None:
        ...
@@ -317,7 +324,7 @@ Runner for All Tests
    @idf_parametrize('target, config', [
        ('esp32', 'release'),
        ('esp32c3', 'default'),
-       ('supported_target', 'psram')
+       ('supported_targets', 'psram'),
    ], indirect=True)
    def test_st(dut: Dut) -> None:
        ...

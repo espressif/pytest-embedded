@@ -1,18 +1,32 @@
 ### pytest-embedded-arduino
 
-pytest embedded service for Arduino project
+A `pytest-embedded` service for testing [Arduino](https://www.arduino.cc/) sketch builds on embedded targets.
 
-Extra Functionalities:
+#### Service Activation
 
-```{eval-rst}
-.. tabs::
+Activate this service by passing `arduino` to `--embedded-services`. Typically combined with `esp` to enable flashing and serial monitoring:
 
-   .. group-tab:: `pytest-embedded-serial-esp` activated
+```shell
+pytest --embedded-services esp,arduino --app-path /path/to/arduino-build
+```
 
-        - `app`: Parse Arduino's build directory and gather more information.
-        - `serial`: Auto flash the built binary into the target board at the beginning when running test cases.
+#### Extra Functionalities
 
-   .. group-tab:: `pytest-embedded-serial-esp` NOT activated
+- **Sketch Metadata Parsing**: Automatically locates the compiled sketch binary, bootloader, and partition table from the Arduino build folder.
+- **Fast Flashing**: Uses differential flashing (`--diff-with`) to only write updated flash sectors, significantly speeding up consecutive test runs.
+- **Full Reflash Option**: Easily disable fast flashing with `--no-fast-flash` when the flash state is unknown (such as after OTA tests).
 
-        - `app`: Parse Arduino's build directory and gather more information.
+#### CLI Options
+
+- `--no-fast-flash`: Disable fast differential flashing and write the complete flash image. Default: `False`.
+
+#### Quick Example
+
+```python
+from pytest_embedded import Dut
+
+
+def test_arduino_sketch(dut: Dut):
+    dut.expect('Setup complete')
+    dut.expect('Sensor read: ')
 ```
