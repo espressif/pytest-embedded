@@ -34,6 +34,36 @@ def test_pexpect_by_espemu(testdir):
 
 
 @espemu_bin_required
+def test_espemu_write_efuse(testdir):
+    efuse_path = os.path.join(testdir.tmpdir, 'efuse.bin')
+
+    testdir.makepyfile(f"""
+        def test_espemu_write_efuse(dut):
+            dut.espemu.execute_efuse_command('burn-custom-mac 00:11:22:33:44:55')
+
+            with open({efuse_path!r}, 'rb') as f:
+                content = f.read()
+
+            # the emulator writes the eFuse image back when it exits, so the
+            # burned MAC is there for the next run
+            assert len(content) == 336
+            assert bytes.fromhex('001122334455') in content
+    """)
+
+    result = testdir.runpytest(
+        '-s',
+        '--embedded-services',
+        'idf,espemu',
+        '--app-path',
+        os.path.join(testdir.tmpdir, 'hello_world_esp32c3'),
+        '--espemu-efuse-path',
+        efuse_path,
+    )
+
+    result.assert_outcomes(passed=1)
+
+
+@espemu_bin_required
 def test_multi_count_espemu(testdir):
     testdir.makepyfile("""
         def test_multi_count_espemu(dut):

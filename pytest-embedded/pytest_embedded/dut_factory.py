@@ -162,6 +162,7 @@ def _fixture_classes_and_options_fn(
     espemu_prog_path,
     espemu_cli_args,
     espemu_extra_args,
+    espemu_efuse_path,
     wokwi_diagram,
     wokwi_usb_serial_jtag,
     skip_regenerate_image,
@@ -210,6 +211,8 @@ def _fixture_classes_and_options_fn(
                             'part_tool': part_tool,
                             'espemu_image_path': espemu_image_path,
                             'skip_regenerate_image': skip_regenerate_image,
+                            'encrypt': encrypt,
+                            'keyfile': keyfile,
                         }
                     )
                 else:
@@ -351,6 +354,7 @@ def _fixture_classes_and_options_fn(
             if 'espemu' in _services:
                 from pytest_embedded_espemu import (
                     DEFAULT_IMAGE_FN,
+                    ENCRYPTED_IMAGE_FN,
                     EspEmu,
                 )
 
@@ -358,10 +362,13 @@ def _fixture_classes_and_options_fn(
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
                     'espemu_image_path': espemu_image_path
-                    or os.path.join(app_path or '', build_dir or 'build', DEFAULT_IMAGE_FN),
+                    or os.path.join(
+                        app_path or '', build_dir or 'build', ENCRYPTED_IMAGE_FN if encrypt else DEFAULT_IMAGE_FN
+                    ),
                     'espemu_prog_path': espemu_prog_path,
                     'espemu_cli_args': espemu_cli_args,
                     'espemu_extra_args': espemu_extra_args,
+                    'espemu_efuse_path': espemu_efuse_path,
                     'app': None,
                     'meta': _meta,
                 }
@@ -764,6 +771,7 @@ class DutFactory:
         espemu_prog_path: str | None = None,
         espemu_cli_args: str | None = None,
         espemu_extra_args: str | None = None,
+        espemu_efuse_path: str | None = None,
         wokwi_diagram: str | None = None,
         wokwi_usb_serial_jtag: bool | None = None,
         skip_regenerate_image: bool | None = None,
@@ -816,6 +824,7 @@ class DutFactory:
             espemu_prog_path: esp-emu program path.
             espemu_cli_args: esp-emu CLI arguments.
             espemu_extra_args: Additional esp-emu arguments.
+            espemu_efuse_path: esp-emu eFuse image path.
             wokwi_diagram: Wokwi diagram path.
             wokwi_usb_serial_jtag: Use USB Serial JTAG instead of UART for Wokwi serial communication.
             skip_regenerate_image: Skip image regeneration flag.
@@ -892,6 +901,7 @@ class DutFactory:
                 'espemu_prog_path': espemu_prog_path,
                 'espemu_cli_args': espemu_cli_args,
                 'espemu_extra_args': espemu_extra_args,
+                'espemu_efuse_path': espemu_efuse_path,
                 'wokwi_diagram': wokwi_diagram,
                 'wokwi_usb_serial_jtag': wokwi_usb_serial_jtag,
                 'skip_regenerate_image': skip_regenerate_image,

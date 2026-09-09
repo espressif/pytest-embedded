@@ -321,6 +321,11 @@ def pytest_addoption(parser: pytest.Parser):
         help='esp-emu cli default arguments. (Default: None)',
     )
     espemu_group.addoption(
+        '--espemu-efuse-path',
+        help='esp-emu eFuse image path. The emulator reads it at start and writes it back on exit. '
+        'A blank image is created when the file does not exist. (Default: None)',
+    )
+    espemu_group.addoption(
         '--espemu-extra-args',
         help='esp-emu cli extra arguments, will append to the argument list. (Default: None)',
     )
@@ -1115,6 +1120,13 @@ def espemu_cli_args(request: FixtureRequest) -> str | None:
 
 @pytest.fixture
 @multi_dut_argument
+def espemu_efuse_path(request: FixtureRequest) -> str | None:
+    """Enable parametrization for the same cli option"""
+    return _request_param_or_config_option_or_default(request, 'espemu_efuse_path', None)
+
+
+@pytest.fixture
+@multi_dut_argument
 def espemu_extra_args(request: FixtureRequest) -> str | None:
     """Enable parametrization for the same cli option"""
     return _request_param_or_config_option_or_default(request, 'espemu_extra_args', None)
@@ -1220,6 +1232,7 @@ def parametrize_fixtures(
     espemu_prog_path,
     espemu_cli_args,
     espemu_extra_args,
+    espemu_efuse_path,
     wokwi_diagram,
     wokwi_usb_serial_jtag,
     skip_regenerate_image,

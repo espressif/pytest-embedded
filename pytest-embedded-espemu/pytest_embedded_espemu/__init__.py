@@ -5,15 +5,18 @@ import importlib
 from pytest_embedded.utils import lazy_load
 
 DEFAULT_IMAGE_FN = 'espemu_image.bin'
+ENCRYPTED_IMAGE_FN = f'encrypted_{DEFAULT_IMAGE_FN}'
 
 from .dut import EspEmuDut  # noqa
 from .espemu import EspEmu  # noqa
+from .serial import EspEmuSerial  # noqa
 
 __getattr__ = lazy_load(
     importlib.import_module(__name__),
     {
         'EspEmu': EspEmu,
         'EspEmuDut': EspEmuDut,
+        'EspEmuSerial': EspEmuSerial,
     },
     {
         'EspEmuApp': '.app',  # requires idf
@@ -23,6 +26,7 @@ __getattr__ = lazy_load(
 
 __all__ = [
     'DEFAULT_IMAGE_FN',
+    'ENCRYPTED_IMAGE_FN',
     'EspEmu',
     'EspEmuApp',
     'EspEmuDut',
