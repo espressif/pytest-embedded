@@ -35,7 +35,7 @@ def test_services(testdir):
                 ('idf,serial', {'IdfApp', 'Serial', 'SerialDut'}),
                 ('idf,esp', {'IdfApp', 'IdfSerial', 'IdfDut'}),
                 ('idf,qemu', {'QemuApp', 'Qemu', 'QemuDut'}),
-                ('idf,espemu', {'EspEmuApp', 'EspEmu', 'EspEmuDut'}),
+                ('idf,espemu', {'EspEmuApp', 'EspEmu', 'EspEmuSerial', 'EspEmuDut'}),
                 ('arduino,esp', {'ArduinoApp', 'ArduinoSerial', 'SerialDut'}),
             ],
             indirect=True
