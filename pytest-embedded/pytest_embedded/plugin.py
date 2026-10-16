@@ -6,11 +6,11 @@ import gc
 import importlib
 import io
 import logging
-import multiprocessing
 import os
 import shelve
 import subprocess
 import tempfile
+import threading
 import typing as t
 import warnings
 import xml.dom.minidom
@@ -30,7 +30,6 @@ from .app import App
 from .dut import Dut
 from .dut_factory import (
     DutFactory,
-    _ctx,
     _fixture_classes_and_options_fn,
     _listener_gn,
     _pexpect_fr_gn,
@@ -46,7 +45,7 @@ from .dut_factory import (
     set_stdout_lock,
     wokwi_gn,
 )
-from .log import MessageQueue, MessageQueueManager, PexpectProcess
+from .log import MessageQueue, PexpectProcess
 from .unity import JunitMerger, UnityTestReportMode, escape_illegal_xml_chars
 from .utils import (
     SERVICE_LIB_NAMES,
@@ -348,7 +347,6 @@ def pytest_addoption(parser: pytest.Parser):
 # helpers #
 ###########
 _COUNT = 1
-_MP_MANAGER: MessageQueueManager | None = None
 
 
 def _gte_one_int(v) -> int:
@@ -504,7 +502,7 @@ def multi_dut_generator_fixture(
                 return
 
             try:
-                if isinstance(obj, subprocess.Popen | multiprocessing.process.BaseProcess):
+                if isinstance(obj, subprocess.Popen):
                     obj.terminate()
                     obj.kill()
                 elif isinstance(obj, io.IOBase):
@@ -727,31 +725,18 @@ def log_metric(metric_path: str | None) -> t.Callable[..., None]:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def _mp_manager():
-    manager = MessageQueueManager()
-    manager.start()
-
-    global _MP_MANAGER
-    _MP_MANAGER = manager
-
-    yield manager
-
-    manager.shutdown()
-
-
-@pytest.fixture(scope='session', autouse=True)
 def _stdout_lock():
     """
-    A session-scoped multiprocessing lock used to serialize stdout writes across
-    all DUT listener processes, preventing garbled output when multiple DUTs
+    A session-scoped lock used to serialize stdout writes across
+    all DUT listener threads, preventing garbled output when multiple DUTs
     print to stdout simultaneously.
 
     It is marked ``autouse=True`` so that the lock is created and registered
     globally (via ``set_stdout_lock``) before any DUT fixture is instantiated,
-    ensuring every listener process receives a valid lock reference regardless
+    ensuring every listener thread receives a valid lock reference regardless
     of test ordering.
     """
-    lock = _ctx.Lock()
+    lock = threading.Lock()
     set_stdout_lock(lock)
     yield lock
 
@@ -794,8 +779,8 @@ def _pexpect_logfile(test_case_tempdir, logfile_extension, dut_index, dut_total)
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def msg_queue(_mp_manager) -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
-    return _mp_manager.MessageQueue()
+def msg_queue() -> MessageQueue:  # kwargs passed by `multi_dut_generator_fixture()`
+    return MessageQueue()
 
 
 @pytest.fixture
@@ -807,11 +792,9 @@ def with_timestamp(request: FixtureRequest) -> bool:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _listener(
-    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock
-) -> multiprocessing.Process:
+def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock) -> threading.Thread:
     """
-    The listener would create a `_listen` process. The `_listen` process would get the string from the message queue,
+    The listener would create a `_listen` thread. The `_listen` thread would get the string from the message queue,
     and do two things together:
 
     1. print the string to `sys.stdout`
