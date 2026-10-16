@@ -22,7 +22,7 @@ if t.TYPE_CHECKING:
     from pytest_embedded_wokwi import Wokwi
 
 from . import App, Dut
-from .log import MessageQueue, PexpectProcess
+from .log import MessageQueue, PexpectProcess, _MonitoredThread
 from .utils import FIXTURES_SERVICES, ClassCliOptions, to_str
 
 
@@ -54,7 +54,13 @@ def set_stdout_lock(lock) -> None:
 
 
 def _listen(
-    q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1, _stdout_lock=None
+    q: MessageQueue,
+    filepath: str,
+    with_timestamp: bool = True,
+    count: int = 1,
+    total: int = 1,
+    _stdout_lock=None,
+    _heartbeat=None,
 ) -> None:
     shall_add_prefix = True
     _pending = ''
@@ -65,39 +71,44 @@ def _listen(
         if not msg:
             continue
 
-        with open(filepath, 'ab') as fw:
-            fw.write(msg)
-            fw.flush()
+        try:
+            with open(filepath, 'ab') as fw:
+                fw.write(msg)
+                fw.flush()
 
-        _s = to_str(msg)
-        if not _s:
-            continue
+            _s = to_str(msg)
+            if _s:
+                prefix = ''
+                if total > 1:
+                    prefix = f'[dut-{count}] '
 
-        prefix = ''
-        if total > 1:
-            prefix = f'[dut-{count}] '
+                if with_timestamp:
+                    prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
 
-        if with_timestamp:
-            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
+                if shall_add_prefix:
+                    _s = prefix + _s
 
-        if shall_add_prefix:
-            _s = prefix + _s
+                _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
+                if _s.endswith('\n'):  # complete line
+                    shall_add_prefix = True
+                    _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
+                    with _stdout_lock if _stdout_lock else contextlib.nullcontext():
+                        _stdout.write(_pending + _s)
+                        _stdout.flush()
+                    _pending = ''
+                else:
+                    shall_add_prefix = False
+                    _s = _s.replace('\n', '\n' + prefix)
+                    _pending += _s
+        except Exception:
+            # one bad message must not kill the listener for the whole session
+            logging.error('listener: failed to process a message, continuing...', exc_info=True)
 
-        _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
-        if _s.endswith('\n'):  # complete line
-            shall_add_prefix = True
-            _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
-            with _stdout_lock if _stdout_lock else contextlib.nullcontext():
-                _stdout.write(_pending + _s)
-                _stdout.flush()
-            _pending = ''
-        else:
-            shall_add_prefix = False
-            _s = _s.replace('\n', '\n' + prefix)
-            _pending += _s
+        if _heartbeat:
+            _heartbeat()
 
 
-class _ListenerThread(threading.Thread):
+class _ListenerThread(_MonitoredThread):
     """
     Keep getting messages from the `MessageQueue` instance, print them to `sys.stdout`,
     and record them to the pexpect logfile.
@@ -122,8 +133,11 @@ class _ListenerThread(threading.Thread):
                 'count': count,
                 'total': total,
                 '_stdout_lock': _stdout_lock,
+                '_heartbeat': self.beat,
             }),
             daemon=True,
+            watch_name=f'listener:{os.path.basename(filepath)}',
+            watch_queue=msg_queue,
         )
 
     def close(self) -> None:

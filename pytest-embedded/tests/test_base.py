@@ -1093,3 +1093,104 @@ def test_forward_io_preserves_carriage_returns(tmp_path):
         assert _drain(q) == b'first\r\nsecond\r\n'
     finally:
         p.stop()
+
+
+def test_listener_survives_broken_stdout(tmp_path, caplog):
+    """A failing message (e.g. broken stdout) must not kill the listener: it logs and keeps going."""
+    import threading
+    import time
+
+    import pytest_embedded.dut_factory as dut_factory
+    from pytest_embedded.log import MessageQueue
+
+    logfile = str(tmp_path / 'dut.log')
+    q = MessageQueue()
+    t = threading.Thread(target=dut_factory._listen, args=(q, logfile), kwargs={'with_timestamp': False}, daemon=True)
+    t.start()
+
+    class _BrokenStdout:
+        def write(self, _s):
+            raise OSError('broken pipe')
+
+        def flush(self):
+            pass
+
+    orig_stdout = dut_factory._stdout
+    try:
+        q.put(b'line_1\n')
+        dut_factory._stdout = _BrokenStdout()
+        q.put(b'line_2\n')  # would kill an unprotected listener
+
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if any('failed to process a message' in r.getMessage() for r in caplog.records):
+                break
+            time.sleep(0.05)
+
+        assert t.is_alive(), 'listener died on a broken stdout'
+
+        dut_factory._stdout = orig_stdout
+        q.put(b'line_3\n')
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if b'line_3' in open(logfile, 'rb').read():
+                break
+            time.sleep(0.05)
+    finally:
+        dut_factory._stdout = orig_stdout
+        q.put(dut_factory._LISTEN_STOP)
+        t.join(timeout=5)
+
+    content = open(logfile, 'rb').read()
+    assert b'line_1' in content
+    assert b'line_3' in content
+
+
+def test_watchdog_reports_died_thread(caplog):
+    """A monitored thread dying with an escaping exception is reported by the watchdog."""
+    import logging
+
+    import pytest_embedded.log as log_mod
+
+    def _boom():
+        raise RuntimeError('bang')
+
+    t = log_mod._MonitoredThread(target=_boom, watch_name='doomed-test-thread', daemon=True)
+    t.start()
+    t.join(timeout=5)
+
+    log_mod._watchdog_check_once()
+
+    assert any(
+        'doomed-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records
+    ), 'watchdog did not report the dead thread'
+
+
+def test_watchdog_reports_stall(caplog):
+    """A monitored thread that stops making progress while its queue backs up is reported."""
+    import logging
+    import threading
+
+    import pytest_embedded.log as log_mod
+
+    q = log_mod.MessageQueue()
+    q.put(b'backlog')  # never drains
+
+    stop = threading.Event()
+
+    def _idle():
+        while not stop.is_set():
+            stop.wait(0.05)
+
+    t = log_mod._MonitoredThread(target=_idle, watch_name='stalled-test-thread', watch_queue=q, daemon=True)
+    t.start()
+
+    try:
+        log_mod._watchdog_check_once()
+
+        assert any(
+            'stalled-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records
+        ), 'watchdog did not report the stalled thread'
+    finally:
+        stop.set()
+        t.join(timeout=5)
