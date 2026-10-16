@@ -855,17 +855,18 @@ def test_set_stdout_lock():
 
 def test_listen_no_data_loss_without_lock(tmp_path):
     """_listen writes every queued message to the logfile when no lock is used."""
+    import threading
     import time
 
-    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.dut_factory import _LISTEN_STOP, _listen
     from pytest_embedded.log import MessageQueue
 
     logfile = str(tmp_path / 'test.log')
     q = MessageQueue()
     messages = [f'line_{i}\n'.encode() for i in range(20)]
 
-    p = _ctx.Process(target=_listen, args=(q, logfile), kwargs={'with_timestamp': False})
-    p.start()
+    t = threading.Thread(target=_listen, args=(q, logfile), kwargs={'with_timestamp': False}, daemon=True)
+    t.start()
     try:
         for msg in messages:
             q.put(msg)
@@ -880,9 +881,9 @@ def test_listen_no_data_loss_without_lock(tmp_path):
                 pass
             time.sleep(0.05)
     finally:
-        p.terminate()
-        p.join(timeout=5)
-        assert p.exitcode is not None, 'listener process did not terminate'
+        q.put(_LISTEN_STOP)
+        t.join(timeout=5)
+        assert not t.is_alive(), 'listener thread did not terminate'
 
     content = open(logfile, 'rb').read()
     for msg in messages:
@@ -890,45 +891,42 @@ def test_listen_no_data_loss_without_lock(tmp_path):
 
 
 def test_listen_no_data_loss_with_lock(tmp_path):
-    """_listen writes every queued message to the logfile when a Manager lock is used."""
-    import multiprocessing
+    """_listen writes every queued message to the logfile when a lock is used."""
+    import threading
     import time
 
-    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.dut_factory import _LISTEN_STOP, _listen
     from pytest_embedded.log import MessageQueue
 
     logfile = str(tmp_path / 'test.log')
     q = MessageQueue()
     messages = [f'line_{i}\n'.encode() for i in range(20)]
 
-    manager = multiprocessing.Manager()
+    lock = threading.Lock()
+    t = threading.Thread(
+        target=_listen,
+        args=(q, logfile),
+        kwargs={'with_timestamp': False, '_stdout_lock': lock},
+        daemon=True,
+    )
+    t.start()
     try:
-        lock = manager.Lock()
-        p = _ctx.Process(
-            target=_listen,
-            args=(q, logfile),
-            kwargs={'with_timestamp': False, '_stdout_lock': lock},
-        )
-        p.start()
-        try:
-            for msg in messages:
-                q.put(msg)
+        for msg in messages:
+            q.put(msg)
 
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                try:
-                    content = open(logfile, 'rb').read()
-                    if all(msg in content for msg in messages):
-                        break
-                except OSError:
-                    pass
-                time.sleep(0.05)
-        finally:
-            p.terminate()
-            p.join(timeout=5)
-            assert p.exitcode is not None, 'listener process did not terminate'
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                content = open(logfile, 'rb').read()
+                if all(msg in content for msg in messages):
+                    break
+            except OSError:
+                pass
+            time.sleep(0.05)
     finally:
-        manager.shutdown()
+        q.put(_LISTEN_STOP)
+        t.join(timeout=5)
+        assert not t.is_alive(), 'listener thread did not terminate'
 
     content = open(logfile, 'rb').read()
     for msg in messages:
@@ -936,11 +934,11 @@ def test_listen_no_data_loss_with_lock(tmp_path):
 
 
 def test_stdout_lock_concurrent_no_data_loss(tmp_path):
-    """Two concurrent _listen processes sharing a Manager lock both preserve all data."""
-    import multiprocessing
+    """Two concurrent _listen threads sharing a lock both preserve all data."""
+    import threading
     import time
 
-    from pytest_embedded.dut_factory import _ctx, _listen
+    from pytest_embedded.dut_factory import _LISTEN_STOP, _listen
     from pytest_embedded.log import MessageQueue
 
     logfile0 = str(tmp_path / 'dut0.log')
@@ -950,46 +948,44 @@ def test_stdout_lock_concurrent_no_data_loss(tmp_path):
     messages0 = [f'dut0_line_{i}\n'.encode() for i in range(20)]
     messages1 = [f'dut1_line_{i}\n'.encode() for i in range(20)]
 
-    manager = multiprocessing.Manager()
+    lock = threading.Lock()
+    t0 = threading.Thread(
+        target=_listen,
+        args=(q0, logfile0),
+        kwargs={'with_timestamp': False, 'count': 1, 'total': 2, '_stdout_lock': lock},
+        daemon=True,
+    )
+    t1 = threading.Thread(
+        target=_listen,
+        args=(q1, logfile1),
+        kwargs={'with_timestamp': False, 'count': 2, 'total': 2, '_stdout_lock': lock},
+        daemon=True,
+    )
+    t0.start()
+    t1.start()
     try:
-        lock = manager.Lock()
-        p0 = _ctx.Process(
-            target=_listen,
-            args=(q0, logfile0),
-            kwargs={'with_timestamp': False, 'count': 1, 'total': 2, '_stdout_lock': lock},
-        )
-        p1 = _ctx.Process(
-            target=_listen,
-            args=(q1, logfile1),
-            kwargs={'with_timestamp': False, 'count': 2, 'total': 2, '_stdout_lock': lock},
-        )
-        p0.start()
-        p1.start()
-        try:
-            # interleave writes from both DUTs to maximize lock contention
-            for msg0, msg1 in zip(messages0, messages1):
-                q0.put(msg0)
-                q1.put(msg1)
+        # interleave writes from both DUTs to maximize lock contention
+        for msg0, msg1 in zip(messages0, messages1):
+            q0.put(msg0)
+            q1.put(msg1)
 
-            deadline = time.monotonic() + 15
-            while time.monotonic() < deadline:
-                try:
-                    c0 = open(logfile0, 'rb').read()
-                    c1 = open(logfile1, 'rb').read()
-                    if all(m in c0 for m in messages0) and all(m in c1 for m in messages1):
-                        break
-                except OSError:
-                    pass
-                time.sleep(0.05)
-        finally:
-            p0.terminate()
-            p1.terminate()
-            p0.join(timeout=5)
-            p1.join(timeout=5)
-            assert p0.exitcode is not None, 'dut0 listener process did not terminate'
-            assert p1.exitcode is not None, 'dut1 listener process did not terminate'
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            try:
+                c0 = open(logfile0, 'rb').read()
+                c1 = open(logfile1, 'rb').read()
+                if all(m in c0 for m in messages0) and all(m in c1 for m in messages1):
+                    break
+            except OSError:
+                pass
+            time.sleep(0.05)
     finally:
-        manager.shutdown()
+        q0.put(_LISTEN_STOP)
+        q1.put(_LISTEN_STOP)
+        t0.join(timeout=5)
+        t1.join(timeout=5)
+        assert not t0.is_alive(), 'dut0 listener thread did not terminate'
+        assert not t1.is_alive(), 'dut1 listener thread did not terminate'
 
     c0 = open(logfile0, 'rb').read()
     c1 = open(logfile1, 'rb').read()
@@ -1046,13 +1042,13 @@ def test_forward_io_survives_split_multibyte_char(tmp_path):
     """
     import time
 
-    from pytest_embedded.log import MessageQueue, _PopenRedirectProcess
+    from pytest_embedded.log import MessageQueue, _PopenRedirectThread
 
     logfile = str(tmp_path / 'redirect.log')
     open(logfile, 'wb').close()
 
     q = MessageQueue()
-    p = _PopenRedirectProcess(q, logfile)
+    p = _PopenRedirectThread(q, logfile)
     p.start()
     try:
         with open(logfile, 'ab') as fw:
@@ -1065,15 +1061,14 @@ def test_forward_io_survives_split_multibyte_char(tmp_path):
             fw.write(b'dash \xe2')
             fw.flush()
         time.sleep(0.5)
-        assert p.is_alive(), f'forwarder died on a split sequence (exitcode={p.exitcode})'
+        assert p.is_alive(), 'forwarder died on a split sequence'
 
         with open(logfile, 'ab') as fw:
             fw.write(b'\x80\x94 tail\n')
             fw.flush()
         assert b'dash \xe2\x80\x94 tail\n' in _drain(q), 'the split character was not reassembled'
     finally:
-        p.terminate()
-        p.join(timeout=5)
+        p.stop()
 
 
 def test_forward_io_preserves_carriage_returns(tmp_path):
@@ -1083,13 +1078,13 @@ def test_forward_io_preserves_carriage_returns(tmp_path):
     CRLF was forwarded as LF. The serial transport never did that, and the console writer
     and the Unity parser both handle CRLF themselves.
     """
-    from pytest_embedded.log import MessageQueue, _PopenRedirectProcess
+    from pytest_embedded.log import MessageQueue, _PopenRedirectThread
 
     logfile = str(tmp_path / 'redirect.log')
     open(logfile, 'wb').close()
 
     q = MessageQueue()
-    p = _PopenRedirectProcess(q, logfile)
+    p = _PopenRedirectThread(q, logfile)
     p.start()
     try:
         with open(logfile, 'ab') as fw:
@@ -1097,5 +1092,4 @@ def test_forward_io_preserves_carriage_returns(tmp_path):
             fw.flush()
         assert _drain(q) == b'first\r\nsecond\r\n'
     finally:
-        p.terminate()
-        p.join(timeout=5)
+        p.stop()

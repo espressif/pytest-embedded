@@ -1,13 +1,13 @@
 import errno
 import logging
-import multiprocessing
 import os
+import queue
 import subprocess
 import tempfile
 import textwrap
+import threading
+import time
 import uuid
-from multiprocessing import queues
-from multiprocessing.managers import BaseManager
 from typing import AnyStr
 
 import pexpect.fdpexpect
@@ -16,33 +16,23 @@ from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
 from .utils import Meta, remove_asci_color_code, to_bytes, to_str, utcnow_str
 
-_ctx = multiprocessing.get_context('spawn')
 
+class MessageQueue(queue.Queue):
+    """
+    A thread-safe queue that only accepts non-empty `str`/`bytes` messages.
 
-class MessageQueueManager(BaseManager):
-    pass
+    Could also be used as a file-like object via `write()`/`flush()`/`isatty()`.
+    """
 
-
-class MessageQueue(queues.Queue):
-    def __init__(self, *args, **kwargs):
-        if 'ctx' not in kwargs:
-            kwargs['ctx'] = _ctx
-
-        super().__init__(*args, **kwargs)
-
-    def put(self, obj, **kwargs):
-        if not isinstance(obj, str | bytes):
-            super().put(obj, **kwargs)
+    def put(self, obj, *args, **kwargs):
+        if not isinstance(obj, (str, bytes)):
+            super().put(obj, *args, **kwargs)
             return
 
         if obj == '' or obj == b'':
             return
 
-        _b = to_bytes(obj)
-        try:
-            super().put(_b, **kwargs)
-        except Exception:  # queue might be closed
-            pass
+        super().put(to_bytes(obj), *args, **kwargs)
 
     def write(self, s: AnyStr):
         self.put(s)
@@ -52,9 +42,6 @@ class MessageQueue(queues.Queue):
 
     def isatty(self):
         return True
-
-
-MessageQueueManager.register('MessageQueue', MessageQueue)
 
 
 class PexpectProcess(pexpect.fdpexpect.fdspawn):
@@ -148,24 +135,36 @@ def live_print_call(*args, msg_queue: MessageQueue | None = None, expect_returnc
         raise subprocess.CalledProcessError(process.returncode, process.args)
 
 
-class _PopenRedirectProcess(_ctx.Process):
-    def __init__(self, msg_queue: MessageQueue, logfile: str):
-        super().__init__(target=self._forward_io, args=(msg_queue, logfile), daemon=True)
+class _PopenRedirectThread(threading.Thread):
+    """
+    Keep reading the log file written by the `subprocess.Popen` instance and forward the content
+    to the `MessageQueue` instance.
+    """
 
-    @staticmethod
-    def _forward_io(msg_queue, logfile) -> None:
-        # Binary, because the file is still being written to: a text-mode read finalizes the
-        # decoder at every temporary EOF, and a UTF-8 sequence straddling that boundary raises
-        # UnicodeDecodeError. `except Exception` below would swallow it and this process would
-        # exit 0, cutting the output off for the rest of the session. Decoding here is not
-        # needed either - `MessageQueue.put` re-encodes with `to_bytes`, the pexpect buffer is
-        # bytes, and the serial transport already forwards `read_all()` undecoded.
-        with open(logfile, 'rb') as fr:
-            while True:
-                try:
-                    msg_queue.put(fr.read())  # msg_queue may be closed
-                except Exception:
-                    break
+    def __init__(self, msg_queue: MessageQueue, logfile: str):
+        self._q = msg_queue
+        self.logfile = logfile
+        self._stopping = threading.Event()
+
+        super().__init__(target=self._forward_io, daemon=True)  # killed by the main thread
+
+    def _forward_io(self) -> None:
+        # Binary mode: the file is still being appended to. A text-mode read finalizes the
+        # incremental decoder at every temporary EOF, and a UTF-8 sequence straddling that
+        # boundary raises UnicodeDecodeError, silently killing this thread. Decoding is not
+        # needed - `MessageQueue.put` re-encodes with `to_bytes`, and the pexpect buffer is bytes.
+        with open(self.logfile, 'rb') as fr:
+            while not self._stopping.is_set():
+                _s = fr.read()
+                if _s:
+                    self._q.put(_s)
+                else:  # no new content. avoid busy-waiting on the log file
+                    time.sleep(0.1)
+
+    def stop(self) -> None:
+        self._stopping.set()
+        if self.is_alive():
+            self.join(timeout=5)
 
 
 class DuplicateStdoutPopen(subprocess.Popen):
@@ -174,7 +173,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     """
 
     SOURCE = 'POPEN'
-    REDIRECT_CLS = _PopenRedirectProcess
+    REDIRECT_CLS = _PopenRedirectThread
 
     def __init__(self, msg_queue: MessageQueue, cmd: str | list[str] = [], meta: Meta | None = None, **kwargs):
         self._q = msg_queue
@@ -231,7 +230,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
     def close(self):
         if self._p:
-            self._p.terminate()
+            self._p.stop()
 
         self._fw.close()
 

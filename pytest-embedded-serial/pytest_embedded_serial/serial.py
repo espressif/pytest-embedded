@@ -1,7 +1,6 @@
 import contextlib
 import copy
 import logging
-import multiprocessing
 import queue
 import threading
 import time
@@ -170,7 +169,7 @@ class _SerialRedirectThread(threading.Thread):
 
     def __init__(self, msg_queue: MessageQueue, s: pyserial.Serial):
         self._q = msg_queue
-        self._event_q = multiprocessing.Queue()
+        self._event_q = queue.Queue()
         self._s = s
 
         self._block_reading = False
