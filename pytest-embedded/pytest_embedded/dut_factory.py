@@ -128,13 +128,15 @@ class _ListenerThread(_MonitoredThread):
         super().__init__(
             target=_listen,
             args=(msg_queue, filepath),
-            kwargs=_drop_none_kwargs({
-                'with_timestamp': with_timestamp,
-                'count': count,
-                'total': total,
-                '_stdout_lock': _stdout_lock,
-                '_heartbeat': self.beat,
-            }),
+            kwargs=_drop_none_kwargs(
+                {
+                    'with_timestamp': with_timestamp,
+                    'count': count,
+                    'total': total,
+                    '_stdout_lock': _stdout_lock,
+                    '_heartbeat': self.beat,
+                }
+            ),
             daemon=True,
             watch_name=f'listener:{os.path.basename(filepath)}',
             watch_queue=msg_queue,
@@ -154,12 +156,14 @@ def _listener_gn(
     return _ListenerThread(
         msg_queue,
         _pexpect_logfile,
-        **_drop_none_kwargs({
-            'with_timestamp': with_timestamp,
-            'count': dut_index,
-            'total': dut_total,
-            '_stdout_lock': _stdout_lock,
-        }),
+        **_drop_none_kwargs(
+            {
+                'with_timestamp': with_timestamp,
+                'count': dut_index,
+                'total': dut_total,
+                '_stdout_lock': _stdout_lock,
+            }
+        ),
     )
 
 

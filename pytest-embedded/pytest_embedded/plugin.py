@@ -792,9 +792,7 @@ def with_timestamp(request: FixtureRequest) -> bool:
 
 @pytest.fixture
 @multi_dut_generator_fixture
-def _listener(
-    msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock
-) -> threading.Thread:
+def _listener(msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock) -> threading.Thread:
     """
     The listener would create a `_listen` thread. The `_listen` thread would get the string from the message queue,
     and do two things together:

@@ -1161,9 +1161,9 @@ def test_watchdog_reports_died_thread(caplog):
 
     log_mod._watchdog_check_once()
 
-    assert any(
-        'doomed-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records
-    ), 'watchdog did not report the dead thread'
+    assert any('doomed-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records), (
+        'watchdog did not report the dead thread'
+    )
 
 
 def test_watchdog_reports_stall(caplog):
@@ -1188,9 +1188,9 @@ def test_watchdog_reports_stall(caplog):
     try:
         log_mod._watchdog_check_once()
 
-        assert any(
-            'stalled-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records
-        ), 'watchdog did not report the stalled thread'
+        assert any('stalled-test-thread' in r.getMessage() and r.levelno >= logging.ERROR for r in caplog.records), (
+            'watchdog did not report the stalled thread'
+        )
     finally:
         stop.set()
         t.join(timeout=5)
