@@ -1,13 +1,23 @@
 import os
 import shutil
 import xml.etree.ElementTree as ET
+from types import SimpleNamespace
 
 import pytest
+from pytest_embedded_qemu import DEFAULT_IMAGE_FN, Qemu
 
 qemu_bin_required = pytest.mark.skipif(
     (shutil.which('qemu-system-xtensa') is None or shutil.which('qemu-system-riscv32') is None),
     reason='Please make sure run `$IDF_PATH/tools/idf_tools.py install qemu-riscv32 qemu-xtensa` first.',
 )
+
+
+def test_qemu_image_defaults_to_app_binary():
+    app = SimpleNamespace(binary_file='/tmp/sketch.ino.merged.bin')
+
+    assert Qemu._resolve_image_path(None, app) == app.binary_file
+    assert Qemu._resolve_image_path('/tmp/explicit.bin', app) == '/tmp/explicit.bin'
+    assert Qemu._resolve_image_path(None, None) == DEFAULT_IMAGE_FN
 
 
 @qemu_bin_required

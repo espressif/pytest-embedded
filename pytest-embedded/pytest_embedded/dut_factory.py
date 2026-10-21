@@ -356,8 +356,14 @@ def _fixture_classes_and_options_fn(
                 kwargs[fixture] = {
                     'msg_queue': msg_queue,
                     'qemu_image_path': qemu_image_path
-                    or os.path.join(
-                        app_path or '', build_dir or 'build', ENCRYPTED_IMAGE_FN if encrypt else DEFAULT_IMAGE_FN
+                    or (
+                        None
+                        if 'arduino' in _services
+                        else os.path.join(
+                            app_path or '',
+                            build_dir or 'build',
+                            ENCRYPTED_IMAGE_FN if encrypt else DEFAULT_IMAGE_FN,
+                        )
                     ),
                     'qemu_prog_path': qemu_prog_path,
                     'qemu_cli_args': qemu_cli_args,
