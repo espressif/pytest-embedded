@@ -182,8 +182,7 @@ def test_pre_flash_enc_qemu(testdir):
         'idf,qemu',
         '--app-path',
         app_path,
-        '--qemu-extra-args',
-        f'-drive file={efuses_path},if=none,format=raw,id=efuse'
+        f'--qemu-extra-args=-drive file={efuses_path},if=none,format=raw,id=efuse'
         ' -global driver=nvram.esp32.efuse,property=drive,value=efuse',
         '--encrypt',
         'true',

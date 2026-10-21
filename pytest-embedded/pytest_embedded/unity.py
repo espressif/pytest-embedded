@@ -231,7 +231,19 @@ class JunitMerger:
     def _int_add(*args) -> str:
         return reduce(lambda a, b: str(int(a) + int(b)), args)
 
-    def merge(self, junit_files: list[str]):
+    def _find_testcases(self, name: str) -> tuple[ET.Element | None, list[ET.Element]]:
+        parent = self.junit.find(f'.//testcase[@name="{name}"]...')
+        if parent is None:
+            return None, []
+
+        return parent, [case for case in parent.findall('testcase') if case.attrib.get('name') == name]
+
+    def merge(
+        self,
+        junit_files: list[str],
+        copy_parent_attrs: bool = False,
+        test_case_name_aliases: dict[str, str] | None = None,
+    ):
         if not self.junit_path:
             return
 
@@ -290,32 +302,49 @@ class JunitMerger:
 
             # a normal file path should be /tmp/pytest-embedded/<test_case_name>/dut.xml
             test_case_name = os.path.basename(os.path.dirname(file))
-            junit_parent = self.junit.find(f'.//testcase[@name="{test_case_name}"]...')
-            junit_case = self.junit.find(f'.//testcase[@name="{test_case_name}"]')
-            if junit_case is None:
+            junit_parent, junit_cases = self._find_testcases(test_case_name)
+            if not junit_cases and test_case_name_aliases:
+                pytest_case_name = test_case_name_aliases.get(test_case_name)
+                if pytest_case_name:
+                    junit_parent, junit_cases = self._find_testcases(pytest_case_name)
+                    for case in junit_cases:
+                        case.attrib['name'] = test_case_name
+            if not junit_cases:
                 self.junit.write('debug.xml')
                 raise ValueError(f'Could\'t find test case {test_case_name}, dumped into "debug.xml" for debugging')
 
-            junit_case_is_fail = junit_case.find('failure') is not None
+            junit_case = junit_cases[0]
+            junit_case_errors = sum(case.find('error') is not None for case in junit_cases)
+            junit_case_failures = sum(case.find('failure') is not None for case in junit_cases)
+            junit_case_skipped = sum(case.find('skipped') is not None for case in junit_cases)
 
-            junit_case.attrib['is_unity_case'] = '0'
+            for case in junit_cases:
+                case.attrib['is_unity_case'] = '0'
             if self.unity_test_report_mode == UnityTestReportMode.REPLACE.value:
-                junit_parent.remove(junit_case)
+                for case in junit_cases:
+                    junit_parent.remove(case)
 
             for case in merging_cases:
                 case.attrib['is_unity_case'] = '1'
+                if copy_parent_attrs:
+                    if parent_classname := junit_case.attrib.get('classname'):
+                        case.attrib.setdefault('classname', parent_classname)
+                    if parent_file := junit_case.attrib.get('file'):
+                        case.attrib.setdefault('file', parent_file)
+                    if parent_test_name := junit_case.attrib.get('name'):
+                        case.attrib['pytest_embedded_test_case'] = parent_test_name
                 junit_parent.append(case)
 
             junit_parent.attrib['errors'] = self._int_add(
-                junit_parent.attrib['errors'], merging_parent.attrib['errors']
+                junit_parent.attrib['errors'], merging_parent.attrib['errors'], -junit_case_errors
             )
             junit_parent.attrib['failures'] = self._int_add(
                 junit_parent.attrib['failures'],
                 merging_parent.attrib['failures'],
-                -int(junit_case_is_fail),
+                -junit_case_failures,
             )
             junit_parent.attrib['skipped'] = self._int_add(
-                junit_parent.attrib['skipped'], merging_parent.attrib['skipped']
+                junit_parent.attrib['skipped'], merging_parent.attrib['skipped'], -junit_case_skipped
             )
             junit_parent.attrib['tests'] = self._int_add(
                 junit_parent.attrib['tests'], merging_parent.attrib['tests'], -1

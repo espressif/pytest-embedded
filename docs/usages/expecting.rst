@@ -147,6 +147,8 @@ Features:
 -  Automatically raises an :obj:`AssertionError` if any Unity test case fails.
 -  Generates a JUnit XML test report and merges it into the pytest report when ``--junitxml`` is used.
 
+When pytest-xdist is installed separately, reports created by ``pytest -n N`` workers are collected and merged into the controller's single ``--junitxml`` output. pytest-xdist is not a runtime dependency of pytest-embedded.
+
 .. code:: python
 
    def test_firmware_unit_tests(dut):
