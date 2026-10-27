@@ -6,4 +6,5 @@ flit
 
 # testing
 pytest-cov
-pytest-rerunfailures
+pytest-rerunfailures>=16.3
+pytest-xdist
