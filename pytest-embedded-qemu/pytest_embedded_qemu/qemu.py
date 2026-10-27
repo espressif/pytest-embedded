@@ -132,7 +132,7 @@ class Qemu(DuplicateStdoutPopen):
         """
         self.app = app
 
-        image_path = qemu_image_path or DEFAULT_IMAGE_FN
+        image_path = self._resolve_image_path(qemu_image_path, app)
         if not os.path.exists(image_path):
             raise ValueError(f"QEMU image path doesn't exist: {image_path}")
 
@@ -190,6 +190,10 @@ class Qemu(DuplicateStdoutPopen):
             ],
             **kwargs,
         )
+
+    @staticmethod
+    def _resolve_image_path(qemu_image_path: str | None, app: t.Optional['QemuApp']) -> str:
+        return qemu_image_path or getattr(app, 'binary_file', None) or DEFAULT_IMAGE_FN
 
     def execute_efuse_command(self, command: str):
         import espefuse
