@@ -1,13 +1,13 @@
 import errno
 import logging
-import multiprocessing
 import os
+import queue
 import subprocess
 import tempfile
 import textwrap
+import threading
+import time
 import uuid
-from multiprocessing import queues
-from multiprocessing.managers import BaseManager
 from typing import AnyStr
 
 import pexpect.fdpexpect
@@ -16,33 +16,23 @@ from pexpect.utils import poll_ignore_interrupts, select_ignore_interrupts
 
 from .utils import Meta, remove_asci_color_code, to_bytes, to_str, utcnow_str
 
-_ctx = multiprocessing.get_context('spawn')
 
+class MessageQueue(queue.Queue):
+    """
+    A thread-safe queue that only accepts non-empty `str`/`bytes` messages.
 
-class MessageQueueManager(BaseManager):
-    pass
+    Could also be used as a file-like object via `write()`/`flush()`/`isatty()`.
+    """
 
-
-class MessageQueue(queues.Queue):
-    def __init__(self, *args, **kwargs):
-        if 'ctx' not in kwargs:
-            kwargs['ctx'] = _ctx
-
-        super().__init__(*args, **kwargs)
-
-    def put(self, obj, **kwargs):
-        if not isinstance(obj, str | bytes):
-            super().put(obj, **kwargs)
+    def put(self, obj, *args, **kwargs):
+        if not isinstance(obj, (str, bytes)):
+            super().put(obj, *args, **kwargs)
             return
 
         if obj == '' or obj == b'':
             return
 
-        _b = to_bytes(obj)
-        try:
-            super().put(_b, **kwargs)
-        except Exception:  # queue might be closed
-            pass
+        super().put(to_bytes(obj), *args, **kwargs)
 
     def write(self, s: AnyStr):
         self.put(s)
@@ -54,7 +44,109 @@ class MessageQueue(queues.Queue):
         return True
 
 
-MessageQueueManager.register('MessageQueue', MessageQueue)
+_WATCHDOG_INTERVAL = 5.0  # seconds; module-level so tests can monkeypatch it
+
+_watchdog_lock = threading.Lock()
+_watchdog_registry: list['_MonitoredThread'] = []
+_watchdog_started = False
+
+
+class _MonitoredThread(threading.Thread):
+    """
+    A daemon thread registered with a lightweight watchdog.
+
+    - If an exception escapes ``run()`` (i.e. a bug not handled by the per-message
+      ``try/except``), the watchdog reports it loudly - without this, a dead listener
+      or redirect thread only surfaces much later as unexplained pexpect timeouts.
+    - If ``watch_queue`` is given and the thread stops making progress while the
+      queue has a backlog (e.g. blocked on a stalled stdout), the watchdog reports it.
+    """
+
+    def __init__(
+        self,
+        *args,
+        watch_name: str | None = None,
+        watch_queue: MessageQueue | None = None,
+        **kwargs,
+    ):
+        self._watch_name = watch_name
+        self._watch_queue = watch_queue
+        self._beat = 0
+        self._last_beat = 0
+        self._finished = False
+        self._died_with_exc = False
+        self._alarm_raised = False
+        super().__init__(*args, **kwargs)
+        with _watchdog_lock:
+            _watchdog_registry.append(self)
+        _ensure_watchdog()
+
+    def beat(self) -> None:
+        """Call once per processed item / loop iteration to prove progress."""
+        self._beat += 1
+
+    def run(self) -> None:
+        try:
+            super().run()
+        except BaseException:
+            self._died_with_exc = True
+            raise
+        finally:
+            self._finished = True
+
+
+def _ensure_watchdog() -> None:
+    global _watchdog_started
+    if _watchdog_started:
+        return
+    _watchdog_started = True
+    threading.Thread(target=_watchdog_main, name='pytest-embedded-watchdog', daemon=True).start()
+
+
+def _watchdog_main() -> None:
+    while True:
+        time.sleep(_WATCHDOG_INTERVAL)
+        _watchdog_check_once()
+
+
+def _watchdog_check_once() -> None:
+    with _watchdog_lock:
+        threads = list(_watchdog_registry)
+    for t in threads:
+        if t is None:
+            # `_close_or_terminate` nulls out list slots that reference the closed object
+            # (via gc.get_referrers) - our registry is such a list. Skip the holes.
+            continue
+        name = t._watch_name or t.name
+        if t._finished:
+            if t._died_with_exc and not t._alarm_raised:
+                t._alarm_raised = True
+                logging.error(
+                    'watchdog: thread %r died with an exception. '
+                    'Output for this DUT will freeze and expects will time out.',
+                    name,
+                )
+            continue
+        if t._beat != t._last_beat:
+            t._last_beat = t._beat
+            t._alarm_raised = False
+            continue
+        q = t._watch_queue
+        if q is not None and q.qsize() > 0 and not t._alarm_raised:
+            t._alarm_raised = True
+            logging.error(
+                'watchdog: thread %r made no progress with %d queued messages '
+                '(stdout backpressure?). Output for this DUT will freeze.',
+                name,
+                q.qsize(),
+            )
+    # prune holes left by `_close_or_terminate` and fully-reported dead threads,
+    # so a long session doesn't accumulate an unbounded registry
+    with _watchdog_lock:
+        for i in range(len(_watchdog_registry) - 1, -1, -1):
+            t = _watchdog_registry[i]
+            if t is None or (t._finished and (not t._died_with_exc or t._alarm_raised)):
+                del _watchdog_registry[i]
 
 
 class PexpectProcess(pexpect.fdpexpect.fdspawn):
@@ -148,24 +240,55 @@ def live_print_call(*args, msg_queue: MessageQueue | None = None, expect_returnc
         raise subprocess.CalledProcessError(process.returncode, process.args)
 
 
-class _PopenRedirectProcess(_ctx.Process):
-    def __init__(self, msg_queue: MessageQueue, logfile: str):
-        super().__init__(target=self._forward_io, args=(msg_queue, logfile), daemon=True)
+class _PopenRedirectThread(_MonitoredThread):
+    """
+    Keep reading the log file written by the `subprocess.Popen` instance and forward the content
+    to the `MessageQueue` instance.
+    """
 
-    @staticmethod
-    def _forward_io(msg_queue, logfile) -> None:
-        # Binary, because the file is still being written to: a text-mode read finalizes the
-        # decoder at every temporary EOF, and a UTF-8 sequence straddling that boundary raises
-        # UnicodeDecodeError. `except Exception` below would swallow it and this process would
-        # exit 0, cutting the output off for the rest of the session. Decoding here is not
-        # needed either - `MessageQueue.put` re-encodes with `to_bytes`, the pexpect buffer is
-        # bytes, and the serial transport already forwards `read_all()` undecoded.
-        with open(logfile, 'rb') as fr:
-            while True:
-                try:
-                    msg_queue.put(fr.read())  # msg_queue may be closed
-                except Exception:
-                    break
+    def __init__(self, msg_queue: MessageQueue, logfile: str):
+        self._q = msg_queue
+        self.logfile = logfile
+        self._stopping = threading.Event()
+
+        super().__init__(
+            target=self._forward_io,
+            daemon=True,  # killed by the main thread
+            watch_name=f'redirect:{os.path.basename(logfile)}',
+            watch_queue=msg_queue,
+        )
+
+    def _forward_io(self) -> None:
+        # Binary mode: the file is still being appended to. A text-mode read finalizes the
+        # incremental decoder at every temporary EOF, and a UTF-8 sequence straddling that
+        # boundary raises UnicodeDecodeError, silently killing this thread. Decoding is not
+        # needed - `MessageQueue.put` re-encodes with `to_bytes`, and the pexpect buffer is bytes.
+        while not self._stopping.is_set():
+            try:
+                fr = open(self.logfile, 'rb')
+            except OSError as e:
+                logging.error('redirect: cannot open %s (%s). retrying...', self.logfile, e)
+                time.sleep(0.5)
+                continue
+
+            with fr:
+                while not self._stopping.is_set():
+                    self.beat()
+                    try:
+                        _s = fr.read()
+                        if _s:
+                            self._q.put(_s)
+                        else:  # no new content. avoid busy-waiting on the log file
+                            time.sleep(0.1)
+                    except Exception:
+                        # one failed read must not kill the redirect for the whole session
+                        logging.error('redirect: failed to forward output, continuing...', exc_info=True)
+                        time.sleep(0.1)
+
+    def stop(self) -> None:
+        self._stopping.set()
+        if self.is_alive():
+            self.join(timeout=5)
 
 
 class DuplicateStdoutPopen(subprocess.Popen):
@@ -174,7 +297,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
     """
 
     SOURCE = 'POPEN'
-    REDIRECT_CLS = _PopenRedirectProcess
+    REDIRECT_CLS = _PopenRedirectThread
 
     def __init__(self, msg_queue: MessageQueue, cmd: str | list[str] = [], meta: Meta | None = None, **kwargs):
         self._q = msg_queue
@@ -231,7 +354,7 @@ class DuplicateStdoutPopen(subprocess.Popen):
 
     def close(self):
         if self._p:
-            self._p.terminate()
+            self._p.stop()
 
         self._fw.close()
 
