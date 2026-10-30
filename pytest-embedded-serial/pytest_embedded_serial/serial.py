@@ -108,7 +108,7 @@ class Serial:
 
         # Here the reason why we're still using thread is,
         # the `pyserial` object can't be pickled when using multiprocessing.Process
-        self._redirect_thread = _SerialRedirectThread(self._q, self.proc)
+        self._redirect_thread = _SerialRedirectThread(self._q, self)
         self._redirect_thread.start()
 
     def stop_redirect_thread(self) -> bool:
@@ -168,7 +168,7 @@ class _SerialRedirectThread(threading.Thread):
     Redirect serial thread
     """
 
-    def __init__(self, msg_queue: MessageQueue, s: pyserial.Serial):
+    def __init__(self, msg_queue: MessageQueue, s: Serial):
         self._q = msg_queue
         self._event_q = multiprocessing.Queue()
         self._s = s
@@ -196,22 +196,22 @@ class _SerialRedirectThread(threading.Thread):
                     continue
 
                 try:
-                    s = self._s.read_all()
+                    s = self._s.proc.read_all()
                 except OSError as e:
                     logging.error(f'OSError detected: {e}. Serial connection may be lost.')
-                    if self._s.closed:
+                    if self._s.proc.closed:
                         logging.error('Serial port is already closed. Exiting event loop.')
                         return
 
-                    port = self._s.port
+                    port = self._s.proc.port
                     port_config = {
-                        'baudrate': self._s.baudrate,
-                        'bytesize': self._s.bytesize,
-                        'parity': self._s.parity,
-                        'stopbits': self._s.stopbits,
-                        'timeout': self._s.timeout,
-                        'xonxoff': self._s.xonxoff,
-                        'rtscts': self._s.rtscts,
+                        'baudrate': self._s.proc.baudrate,
+                        'bytesize': self._s.proc.bytesize,
+                        'parity': self._s.proc.parity,
+                        'stopbits': self._s.proc.stopbits,
+                        'timeout': self._s.proc.timeout,
+                        'xonxoff': self._s.proc.xonxoff,
+                        'rtscts': self._s.proc.rtscts,
                     }
                     for attempt in range(1, 4):
                         delay = attempt * 1.5
@@ -220,8 +220,8 @@ class _SerialRedirectThread(threading.Thread):
                         )
                         time.sleep(delay)
                         try:
-                            self._s.close()
-                            self._s = pyserial.serial_for_url(port, **port_config)
+                            self._s.proc.close()
+                            self._s.proc = pyserial.serial_for_url(port, **port_config)
                             logging.info(f'Successfully reconnected to serial port {port}.')
                             break
                         except Exception as e:
