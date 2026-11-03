@@ -94,6 +94,49 @@ def test_serial_port(testdir):
     result.assert_outcomes(passed=1)
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='No pty support on windows')
+def test_dut_teardown_releases_threads_and_port(testdir):
+    import os
+    import pty
+
+    master_fd, slave_fd = pty.openpty()
+    port = os.ttyname(slave_fd)
+    try:
+        testdir.makeconftest(r"""
+            import pytest
+            from pytest_embedded_serial.serial import Serial
+
+            resources = ()
+
+            @pytest.fixture
+            def capture_resources(dut, _listener):
+                global resources
+                resources = (dut.serial, _listener)
+
+            @pytest.hookimpl(trylast=True)
+            def pytest_fixture_post_finalizer(fixturedef, request):
+                if fixturedef.argname != 'msg_queue' or not resources:
+                    return
+
+                serial, listener = resources
+                assert not listener.is_alive()
+                assert serial._redirect_thread is not None
+                assert not serial._redirect_thread.is_alive()
+                assert not serial.proc.is_open
+                assert serial.port not in Serial.occupied_ports
+        """)
+        testdir.makepyfile(r"""
+            def test_dut_teardown(dut, capture_resources):
+                assert dut.serial._redirect_thread.is_alive()
+        """)
+
+        result = testdir.runpytest('-s', '--embedded-services', 'serial', '--port', port)
+        result.assert_outcomes(passed=1, errors=0)
+    finally:
+        os.close(master_fd)
+        os.close(slave_fd)
+
+
 def test_teardown_called_for_multi_dut(testdir):
     testdir.makepyfile(r"""
         import pytest

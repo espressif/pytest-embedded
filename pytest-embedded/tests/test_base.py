@@ -362,6 +362,58 @@ def test_expect_from_timeout(testdir):
     result.assert_outcomes(passed=1)
 
 
+def test_concurrent_file_writes_do_not_interrupt_dut(testdir):
+    testdir.makepyfile(r"""
+        import threading
+        import time
+        from pathlib import Path
+
+        def test_concurrent_file_writes(dut, tmp_path):
+            writer_count = 200
+            start = threading.Barrier(writer_count + 1)
+            stop = threading.Event()
+            output_file = tmp_path / 'concurrent-writes.log'
+            write_counts = [0] * writer_count
+            errors = []
+
+            def write_to_file(index):
+                try:
+                    start.wait()
+                    with open(output_file, 'ab', buffering=0) as f:
+                        while not stop.is_set():
+                            f.write(f'{index}:{write_counts[index]}\n'.encode())
+                            write_counts[index] += 1
+                            stop.wait(0.001)
+                except Exception as e:
+                    errors.append(e)
+
+            threads = [threading.Thread(target=write_to_file, args=(i,)) for i in range(writer_count)]
+            for thread in threads:
+                thread.start()
+
+            start.wait()
+            try:
+                for _ in range(10):
+                    dut.write('1')
+                    dut.expect_exact('1', timeout=2)
+                    time.sleep(1)
+            finally:
+                stop.set()
+                for thread in threads:
+                    thread.join(timeout=5)
+
+            assert not errors
+            assert all(not thread.is_alive() for thread in threads)
+            assert len(write_counts) == writer_count
+            assert all(count > 0 for count in write_counts)
+            assert output_file.stat().st_size > 0
+            assert Path(dut.logfile).read_bytes() == b'1' * 10
+    """)
+
+    result = testdir.runpytest('-s')
+    result.assert_outcomes(passed=1, errors=0)
+
+
 def test_expect_unity_test_ouput(testdir, capsys):
     testdir.makepyfile(r"""
         import pytest
