@@ -59,23 +59,20 @@ class EspSerial(Serial):
         esptool_target = beta_target or target or 'auto'
         if port is None or port.endswith('*'):
             port_filter = port.strip('*') if port else ''
-            available_ports = [_p for _p in esptool.get_port_list(**filters) if port_filter in _p]
-            ports = list(set(available_ports) - set(self.occupied_ports.keys()) - set(ports_to_occupy))
-
-            # sort to make /dev/ttyS* ports before /dev/ttyUSB* ports
-            # esptool will reverse the list
-            ports.sort()
+            occupied = set(self.occupied_ports) | set(ports_to_occupy)
+            # get_port_list() is already the try-order: Espressif VID, then ttyUSB/ttyACM, then ttyS*.
+            ports = [p for p in esptool.get_port_list(**filters) if port_filter in p and p not in occupied]
             if port_mac:
-                for port in ports:
-                    if _is_port_mac_verified(pexpect_proc, port, port_mac, msg_queue):
-                        ports = [port]
+                for candidate in ports:
+                    if _is_port_mac_verified(pexpect_proc, candidate, port_mac, msg_queue):
+                        ports = [candidate]
                         break
                 else:
                     raise ValueError(f'The specified MAC address {port_mac} cannot be found.')
 
-            # prioritize the cache recorded target port
+            # Cache hits first, preserving get_port_list() order within each group.
             if esptool_target and self._meta:
-                ports.sort(key=lambda x: self._meta.hit_port_target_cache(x, esptool_target))
+                ports.sort(key=lambda p: self._meta.hit_port_target_cache(p, esptool_target), reverse=True)
 
             logging.debug(f'Detecting ports from {", ".join(ports)}')
         else:
