@@ -16,6 +16,7 @@ import warnings
 import xml.dom.minidom
 from collections import Counter
 from operator import itemgetter
+from pathlib import Path
 
 import filelock
 import pytest
@@ -73,6 +74,12 @@ _T = t.TypeVar('_T')
 
 
 def pytest_addoption(parser: pytest.Parser):
+    parser.addini(
+        'junit_app_path_relative_to_root',
+        'Record JUnit app_path relative to the pytest root directory when the app is inside it.',
+        type='bool',
+        default=False,
+    )
     base_group = parser.getgroup('embedded')
     base_group.addoption(
         '--count',
@@ -873,7 +880,13 @@ def embedded_services(request: FixtureRequest) -> str | None:
 def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute) -> str | None:
     """Enable parametrization for the same cli option"""
     res = _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
-    record_xml_attribute('app_path', res)
+    report_path = res
+    if res and request.config.getini('junit_app_path_relative_to_root') and Path(res).is_absolute():
+        try:
+            report_path = str(Path(res).resolve().relative_to(request.config.rootpath.resolve()))
+        except ValueError:
+            pass
+    record_xml_attribute('app_path', report_path)
     return res
 
 

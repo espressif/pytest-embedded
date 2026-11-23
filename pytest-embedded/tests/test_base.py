@@ -153,6 +153,54 @@ def test_default_app_path(testdir):
     result.assert_outcomes(passed=1)
 
 
+@pytest.mark.parametrize('enabled', [False, True])
+def test_junit_app_path_relative_to_root(testdir, enabled):
+    root = Path(str(testdir.tmpdir))
+    app_paths = [str(root / 'components' / 'app'), str(root.parent / (root.name + '-other') / 'app'), 'relative/app']
+    if enabled:
+        testdir.makepyprojecttoml("""
+            [tool.pytest.ini_options]
+            junit_app_path_relative_to_root = true
+            junit_family = "xunit1"
+        """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', {app_paths!r}, indirect=True)
+        def test_app(app_path, request):
+            assert app_path == request.node.callspec.params['app_path']
+    """)
+
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=3)
+    assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
+        'components/app' if enabled else app_paths[0],
+        app_paths[1],
+        app_paths[2],
+    ]
+
+
+def test_junit_app_path_uses_overridden_rootdir(testdir):
+    root = Path(str(testdir.tmpdir))
+    (root / 'project').mkdir()
+    testdir.makepyprojecttoml("""
+        [tool.pytest.ini_options]
+        junit_app_path_relative_to_root = true
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', [{str(root / 'project/components/app')!r}], indirect=True)
+        def test_app(app_path):
+            pass
+    """)
+
+    result = testdir.runpytest('--rootdir=project', '--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == ['components/app']
+
+
 @pytest.mark.parametrize(
     'parallel_count, parallel_index, res',
     [

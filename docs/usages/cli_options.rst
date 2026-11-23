@@ -95,6 +95,15 @@ Options in the ``embedded`` group configure fundamental framework behaviors, mul
       -  ``"replace"``
       -  Behavior for Unity test cases in the JUnit report: ``"replace"`` (default) or ``"merge"``.
 
+To record ``app_path`` in JUnit XML relative to pytest's ``rootdir``, enable this opt-in setting in ``pytest.ini``:
+
+.. code:: ini
+
+   [pytest]
+   junit_app_path_relative_to_root = true
+
+Only absolute app paths within ``rootdir`` are made relative; paths outside it and already-relative paths are unchanged. The ``app_path`` fixture itself still returns the original path. This setting defaults to ``false``.
+
 ****************
  Serial Options
 ****************
