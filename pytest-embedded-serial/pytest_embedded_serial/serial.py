@@ -1,14 +1,12 @@
 import contextlib
 import copy
 import logging
-import multiprocessing
 import queue
-import threading
 import time
 from typing import Any, ClassVar
 
 import serial as pyserial
-from pytest_embedded.log import MessageQueue
+from pytest_embedded.log import MessageQueue, _MonitoredThread
 from pytest_embedded.utils import Meta
 from serial.tools import list_ports
 
@@ -163,19 +161,23 @@ class Serial:
             self.start_redirect_thread()
 
 
-class _SerialRedirectThread(threading.Thread):
+class _SerialRedirectThread(_MonitoredThread):
     """
     Redirect serial thread
     """
 
     def __init__(self, msg_queue: MessageQueue, s: pyserial.Serial):
         self._q = msg_queue
-        self._event_q = multiprocessing.Queue()
+        self._event_q = queue.Queue()
         self._s = s
 
         self._block_reading = False
 
-        super().__init__(target=self._event_loop, daemon=True)  # killed by the main process
+        super().__init__(
+            target=self._event_loop,
+            daemon=True,  # killed by the main process
+            watch_name=f'serial:{s.port}',
+        )
 
     def _event_loop(self):
         """

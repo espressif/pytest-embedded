@@ -3,10 +3,10 @@ import datetime
 import gc
 import io
 import logging
-import multiprocessing
 import os
 import subprocess
 import sys
+import threading
 import time
 import typing as t
 from collections import defaultdict
@@ -22,15 +22,13 @@ if t.TYPE_CHECKING:
     from pytest_embedded_wokwi import Wokwi
 
 from . import App, Dut
-from .log import MessageQueue, PexpectProcess
+from .log import MessageQueue, PexpectProcess, _MonitoredThread
 from .utils import FIXTURES_SERVICES, ClassCliOptions, to_str
 
 
 def _drop_none_kwargs(kwargs: dict[t.Any, t.Any]):
     return {k: v for k, v in kwargs.items() if v is not None}
 
-
-_ctx = multiprocessing.get_context('spawn')
 
 _stdout = sys.__stdout__
 
@@ -43,6 +41,9 @@ DUT_GLOBAL_INDEX = 0
 # It helps to obtain the necessary information for a custom DUT, such as '_meta', '_services', and 'test_case_name'.
 PARAMETRIZED_FIXTURES_CACHE = {}
 
+#: sentinel to stop the `_listen` threads gracefully
+_LISTEN_STOP = object()
+
 
 _STDOUT_LOCK = None
 
@@ -53,65 +54,116 @@ def set_stdout_lock(lock) -> None:
 
 
 def _listen(
-    q: MessageQueue, filepath: str, with_timestamp: bool = True, count: int = 1, total: int = 1, _stdout_lock=None
+    q: MessageQueue,
+    filepath: str,
+    with_timestamp: bool = True,
+    count: int = 1,
+    total: int = 1,
+    _stdout_lock=None,
+    _heartbeat=None,
 ) -> None:
     shall_add_prefix = True
     _pending = ''
     while True:
         msg = q.get()
+        if msg is _LISTEN_STOP:
+            break
         if not msg:
             continue
 
-        with open(filepath, 'ab') as fw:
-            fw.write(msg)
-            fw.flush()
+        try:
+            with open(filepath, 'ab') as fw:
+                fw.write(msg)
+                fw.flush()
 
-        _s = to_str(msg)
-        if not _s:
-            continue
+            _s = to_str(msg)
+            if _s:
+                prefix = ''
+                if total > 1:
+                    prefix = f'[dut-{count}] '
 
-        prefix = ''
-        if total > 1:
-            prefix = f'[dut-{count}] '
+                if with_timestamp:
+                    prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
 
-        if with_timestamp:
-            prefix = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + prefix
+                if shall_add_prefix:
+                    _s = prefix + _s
 
-        if shall_add_prefix:
-            _s = prefix + _s
+                _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
+                if _s.endswith('\n'):  # complete line
+                    shall_add_prefix = True
+                    _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
+                    with _stdout_lock if _stdout_lock else contextlib.nullcontext():
+                        _stdout.write(_pending + _s)
+                        _stdout.flush()
+                    _pending = ''
+                else:
+                    shall_add_prefix = False
+                    _s = _s.replace('\n', '\n' + prefix)
+                    _pending += _s
+        except Exception:
+            # one bad message must not kill the listener for the whole session
+            logging.error('listener: failed to process a message, continuing...', exc_info=True)
 
-        _s = _s.replace('\r\n', '\n')  # remove extra \r. since multi-dut \r would mess up the log
-        if _s.endswith('\n'):  # complete line
-            shall_add_prefix = True
-            _s = _s[:-1].replace('\n', '\n' + prefix) + '\n'
-            with _stdout_lock if _stdout_lock else contextlib.nullcontext():
-                _stdout.write(_pending + _s)
-                _stdout.flush()
-            _pending = ''
-        else:
-            shall_add_prefix = False
-            _s = _s.replace('\n', '\n' + prefix)
-            _pending += _s
+        if _heartbeat:
+            _heartbeat()
+
+
+class _ListenerThread(_MonitoredThread):
+    """
+    Keep getting messages from the `MessageQueue` instance, print them to `sys.stdout`,
+    and record them to the pexpect logfile.
+    """
+
+    def __init__(
+        self,
+        msg_queue: MessageQueue,
+        filepath: str,
+        with_timestamp: bool = True,
+        count: int = 1,
+        total: int = 1,
+        _stdout_lock=None,
+    ):
+        self._q = msg_queue
+
+        super().__init__(
+            target=_listen,
+            args=(msg_queue, filepath),
+            kwargs=_drop_none_kwargs(
+                {
+                    'with_timestamp': with_timestamp,
+                    'count': count,
+                    'total': total,
+                    '_stdout_lock': _stdout_lock,
+                    '_heartbeat': self.beat,
+                }
+            ),
+            daemon=True,
+            watch_name=f'listener:{os.path.basename(filepath)}',
+            watch_queue=msg_queue,
+        )
+
+    def close(self) -> None:
+        self._q.put(_LISTEN_STOP)
+        if self.is_alive():
+            self.join(timeout=5)
 
 
 def _listener_gn(
     msg_queue, _pexpect_logfile, with_timestamp, dut_index, dut_total, _stdout_lock=None
-) -> multiprocessing.Process:
+) -> threading.Thread:
     os.makedirs(os.path.dirname(_pexpect_logfile), exist_ok=True)
-    kwargs = {
-        'with_timestamp': with_timestamp,
-        'count': dut_index,
-        'total': dut_total,
-        '_stdout_lock': _stdout_lock,
-    }
 
-    return _ctx.Process(
-        target=_listen,
-        args=(
-            msg_queue,
-            _pexpect_logfile,
+    return _ListenerThread(
+        msg_queue,
+        _pexpect_logfile,
+        **_drop_none_kwargs(
+            {
+                'with_timestamp': with_timestamp,
+                'count': dut_index,
+                'total': dut_total,
+                '_stdout_lock': _stdout_lock,
+            }
         ),
-        kwargs=_drop_none_kwargs(kwargs),
     )
 
 
@@ -692,7 +744,7 @@ def _close_or_terminate(obj):
         return
 
     try:
-        if isinstance(obj, subprocess.Popen | multiprocessing.process.BaseProcess):
+        if isinstance(obj, subprocess.Popen):
             obj.terminate()
             obj.kill()
         elif isinstance(obj, io.IOBase):
@@ -865,12 +917,7 @@ class DutFactory:
         """
         layout = []
         try:
-            from .plugin import _MP_MANAGER  # avoid circular import
-
-            if _MP_MANAGER is None:
-                raise SystemExit('The _MP_MANAGER is not initialized, please use this function under pytest.')
-
-            msg_queue = _MP_MANAGER.MessageQueue()
+            msg_queue = MessageQueue()
             layout.append(msg_queue)
 
             global PARAMETRIZED_FIXTURES_CACHE
