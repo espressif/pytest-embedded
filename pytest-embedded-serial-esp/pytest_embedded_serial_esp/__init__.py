@@ -6,4 +6,4 @@ __all__ = [
     'EspSerial',
 ]
 
-__version__ = '2.9.3'
+__version__ = '2.10.0'

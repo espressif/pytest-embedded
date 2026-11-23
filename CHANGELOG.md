@@ -20,6 +20,25 @@
 </div>
 <hr>
 
+## v2.10.0 (2026-11-23)
+
+### ✨ New Features
+
+- **espemu**: add dut.serial with hard reset and flash erase and write *(harshal.patil - cf330dd)*
+- **espemu**: support esp32c5 *(harshal.patil - 35dd791)*
+- **espemu**: support eFuse images and flash encryption *(harshal.patil - 85bfcfc)*
+
+### 🐛 Bug Fixes
+
+- **serial-esp**: Try USB serial ports before ttyS *(Peter Dragun - 658f189)*
+- **qemu**: resolve Arduino image from app binary *(Lucas Saavedra Vaz - ef3cf22)*
+- **wokwi**: isolate generated diagrams by target *(Lucas Saavedra Vaz - 33cabd3)*
+
+### 📖 Documentation
+
+- updated by llm *(Fu Hanxi - 0bc4de5)*
+
+
 ## v2.9.3 (2026-08-31)
 
 ### 🐛 Bug Fixes

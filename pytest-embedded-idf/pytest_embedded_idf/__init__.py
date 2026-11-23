@@ -33,4 +33,4 @@ __all__ = [
     'UnittestMenuCase',
 ]
 
-__version__ = '2.9.3'
+__version__ = '2.10.0'
