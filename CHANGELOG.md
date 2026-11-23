@@ -20,6 +20,13 @@
 </div>
 <hr>
 
+## v2.10.1 (2026-11-23)
+
+### ✨ New Features
+
+- **junit**: optionally make app_path relative to pytest root *(Fu Hanxi - 427b866)*
+
+
 ## v2.10.0 (2026-11-23)
 
 ### ✨ New Features
