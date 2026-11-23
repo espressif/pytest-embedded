@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Espressif Systems (Shanghai) CO LTD
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import os
 import re
 import time
 import typing as t
@@ -24,7 +25,7 @@ if t.TYPE_CHECKING:
     from .dut import IdfDut
 
 DEFAULT_START_RETRY = 3
-DEFAULT_TIMEOUT = 90
+DEFAULT_TIMEOUT = os.getenv('TEST_CASE_DEFAULT_TIMEOUT', 90)
 WAIT_FOR_MENU_TIMEOUT = 10
 
 READY_PATTERN_LIST = [
