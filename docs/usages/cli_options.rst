@@ -343,7 +343,7 @@ Options in the ``embedded-qemu`` group configure virtual machine execution under
  esp-emu Options
 *****************
 
-Options in the ``embedded-espemu`` group configure lightweight ESP RISC-V SoC emulation.
+Options in the ``embedded-espemu`` group configure lightweight ESP SoC emulation.
 
 .. list-table::
    :header-rows: 1

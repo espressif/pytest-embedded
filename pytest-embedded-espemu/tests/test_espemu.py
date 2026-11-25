@@ -96,7 +96,7 @@ def test_unsupported_target_espemu(testdir):
         '--embedded-services',
         'idf,espemu',
         '--app-path',
-        os.path.join(testdir.tmpdir, 'hello_world_esp32'),  # xtensa, not emulated
+        os.path.join(testdir.tmpdir, 'hello_world_esp32'),  # esp32, not emulated
     )
 
     result.assert_outcomes(errors=1)

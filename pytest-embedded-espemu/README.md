@@ -1,8 +1,8 @@
 ### pytest-embedded-espemu
 
-A `pytest-embedded` service for running tests on [esp-emu](https://github.com/espressif/esp-emulator), Espressif's lightweight emulator for ESP RISC-V series SoCs, without real hardware.
+A `pytest-embedded` service for running tests on [esp-emu](https://github.com/espressif/esp-emulator), Espressif's lightweight emulator for ESP SoCs, without real hardware.
 
-Supported targets: `esp32c3`, `esp32c5`, `esp32c6`, `esp32h2`, `esp32p4`, `esp32s31`.
+Supported targets: `esp32c3`, `esp32c5`, `esp32c6`, `esp32h2`, `esp32p4`, `esp32s3`, `esp32s31`.
 
 #### Service Activation
 
