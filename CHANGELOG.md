@@ -20,6 +20,13 @@
 </div>
 <hr>
 
+## v2.10.2 (2026-11-25)
+
+### ✨ New Features
+
+- **espemu**: support esp32s3 *(Harshal Patil - 6bb7140)*
+
+
 ## v2.10.1 (2026-11-23)
 
 ### ✨ New Features
