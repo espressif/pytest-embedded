@@ -53,7 +53,15 @@ class EspEmu(DuplicateStdoutPopen):
 
     ESPEMU_PROG_PATH = 'esp-emu'
 
-    SUPPORTED_TARGETS: t.ClassVar[tuple] = ('esp32c3', 'esp32c5', 'esp32c6', 'esp32h2', 'esp32p4', 'esp32s31')
+    SUPPORTED_TARGETS: t.ClassVar[tuple] = (
+        'esp32c3',
+        'esp32c5',
+        'esp32c6',
+        'esp32h2',
+        'esp32p4',
+        'esp32s3',
+        'esp32s31',
+    )
 
     # esp-emu reads and writes a QEMU compatible eFuse image of this size. A
     # blank one means "nothing burned", which is the state a test starts from
