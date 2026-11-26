@@ -891,13 +891,15 @@ def embedded_services(request: FixtureRequest) -> str | None:
 def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute) -> str | None:
     """Enable parametrization for the same cli option"""
     res = _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
-    report_path = res
-    if res and _junit_path_relative_to_root(request.config) and Path(res).is_absolute():
-        try:
-            report_path = str(Path(res).resolve().relative_to(request.config.rootpath.resolve()))
-        except ValueError:
-            pass
-    record_xml_attribute('app_path', report_path)
+    report_paths = list(parse_multi_dut_args(_COUNT, res)) if _COUNT > 1 else [res]
+    if _junit_path_relative_to_root(request.config):
+        for i, path in enumerate(report_paths):
+            if path and Path(path).is_absolute():
+                try:
+                    report_paths[i] = str(Path(path).resolve().relative_to(request.config.rootpath.resolve()))
+                except ValueError:
+                    pass
+    record_xml_attribute('app_path', '|'.join(path or '' for path in report_paths) if _COUNT > 1 else report_paths[0])
     return res
 
 

@@ -292,6 +292,39 @@ def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir):
     ]
 
 
+@pytest.mark.parametrize('relative', [False, True])
+@pytest.mark.parametrize('paths_kind', ['mixed', 'both_inside', 'repeat'])
+def test_junit_multi_dut_parent_app_paths(testdir, relative, paths_kind):
+    root = Path(str(testdir.tmpdir))
+    inside = str(root / 'components/first')
+    outside = str(root.parent / (root.name + '-other') / 'app')
+    second, second_relative = {
+        'mixed': (outside, outside),
+        'both_inside': (str(root / 'components/second'), 'components/second'),
+        'repeat': (inside, 'components/first'),
+    }[paths_kind]
+    app_paths = (inside, second)
+    app_path_arg = inside if paths_kind == 'repeat' else '|'.join(app_paths)
+    testdir.makepyprojecttoml(f"""
+        [tool.pytest.ini_options]
+        junit_path_relative_to_root = {str(relative).lower()}
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        @pytest.mark.parametrize('app_path', [{app_path_arg!r}], indirect=True)
+        def test_paths(app_path):
+            assert app_path == {app_paths!r}
+    """)
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert next(ET.parse(root / 'result.xml').iter('testcase')).get('app_path') == '|'.join(
+        ('components/first', second_relative) if relative else app_paths
+    )
+
+
 @pytest.mark.parametrize(
     'parallel_count, parallel_index, res',
     [
