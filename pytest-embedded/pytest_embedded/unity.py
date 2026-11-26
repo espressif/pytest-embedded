@@ -235,7 +235,7 @@ class JunitMerger:
     def _int_add(*args) -> str:
         return reduce(lambda a, b: str(int(a) + int(b)), args)
 
-    def merge(self, junit_files: list[str]):
+    def merge(self, junit_files: list[str], session_tempdir: str):
         if not self.junit_path:
             return
 
@@ -292,8 +292,7 @@ class JunitMerger:
             merging_cases = merging_xml.findall('testcase')
             merging_parent = merging_xml.getroot()
 
-            # a normal file path should be /tmp/pytest-embedded/<test_case_name>/dut.xml
-            test_case_name = os.path.basename(os.path.dirname(file))
+            test_case_name = os.path.relpath(os.path.dirname(file), session_tempdir)
             junit_parent = self.junit.find(f'.//testcase[@name="{test_case_name}"]...')
             junit_case = self.junit.find(f'.//testcase[@name="{test_case_name}"]')
             if junit_case is None:

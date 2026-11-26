@@ -255,14 +255,33 @@ def test_junit_unity_app_path_relative_to_root(testdir, monkeypatch, enabled, op
 
     result = testdir.runpytest('--junitxml=result.xml')
     result.assert_outcomes(passed=2)
-    assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
-        'components/app' if enabled else app_paths[0],
-        app_paths[1],
-    ]
-    assert [case.get('file') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
-        'components/app/main/test_console.c' if enabled else '/IDF/components/app/main/test_console.c',
-        app_paths[1] + '/main/test_console.c',
-    ]
+    assert sorted(
+        (case.get('app_path'), case.get('file')) for case in ET.parse(root / 'result.xml').iter('testcase')
+    ) == sorted(
+        [
+            (
+                'components/app' if enabled else app_paths[0],
+                'components/app/main/test_console.c' if enabled else '/IDF/components/app/main/test_console.c',
+            ),
+            (app_paths[1], app_paths[1] + '/main/test_console.c'),
+        ]
+    )
+
+
+def test_junit_unity_case_name_with_path_separator(testdir):
+    root = Path(str(testdir.tmpdir))
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', [pytest.param('app', id='nested/app')], indirect=True)
+        def test_unity(dut):
+            dut.write('foo.c:1:unity_case:PASS\\n-------------------\\n1 Tests 0 Failures 0 Ignored\\nOK\\n')
+            dut.expect_unity_test_output()
+    """)
+
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert [case.get('name') for case in ET.parse(root / 'result.xml').iter('testcase')] == ['unity_case']
 
 
 def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir):
