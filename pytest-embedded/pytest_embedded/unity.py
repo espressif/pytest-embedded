@@ -5,6 +5,7 @@ import re
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 from functools import reduce
+from pathlib import Path
 from typing import Any, AnyStr
 from xml.sax.saxutils import escape
 
@@ -211,9 +212,12 @@ class JunitMerger:
     SUB_JUNIT_FILENAME = 'dut.xml'
     # multi-dut junit reports should be dut-[INDEX].xml
 
-    def __init__(self, main_junit: str | None, unity_test_report_mode: str | None = None) -> None:
+    def __init__(
+        self, main_junit: str | None, unity_test_report_mode: str | None = None, project_root: Path | None = None
+    ) -> None:
         self.junit_path = main_junit
         self.unity_test_report_mode = unity_test_report_mode or UnityTestReportMode.REPLACE.value
+        self.project_root = project_root
 
         self._junit = None
 
@@ -231,7 +235,7 @@ class JunitMerger:
     def _int_add(*args) -> str:
         return reduce(lambda a, b: str(int(a) + int(b)), args)
 
-    def merge(self, junit_files: list[str]):
+    def merge(self, junit_files: list[str], session_tempdir: str):
         if not self.junit_path:
             return
 
@@ -288,8 +292,7 @@ class JunitMerger:
             merging_cases = merging_xml.findall('testcase')
             merging_parent = merging_xml.getroot()
 
-            # a normal file path should be /tmp/pytest-embedded/<test_case_name>/dut.xml
-            test_case_name = os.path.basename(os.path.dirname(file))
+            test_case_name = os.path.relpath(os.path.dirname(file), session_tempdir)
             junit_parent = self.junit.find(f'.//testcase[@name="{test_case_name}"]...')
             junit_case = self.junit.find(f'.//testcase[@name="{test_case_name}"]')
             if junit_case is None:
@@ -304,6 +307,23 @@ class JunitMerger:
 
             for case in merging_cases:
                 case.attrib['is_unity_case'] = '1'
+                if self.project_root and (source_file := case.get('file')):
+                    source_path = Path(source_file)
+                    if source_path.is_absolute():
+                        if idf_path := os.environ.get('IDF_PATH'):
+                            try:
+                                source_path = Path(idf_path) / source_path.relative_to('/IDF')
+                            except ValueError:
+                                pass
+                        try:
+                            case.set('file', str(source_path.resolve().relative_to(self.project_root.resolve())))
+                        except ValueError:
+                            pass
+                if self.project_root and (app_path := case.get('app_path')) and Path(app_path).is_absolute():
+                    try:
+                        case.set('app_path', str(Path(app_path).resolve().relative_to(self.project_root.resolve())))
+                    except ValueError:
+                        pass
                 junit_parent.append(case)
 
             junit_parent.attrib['errors'] = self._int_add(

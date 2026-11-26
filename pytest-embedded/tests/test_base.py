@@ -154,15 +154,15 @@ def test_default_app_path(testdir):
 
 
 @pytest.mark.parametrize('enabled', [False, True])
-def test_junit_app_path_relative_to_root(testdir, enabled):
+@pytest.mark.parametrize('option', ['junit_path_relative_to_root', 'junit_app_path_relative_to_root'])
+def test_junit_path_relative_to_root(testdir, enabled, option):
     root = Path(str(testdir.tmpdir))
     app_paths = [str(root / 'components' / 'app'), str(root.parent / (root.name + '-other') / 'app'), 'relative/app']
-    if enabled:
-        testdir.makepyprojecttoml("""
-            [tool.pytest.ini_options]
-            junit_app_path_relative_to_root = true
-            junit_family = "xunit1"
-        """)
+    testdir.makepyprojecttoml(f"""
+        [tool.pytest.ini_options]
+        {option} = {str(enabled).lower()}
+        junit_family = "xunit1"
+    """)
     testdir.makepyfile(f"""
         import pytest
 
@@ -173,6 +173,9 @@ def test_junit_app_path_relative_to_root(testdir, enabled):
 
     result = testdir.runpytest('--junitxml=result.xml')
     result.assert_outcomes(passed=3)
+    assert ('junit_app_path_relative_to_root is deprecated' in result.stdout.str()) == (
+        option == 'junit_app_path_relative_to_root'
+    )
     assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
         'components/app' if enabled else app_paths[0],
         app_paths[1],
@@ -180,12 +183,36 @@ def test_junit_app_path_relative_to_root(testdir, enabled):
     ]
 
 
+@pytest.mark.parametrize('new, old', [(None, None), (False, True), (True, False)])
+def test_junit_path_relative_to_root_overrides_legacy_option(testdir, new, old):
+    root = Path(str(testdir.tmpdir))
+    testdir.makepyprojecttoml(f"""
+        [tool.pytest.ini_options]
+        {f'junit_path_relative_to_root = {str(new).lower()}' if new is not None else ''}
+        {f'junit_app_path_relative_to_root = {str(old).lower()}' if old is not None else ''}
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', [{str(root / 'components/app')!r}], indirect=True)
+        def test_app(app_path):
+            pass
+    """)
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert ('junit_app_path_relative_to_root is deprecated and ignored' in result.stdout.str()) == (old is not None)
+    assert next(ET.parse(root / 'result.xml').iter('testcase')).get('app_path') == (
+        'components/app' if new else str(root / 'components/app')
+    )
+
+
 def test_junit_app_path_uses_overridden_rootdir(testdir):
     root = Path(str(testdir.tmpdir))
     (root / 'project').mkdir()
     testdir.makepyprojecttoml("""
         [tool.pytest.ini_options]
-        junit_app_path_relative_to_root = true
+        junit_path_relative_to_root = true
         junit_family = "xunit1"
     """)
     testdir.makepyfile(f"""
@@ -199,6 +226,122 @@ def test_junit_app_path_uses_overridden_rootdir(testdir):
     result = testdir.runpytest('--rootdir=project', '--junitxml=result.xml')
     result.assert_outcomes(passed=1)
     assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == ['components/app']
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+@pytest.mark.parametrize('option', ['junit_path_relative_to_root', 'junit_app_path_relative_to_root'])
+def test_junit_unity_app_path_relative_to_root(testdir, monkeypatch, enabled, option):
+    root = Path(str(testdir.tmpdir))
+    monkeypatch.setenv('IDF_PATH', str(root))
+    app_paths = [str(root / 'components' / 'app'), str(root.parent / (root.name + '-other') / 'app')]
+    testdir.makepyprojecttoml(f"""
+        [tool.pytest.ini_options]
+        {option} = {str(enabled).lower()}
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', {app_paths!r}, indirect=True)
+        def test_unity(dut, app_path):
+            source_file = (
+                '/IDF/components/app/main/test_console.c'
+                if app_path == {app_paths[0]!r}
+                else app_path + '/main/test_console.c'
+            )
+            dut.write(f'{{source_file}}:1:unity_case:PASS\\n-------------------\\n1 Tests 0 Failures 0 Ignored\\nOK\\n')
+            dut.expect_unity_test_output()
+    """)
+
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=2)
+    assert sorted(
+        (case.get('app_path'), case.get('file')) for case in ET.parse(root / 'result.xml').iter('testcase')
+    ) == sorted(
+        [
+            (
+                'components/app' if enabled else app_paths[0],
+                'components/app/main/test_console.c' if enabled else '/IDF/components/app/main/test_console.c',
+            ),
+            (app_paths[1], app_paths[1] + '/main/test_console.c'),
+        ]
+    )
+
+
+def test_junit_unity_case_name_with_path_separator(testdir):
+    root = Path(str(testdir.tmpdir))
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.mark.parametrize('app_path', [pytest.param('app', id='nested/app')], indirect=True)
+        def test_unity(dut):
+            dut.write('foo.c:1:unity_case:PASS\\n-------------------\\n1 Tests 0 Failures 0 Ignored\\nOK\\n')
+            dut.expect_unity_test_output()
+    """)
+
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert [case.get('name') for case in ET.parse(root / 'result.xml').iter('testcase')] == ['unity_case']
+
+
+def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir):
+    root = Path(str(testdir.tmpdir))
+    app_paths = [str(root / 'components' / 'first'), str(root / 'components' / 'second')]
+    testdir.makepyprojecttoml("""
+        [tool.pytest.ini_options]
+        junit_path_relative_to_root = true
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        @pytest.mark.parametrize('app_path', [{'|'.join(app_paths)!r}], indirect=True)
+        def test_unity(dut):
+            for device in dut:
+                device.write('foo.c:1:unity_case:PASS\\n-------------------\\n1 Tests 0 Failures 0 Ignored\\nOK\\n')
+                device.expect_unity_test_output()
+    """)
+
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
+        'components/first',
+        'components/second',
+    ]
+
+
+@pytest.mark.parametrize('relative', [False, True])
+@pytest.mark.parametrize('paths_kind', ['mixed', 'both_inside', 'repeat'])
+def test_junit_multi_dut_parent_app_paths(testdir, relative, paths_kind):
+    root = Path(str(testdir.tmpdir))
+    inside = str(root / 'components/first')
+    outside = str(root.parent / (root.name + '-other') / 'app')
+    second, second_relative = {
+        'mixed': (outside, outside),
+        'both_inside': (str(root / 'components/second'), 'components/second'),
+        'repeat': (inside, 'components/first'),
+    }[paths_kind]
+    app_paths = (inside, second)
+    app_path_arg = inside if paths_kind == 'repeat' else '|'.join(app_paths)
+    testdir.makepyprojecttoml(f"""
+        [tool.pytest.ini_options]
+        junit_path_relative_to_root = {str(relative).lower()}
+        junit_family = "xunit1"
+    """)
+    testdir.makepyfile(f"""
+        import pytest
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        @pytest.mark.parametrize('app_path', [{app_path_arg!r}], indirect=True)
+        def test_paths(app_path):
+            assert app_path == {app_paths!r}
+    """)
+    result = testdir.runpytest('--junitxml=result.xml')
+    result.assert_outcomes(passed=1)
+    assert next(ET.parse(root / 'result.xml').iter('testcase')).get('app_path') == '|'.join(
+        ('components/first', second_relative) if relative else app_paths
+    )
 
 
 @pytest.mark.parametrize(
