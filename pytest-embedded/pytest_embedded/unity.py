@@ -263,30 +263,40 @@ class JunitMerger:
 
             # multi-dut, multi junit files
             if len(_junit_files) > 1:
-                _data = None
+                merged_testsuite = ET.Element('testsuite')
+                testcases = {}
                 for _junit_file in _junit_files:
                     logging.debug(f'Merging {_junit_file} to {merged_dut_junit_filepath}')
-                    _junit = ET.parse(_junit_file)
-                    _root = _junit.getroot()
+                    for testcase in ET.parse(_junit_file).getroot().findall('testcase'):
+                        name = testcase.get('name') or ''
+                        if name not in testcases:
+                            testcases[name] = testcase
+                            merged_testsuite.append(testcase)
+                            continue
 
-                    if _data is None:
-                        _data = _junit
-                    else:
-                        _data.getroot().extend(_root)
-                        _data.getroot().attrib['errors'] = self._int_add(
-                            _data.getroot().attrib['errors'], _root.attrib['errors']
-                        )
-                        _data.getroot().attrib['failures'] = self._int_add(
-                            _data.getroot().attrib['failures'], _root.attrib['failures']
-                        )
-                        _data.getroot().attrib['skipped'] = self._int_add(
-                            _data.getroot().attrib['skipped'], _root.attrib['skipped']
-                        )
-                        _data.getroot().attrib['tests'] = self._int_add(
-                            _data.getroot().attrib['tests'],
-                            _root.attrib['tests'],
-                        )
-                _data.write(merged_dut_junit_filepath)
+                        existing_testcase = testcases[name]
+                        existing_app_paths = existing_testcase.get('app_path', '')
+                        if (app_path := testcase.get('app_path')) and app_path not in existing_app_paths.split('|'):
+                            existing_testcase.set('app_path', '|'.join(filter(None, (existing_app_paths, app_path))))
+                        for element_name in ('failure', 'error'):
+                            for element in testcase.findall(element_name):
+                                existing_element = existing_testcase.find(element_name)
+                                if existing_element is None:
+                                    existing_testcase.append(element)
+                                else:
+                                    existing_element.set(
+                                        'message',
+                                        existing_element.get('message', '') + '. ' + element.get('message', ''),
+                                    )
+
+                for attr, path in (
+                    ('tests', 'testcase'),
+                    ('failures', 'testcase/failure'),
+                    ('errors', 'testcase/error'),
+                    ('skipped', 'testcase/skipped'),
+                ):
+                    merged_testsuite.set(attr, str(len(merged_testsuite.findall(path))))
+                ET.ElementTree(merged_testsuite).write(merged_dut_junit_filepath)
             # multi-dut, single junit file
             elif _junit_files[0] != merged_dut_junit_filepath:
                 _junit_file = _junit_files[0]
@@ -329,11 +339,16 @@ class JunitMerger:
                             case.set('file', str(source_path.resolve().relative_to(self.project_root.resolve())))
                         except ValueError:
                             pass
-                if self.project_root and (app_path := case.get('app_path')) and Path(app_path).is_absolute():
-                    try:
-                        case.set('app_path', str(Path(app_path).resolve().relative_to(self.project_root.resolve())))
-                    except ValueError:
-                        pass
+                if self.project_root and (app_path := case.get('app_path')):
+                    paths = []
+                    for path in app_path.split('|'):
+                        if Path(path).is_absolute():
+                            try:
+                                path = str(Path(path).resolve().relative_to(self.project_root.resolve()))
+                            except ValueError:
+                                pass
+                        paths.append(path)
+                    case.set('app_path', '|'.join(paths))
                 junit_parent.append(case)
 
             junit_parent.attrib['errors'] = self._int_add(

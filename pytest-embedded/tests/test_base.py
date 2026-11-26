@@ -284,9 +284,16 @@ def test_junit_unity_case_name_with_path_separator(testdir):
     assert [case.get('name') for case in ET.parse(root / 'result.xml').iter('testcase')] == ['unity_case']
 
 
-def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir):
+@pytest.mark.parametrize('second_path', ['inside', 'outside', 'repeat'])
+def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir, second_path):
     root = Path(str(testdir.tmpdir))
-    app_paths = [str(root / 'components' / 'first'), str(root / 'components' / 'second')]
+    first = str(root / 'components' / 'first')
+    second = {
+        'inside': str(root / 'components' / 'second'),
+        'outside': str(root.parent / 'other-app'),
+        'repeat': first,
+    }[second_path]
+    app_paths = [first, second]
     testdir.makepyprojecttoml("""
         [tool.pytest.ini_options]
         junit_path_relative_to_root = true
@@ -306,8 +313,11 @@ def test_junit_multi_dut_unity_app_paths_relative_to_root(testdir):
     result = testdir.runpytest('--junitxml=result.xml')
     result.assert_outcomes(passed=1)
     assert [case.get('app_path') for case in ET.parse(root / 'result.xml').iter('testcase')] == [
-        'components/first',
-        'components/second',
+        {
+            'inside': 'components/first|components/second',
+            'outside': f'components/first|{second}',
+            'repeat': 'components/first',
+        }[second_path]
     ]
 
 
@@ -639,7 +649,9 @@ def test_expect_unity_test_output_multi_dut(testdir):
             dut_1 = dut[1]
 
             dut_0.write(output)
-            dut_1.write(output)
+            dut_1.write(output.replace('Expected 2 was 1', 'Expected 2 was 3').replace(
+                'foo bar.c:102::PASS', 'foo bar.c:102::FAIL:Second DUT failed'
+            ))
             dut_0.expect_unity_test_output()
             dut_1.expect_unity_test_output()
 
@@ -660,36 +672,28 @@ def test_expect_unity_test_output_multi_dut(testdir):
     junit_report = ET.parse('report.xml').getroot()[0]
 
     assert junit_report.attrib['errors'] == '0'
-    assert junit_report.attrib['failures'] == '9'
+    assert junit_report.attrib['failures'] == '7'
     assert junit_report.attrib['skipped'] == '0'
-    assert junit_report.attrib['tests'] == '12'
+    assert junit_report.attrib['tests'] == '8'
 
-    assert junit_report[0].get('name') == 'test_case'
-    assert junit_report[0].find('failure') is not None
-    assert junit_report[1].get('name') == 'test_case_2'
+    assert [case.get('name') for case in junit_report] == [
+        'test_case',
+        'test_case_2',
+        'test case 3',
+        'test case 4',
+        'test_case',
+        'test_case_2',
+        'test case 3',
+        'test case 4',
+    ]
+    failure = junit_report[0].find('failure')
+    assert failure is not None
+    assert failure.get('message') == 'Expected 2 was 1. Expected 2 was 3'
     assert junit_report[1].find('failure') is not None
-    assert junit_report[2].get('name') == 'test case 3'
-    assert junit_report[2].find('failure') is None
-    assert junit_report[3].get('name') == 'test case 4'
+    second_failure = junit_report[2].find('failure')
+    assert second_failure is not None
+    assert second_failure.get('message') == 'Second DUT failed'
     assert junit_report[3].find('failure') is not None
-
-    assert junit_report[4].get('name') == 'test_case'
-    assert junit_report[4].find('failure') is not None
-    assert junit_report[5].get('name') == 'test_case_2'
-    assert junit_report[5].find('failure') is not None
-    assert junit_report[6].get('name') == 'test case 3'
-    assert junit_report[6].find('failure') is None
-    assert junit_report[7].get('name') == 'test case 4'
-    assert junit_report[7].find('failure') is not None
-
-    assert junit_report[8].get('name') == 'test_case'
-    assert junit_report[8].find('failure') is not None
-    assert junit_report[9].get('name') == 'test_case_2'
-    assert junit_report[9].find('failure') is not None
-    assert junit_report[10].get('name') == 'test case 3'
-    assert junit_report[10].find('failure') is None
-    assert junit_report[11].get('name') == 'test case 4'
-    assert junit_report[11].find('failure') is not None
 
 
 def test_custom_unity_names_in_stash_and_final_junit(testdir):
@@ -753,7 +757,6 @@ def test_custom_unity_names_in_stash_and_final_junit(testdir):
             ('test_fixture::passed_case', False),
             ('test_fixture::failed_case', True),
             ('skipped_case', False),
-            ('test_multi[2]::shared', False),
             ('test_multi[2]::shared', True),
             ('test_factory::factory_case', False),
         ]
