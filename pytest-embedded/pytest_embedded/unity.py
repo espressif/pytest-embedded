@@ -6,8 +6,10 @@ import xml.etree.ElementTree as ET
 from copy import deepcopy
 from functools import reduce
 from pathlib import Path
-from typing import Any, AnyStr
+from typing import Any, AnyStr, NamedTuple
 from xml.sax.saxutils import escape
+
+import pytest
 
 from .utils import to_str
 
@@ -80,6 +82,14 @@ class TestFormat(enum.Enum):
 class UnityTestReportMode(str, enum.Enum):
     REPLACE = 'replace'
     MERGE = 'merge'
+
+
+class UnityCase(NamedTuple):
+    name: str
+    result: str
+
+
+UnityCasesStashKey = pytest.StashKey[list[UnityCase]]()
 
 
 class TestCase:

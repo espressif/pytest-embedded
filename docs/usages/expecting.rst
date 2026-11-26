@@ -161,3 +161,5 @@ Additional arguments for :func:`~pytest_embedded.dut.Dut.expect_unity_test_outpu
 -  ``timeout``: Test suite timeout in seconds (default: 60 seconds).
 -  ``remove_asci_escape_code``: Strips ANSI color escape sequences from the console before parsing (default: ``True``).
 -  ``extra_before``: Prepends additional log text read previously to the buffer.
+
+To customize reported Unity case names or read parsed Unity case results from ``item.stash``, see :doc:`hooks`.

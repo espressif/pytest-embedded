@@ -692,6 +692,97 @@ def test_expect_unity_test_output_multi_dut(testdir):
     assert junit_report[11].find('failure') is not None
 
 
+def test_custom_unity_names_in_stash_and_final_junit(testdir):
+    testdir.makeconftest("""
+        import pytest
+        from pytest_embedded.unity import UnityCasesStashKey
+
+        def pytest_custom_unity_case_name(item, case_name):
+            if case_name == 'skipped_case':
+                return None
+            return f'{item.name}::{case_name}'
+
+        @pytest.hookimpl(hookwrapper=True)
+        def pytest_runtest_makereport(item, call):
+            yield
+            if call.when != 'call':
+                return
+            cases = item.stash[UnityCasesStashKey]
+            if item.name.startswith('test_multi'):
+                assert [(case.name, case.result) for case in cases] == [
+                    (f'{item.name}::shared', 'passed'),
+                    (f'{item.name}::shared', 'failed'),
+                ]
+            elif item.name == 'test_fixture':
+                assert [(case.name, case.result) for case in cases] == [
+                    ('test_fixture::passed_case', 'passed'),
+                    ('test_fixture::failed_case', 'failed'),
+                    ('skipped_case', 'skipped'),
+                ]
+            else:
+                assert item.name == 'test_factory'
+                assert [(case.name, case.result) for case in cases] == [
+                    ('test_factory::factory_case', 'passed'),
+                ]
+    """)
+    testdir.makepyfile("""
+        import pytest
+        from pytest_embedded import DutFactory
+
+        def test_fixture(dut):
+            dut.testsuite.add_unity_test_cases(
+                'foo.c:1:passed_case:PASS\\nfoo.c:2:failed_case:FAIL\\nfoo.c:3:skipped_case:IGNORE'
+            )
+            dut.testsuite.to_xml()  # a pre-rendered XML tree must still use the final names
+
+        @pytest.mark.parametrize('count', [2], indirect=True)
+        def test_multi(dut):
+            dut[0].testsuite.add_unity_test_cases('foo.c:1:shared:PASS')
+            dut[1].testsuite.add_unity_test_cases('foo.c:1:shared:FAIL')
+
+        def test_factory():
+            dut = DutFactory.create()
+            dut.testsuite.add_unity_test_cases('foo.c:1:factory_case:PASS')
+    """)
+
+    result = testdir.runpytest('--junitxml=report.xml')
+    result.assert_outcomes(failed=2, passed=1)
+    cases = ET.parse('report.xml').getroot().findall('.//testcase')
+    assert sorted((case.get('name'), case.find('failure') is not None) for case in cases) == sorted(
+        [
+            ('test_fixture::passed_case', False),
+            ('test_fixture::failed_case', True),
+            ('skipped_case', False),
+            ('test_multi[2]::shared', False),
+            ('test_multi[2]::shared', True),
+            ('test_factory::factory_case', False),
+        ]
+    )
+
+
+def test_unity_cases_keep_original_names_without_hook(testdir):
+    testdir.makeconftest("""
+        import pytest
+        from pytest_embedded.unity import UnityCasesStashKey
+
+        @pytest.hookimpl(hookwrapper=True)
+        def pytest_runtest_makereport(item, call):
+            yield
+            if call.when == 'call':
+                assert [(case.name, case.result) for case in item.stash[UnityCasesStashKey]] == [
+                    ('original', 'passed'),
+                ]
+    """)
+    testdir.makepyfile("""
+        def test_default(dut):
+            dut.testsuite.add_unity_test_cases('foo.c:1:original:PASS')
+    """)
+
+    result = testdir.runpytest('--junitxml=report.xml')
+    result.assert_outcomes(passed=1)
+    assert [case.get('name') for case in ET.parse('report.xml').getroot().findall('.//testcase')] == ['original']
+
+
 def test_expect_unity_test_output_multi_dut_with_illegal_chars(testdir):
     testdir.makepyfile(r"""
         import pytest

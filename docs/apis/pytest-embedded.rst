@@ -17,6 +17,11 @@
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pytest_embedded.hooks
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: pytest_embedded.log
    :members:
    :undoc-members:
