@@ -27,6 +27,7 @@ from _pytest.fixtures import (
 from _pytest.main import Session
 from _pytest.python import Function
 
+from . import hooks
 from .app import App
 from .dut import Dut
 from .dut_factory import (
@@ -48,7 +49,7 @@ from .dut_factory import (
     wokwi_gn,
 )
 from .log import MessageQueue, MessageQueueManager, PexpectProcess
-from .unity import JunitMerger, UnityTestReportMode, escape_illegal_xml_chars
+from .unity import JunitMerger, UnityCase, UnityCasesStashKey, UnityTestReportMode, escape_illegal_xml_chars
 from .utils import (
     SERVICE_LIB_NAMES,
     ClassCliOptions,
@@ -1410,6 +1411,10 @@ _session_tempdir_key = pytest.StashKey['session_tempdir']()
 _junit_report_path_key = pytest.StashKey[str]()
 
 
+def pytest_addhooks(pluginmanager: pytest.PytestPluginManager) -> None:
+    pluginmanager.add_hookspecs(hooks)
+
+
 def pytest_configure(config: Config) -> None:
     if config.getini('junit_app_path_relative_to_root') is not None:
         message = (
@@ -1603,6 +1608,27 @@ class PytestEmbedded:
         all_duts.extend(factory_duts)
 
         self._raise_dut_failed_cases_if_exists(all_duts)  # type: ignore
+
+    def pytest_runtest_makereport(self, item: Function, call: pytest.CallInfo) -> None:
+        if call.when != 'call':
+            return
+
+        all_duts: list[Dut] = []
+        if 'dut' in item.funcargs:
+            all_duts.extend(dut for dut in to_list(item.funcargs['dut']) if isinstance(dut, Dut))
+        all_duts.extend(DutFactory.get_all_duts())
+
+        cases: list[UnityCase] = []
+        for dut in all_duts:
+            for case in dut.testsuite.testcases:
+                name = item.config.hook.pytest_custom_unity_case_name(item=item, case_name=case.name)
+                if name is None:
+                    name = case.name
+                case.name = name
+                if case._xml is not None:
+                    case._xml.set('name', name)
+                cases.append(UnityCase(name, {'PASS': 'passed', 'FAIL': 'failed', 'IGNORE': 'skipped'}[case.result]))
+        item.stash[UnityCasesStashKey] = cases
 
     @pytest.hookimpl(trylast=True)  # combine all possible junit reports should be the last step
     def pytest_sessionfinish(self, session: Session, exitstatus: int) -> None:
