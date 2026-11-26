@@ -73,12 +73,23 @@ if t.TYPE_CHECKING:
 _T = t.TypeVar('_T')
 
 
+def _junit_path_relative_to_root(config: Config) -> bool:
+    value = config.getini('junit_path_relative_to_root')
+    return bool(config.getini('junit_app_path_relative_to_root')) if value is None else value
+
+
 def pytest_addoption(parser: pytest.Parser):
     parser.addini(
-        'junit_app_path_relative_to_root',
-        'Record JUnit app_path relative to the pytest root directory when the app is inside it.',
+        'junit_path_relative_to_root',
+        'Record JUnit app_path and Unity source file relative to the pytest root directory when inside it.',
         type='bool',
-        default=False,
+        default=None,
+    )
+    parser.addini(
+        'junit_app_path_relative_to_root',
+        'Deprecated; use junit_path_relative_to_root instead. Will be removed in the 3.x release.',
+        type='bool',
+        default=None,
     )
     base_group = parser.getgroup('embedded')
     base_group.addoption(
@@ -881,7 +892,7 @@ def app_path(request: FixtureRequest, test_file_path: str, record_xml_attribute)
     """Enable parametrization for the same cli option"""
     res = _request_param_or_config_option_or_default(request, 'app_path', os.path.dirname(test_file_path))
     report_path = res
-    if res and request.config.getini('junit_app_path_relative_to_root') and Path(res).is_absolute():
+    if res and _junit_path_relative_to_root(request.config) and Path(res).is_absolute():
         try:
             report_path = str(Path(res).resolve().relative_to(request.config.rootpath.resolve()))
         except ValueError:
@@ -1398,8 +1409,19 @@ _junit_report_path_key = pytest.StashKey[str]()
 
 
 def pytest_configure(config: Config) -> None:
+    if config.getini('junit_app_path_relative_to_root') is not None:
+        message = (
+            'junit_app_path_relative_to_root is deprecated and ignored because junit_path_relative_to_root is set. '
+            'Will be removed in the 3.x release.'
+            if config.getini('junit_path_relative_to_root') is not None
+            else 'junit_app_path_relative_to_root is deprecated; use junit_path_relative_to_root instead. '
+            'Will be removed in the 3.x release.'
+        )
+        config.issue_config_time_warning(pytest.PytestConfigWarning(message), stacklevel=2)
     config.stash[_junit_merger_key] = JunitMerger(
-        config.option.xmlpath, config.getoption('unity_test_report_mode', UnityTestReportMode.REPLACE.value)
+        config.option.xmlpath,
+        config.getoption('unity_test_report_mode', UnityTestReportMode.REPLACE.value),
+        config.rootpath if _junit_path_relative_to_root(config) else None,
     )
     config.stash[_junit_report_path_key] = config.option.xmlpath
 
